@@ -1,0 +1,177 @@
+import { LightningElement, wire, track } from 'lwc';
+import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
+import getWaiverCount from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverCount';
+
+const columns = [
+    { label: 'Requesting Portfolio', fieldName: 'Requesting_Portfolio__c', sortable: true },
+    { label: 'Status', fieldName: 'Status__c', sortable: true },
+    { label: 'Waiver Reason', fieldName: 'Waiver_Reason__c', sortable: true },
+    { label: 'Standard Page Title', fieldName: 'Standard_Page_Title__c', sortable: true }
+];
+
+const pageSize = 10;
+
+export default class AwpWaiverListView extends LightningElement {
+    @track records = [];
+    @track columns = columns;
+    @track isLoading = true;
+    @track currentPage = 1;
+    @track totalRecords;
+    @track totalPages;
+    @track sortBy = 'Requesting_Portfolio__c';
+    @track sortDirection = 'asc';
+
+    // Pagination state
+    first = true;
+    after = '';
+    lastId = '';
+    before = '';
+    firstId = '';
+    last = false;
+    lastPageSize = 0;
+
+    @wire(getWaiverCount)
+    getWaiverCount({ data, error }) {
+        if (data) {
+            this.totalRecords = data;
+            this.totalPages = Math.ceil(data / pageSize);
+        } else if (error) {
+            console.error(error);
+        }
+    }
+
+    @wire(getWaiverRecords, {
+        sortBy: '$sortBy',
+        sortByType: 'String',
+        sortOrder: '$sortDirection',
+        pageSize,
+        first: '$first',
+        after: '$after',
+        lastId: '$lastId',
+        before: '$before',
+        firstId: '$firstId',
+        last: '$last',
+        lastPageSize: '$lastPageSize'
+    })
+    getWaiverRecords({ data, error }) {
+        this.isLoading = false;
+        if (data) {
+            this.records = data.waiverRecords;
+        } else if (error) {
+            console.error(error);
+        }
+    }
+
+    handleSort(event) {
+        this.sortBy = event.detail.fieldName;
+        this.sortDirection = event.detail.sortDirection;
+        this.currentPage = 1;
+        this.resetPaginationState();
+        this.fetchData();
+    }
+
+    handleFirst() {
+        this.currentPage = 1;
+        this.resetPaginationState();
+        this.fetchData();
+    }
+
+    handleNext() {
+        this.currentPage++;
+        this.resetPaginationState();
+        const lastRecord = this.records[this.records.length - 1];
+        this.after = lastRecord[this.sortBy] || 'NULL';
+        this.lastId = lastRecord.Id;
+        this.first = false;
+        this.last = this.currentPage === this.totalPages;
+        this.fetchData();
+    }
+
+    handlePrevious() {
+        this.currentPage--;
+        this.resetPaginationState();
+        const firstRecord = this.records[0];
+        this.before = firstRecord[this.sortBy] || 'NULL';
+        this.firstId = firstRecord.Id;
+        this.first = this.currentPage === 1;
+        this.fetchData();
+    }
+
+    handleLast() {
+        this.currentPage = this.totalPages;
+        this.resetPaginationState();
+        this.first = false;
+        this.last = true;
+        this.lastPageSize = this.totalRecords % pageSize;
+        this.fetchData();
+    }
+
+    resetPaginationState() {
+        this.isLoading = true;
+        this.before = '';
+        this.firstId = '';
+        this.after = '';
+        this.lastId = '';
+        this.first = true;
+        this.last = false;
+        this.lastPageSize = 0;
+    }
+
+    fetchData() {
+        getWaiverRecords({
+            sortBy: this.sortBy,
+            sortByType: 'String',
+            sortOrder: this.sortDirection,
+            pageSize,
+            first: this.first,
+            after: this.after,
+            lastId: this.lastId,
+            before: this.before,
+            firstId: this.firstId,
+            last: this.last,
+            lastPageSize: this.lastPageSize
+        }).then(data => {
+            this.records = data.waiverRecords;
+            this.isLoading = false;
+        }).catch(error => {
+            console.error(error);
+            this.isLoading = false;
+        });
+    }
+
+    get showPaginationBar() {
+        return this.totalPages > 1;
+    }
+
+    get isFirstPage() {
+        return this.currentPage === 1;
+    }
+
+    get isLastPage() {
+        return this.currentPage === this.totalPages;
+    }
+
+    get rowNumberOffset() {
+        return (this.currentPage - 1) * pageSize;
+    }
+
+    handleNewWaiver() {
+        // Add logic for handling New Waiver button click
+    }
+
+    handleHome() {
+        // Add logic for handling Home button click
+    }
+
+    handleContactUs() {
+        // Add logic for handling Contact Us button click
+    }
+
+    handleFAQ() {
+        // Add logic for handling FAQ button click
+    }
+
+    handleHelp() {
+        // Add logic for handling Help button click
+    }
+}
