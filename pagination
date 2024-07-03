@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="Waivers List View" icon-name="custom:custom63">
+        <div class="slds-grid slds-wrap slds-m-bottom_medium slds-grid_align-end">
+            <div class="slds-button-group">
+                <lightning-button label="New Waiver" onclick={handleNewWaiver} class="slds-m-left_x-small"></lightning-button>
+                <lightning-button label="Home" onclick={handleHome} class="slds-m-left_x-small"></lightning-button>
+                <lightning-button label="Contact Us" onclick={handleContactUs} class="slds-m-left_x-small"></lightning-button>
+                <lightning-button label="FAQ" onclick={handleFAQ} class="slds-m-left_x-small"></lightning-button>
+                <lightning-button label="Help" onclick={handleHelp} class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+
+        <div class="slds-p-around_medium">
+            <lightning-datatable
+                key-field="Id"
+                data={records}
+                columns={columns}
+                hide-checkbox-column
+                show-row-number-column="true"
+                sorted-by={sortBy}
+                sorted-direction={sortDirection}
+                onsort={handleSort}
+                row-number-offset={rowNumberOffset}>
+            </lightning-datatable>
+            
+            <template if:true={showPaginationBar}>
+                <div class="slds-grid slds-m-top_medium slds-grid_align-end">
+                    <lightning-button label="First" onclick={handleFirst} disabled={isFirstPage}></lightning-button>
+                    <lightning-button label="Previous" onclick={handlePrevious} disabled={isFirstPage}></lightning-button>
+                    <lightning-button label="Next" onclick={handleNext} disabled={isLastPage}></lightning-button>
+                    <lightning-button label="Last" onclick={handleLast} disabled={isLastPage}></lightning-button>
+                </div>
+            </template>
+            
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading"></lightning-spinner>
+            </template>
+        </div>
+    </lightning-card>
+</template>
