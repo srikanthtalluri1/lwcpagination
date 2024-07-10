@@ -1,0 +1,133 @@
+<!-- sldsValidatorIgnore -->
+<template>
+  <lightning-card title="Waivers List View" icon-name="custom:custom63">
+    <lightning-layout multiple-rows="true">
+      <lightning-layout-item padding="around-small" size="12">
+        <div class="slds-grid slds-wrap slds-grid--align-end">
+          <div class="slds-col slds-var-p-right_small">
+            <lightning-input
+              name="search"
+              label="Search"
+              type="search"
+              onblur={handleSearchChange}
+            ></lightning-input>
+          </div>
+          <div class="slds-col slds-var-p-top_x-large slds-var-p-right_small">
+            <lightning-button
+              label="Search"
+              variant="brand"
+              onclick={handleSearch}
+              class="slds-p-left_small"
+              style="margin-top: auto"
+            ></lightning-button>
+          </div>
+          <div class="slds-col slds-var-p-top_x-large slds-var-p-right_small">
+            <lightning-button
+              label="Reset"
+              variant="neutral"
+              onclick={handleReset}
+            ></lightning-button>
+          </div>
+          <div
+            class="slds-col slds-var-p-top_x-large"
+            style="padding-top: 1.5%"
+          >
+            <lightning-button-group>
+              <lightning-button
+                label="New Waiver"
+                onclick={handleNewWaiver}
+              ></lightning-button>
+              <lightning-button
+                label="Home"
+                onclick={handleHome}
+              ></lightning-button>
+              <lightning-button
+                label="Contact Us"
+                onclick={handleContactUs}
+              ></lightning-button>
+              <lightning-button
+                label="FAQ"
+                onclick={handleFAQ}
+              ></lightning-button>
+              <lightning-button
+                label="Help"
+                onclick={handleHelp}
+              ></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+      </lightning-layout-item>
+
+      <lightning-layout-item padding="around-small" size="12">
+        <div>
+          <lightning-datatable
+            key-field="Id"
+            data={records}
+            columns={columns}
+            hide-checkbox-column
+            show-row-number-column="true"
+            sorted-by={sortBy}
+            sorted-direction={sortDirection}
+            onsort={handleSort}
+            row-number-offset={rowNumberOffset}
+          >
+          </lightning-datatable>
+          <template if:true={noRecordsFound}> No records to display </template>
+        </div>
+      </lightning-layout-item>
+
+      <lightning-layout-item padding="around-small" size="12">
+        <!-- <template if:true={showPaginationBar}> -->
+        <div class="slds-grid slds-wrap slds-grid--align-spread">
+          <div class="slds-col">
+            <lightning-combobox
+              label="Page Size"
+              value={currentPageSize}
+              options={pageSizeOptions}
+              onchange={handlePageSize}
+            ></lightning-combobox>
+          </div>
+          <div class="slds-col slds-var-p-top_xx-large">
+            <lightning-button-group>
+              <lightning-button
+                label="First"
+                icon-name="utility:jump_to_left"
+                onclick={handleFirst}
+                disabled={isFirstPage}
+              ></lightning-button>
+              <lightning-button
+                label="Previous"
+                icon-name="utility:chevronleft"
+                onclick={handlePrevious}
+                disabled={isFirstPage}
+              ></lightning-button>
+            </lightning-button-group>
+            <span class="slds-m-horizontal_small">
+              Page {currentPage} of {totalPages}
+            </span>
+            <lightning-button-group>
+              <lightning-button
+                label="Next"
+                icon-name="utility:chevronright"
+                icon-position="right"
+                onclick={handleNext}
+                disabled={isLastPage}
+              ></lightning-button>
+              <lightning-button
+                label="Last"
+                icon-name="utility:jump_to_right"
+                icon-position="right"
+                onclick={handleLast}
+                disabled={isLastPage}
+              ></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+        <!-- </template> -->
+      </lightning-layout-item>
+    </lightning-layout>
+    <template if:true={isLoading}>
+      <lightning-spinner alternative-text="Loading"></lightning-spinner>
+    </template>
+  </lightning-card>
+</template>
