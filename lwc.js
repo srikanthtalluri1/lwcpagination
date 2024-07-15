@@ -1,37 +1,37 @@
-import { LightningElement, wire, track } from "lwc";
-import getWaiverRecords from "@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions";
-// import getWaiverCount from "@salesforce/apex/AWP_WaiverHandlerClass.getWaiverCount";
+/* eslint-disable @lwc/lwc/no-async-operation */
+import { LightningElement, track } from 'lwc';
+import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
 
 const COLUMNS = [
-    { label: "Name", fieldName: "Name", sortable: true },
+    { label: 'Name', fieldName: 'Name', sortable: true },
     {
-        label: "Requesting Portfolio",
-        fieldName: "Requesting_Portfolio__c",
+        label: 'Requesting Portfolio',
+        fieldName: 'Requesting_Portfolio__c',
         sortable: true
     },
     {
-        label: "Affected Standard Portfolio",
-        fieldName: "Affected_Standard_Portfolio__c",
+        label: 'Affected Standard Portfolio',
+        fieldName: 'Affected_Standard_Portfolio__c',
         sortable: true
     },
-    { label: "Waiver Reason", fieldName: "Waiver_Reason__c", sortable: true },
-    { label: "Status", fieldName: "Status__c", sortable: true },
+    { label: 'Waiver Reason', fieldName: 'Waiver_Reason__c', sortable: true },
+    { label: 'Status', fieldName: 'Status__c', sortable: true },
     {
-        label: "Standard Page Title",
-        fieldName: "Standard_Page_Title__c",
+        label: 'Standard Page Title',
+        fieldName: 'Standard_Page_Title__c',
         sortable: true
     },
-    { label: "Requesting TPM", fieldName: "Requesting_TPM__c", sortable: true },
-    { label: "Application Name", fieldName: "App_Name__c", sortable: true },
-    { label: "Renew Counter", fieldName: "Renew_Counter__c", sortable: true }
+    { label: 'Requesting TPM', fieldName: 'Requesting_TPM__c', sortable: true },
+    { label: 'Application Name', fieldName: 'App_Name__c', sortable: true },
+    { label: 'Renew Counter', fieldName: 'Renew_Counter__c', sortable: true }
 ];
 
 const PAGESIZE = [
-    { label: "10", value: 10 },
-    { label: "20", value: 20 },
-    { label: "30", value: 30 },
-    { label: "40", value: 40 },
-    { label: "50", value: 50 }
+    { label: '10', value: 10 },
+    { label: '20', value: 20 },
+    { label: '30', value: 30 },
+    { label: '40', value: 40 },
+    { label: '50', value: 50 }
 ];
 
 export default class AwpWaiverListView extends LightningElement {
@@ -41,55 +41,20 @@ export default class AwpWaiverListView extends LightningElement {
     currentPage = 1;
     totalRecords;
     totalPages;
-    sortedBy = "Requesting_Portfolio__c";
-    sortDirection = "asc";
+    sortedBy = 'Requesting_Portfolio__c';
+    sortedDirection = 'asc';
     initialRecords = [];
 
     // Pagination state
     first = true;
-    after = "";
-    lastId = "";
-    before = "";
-    firstId = "";
+    after = '';
+    lastId = '';
+    before = '';
+    firstId = '';
     last = false;
     lastPageSize = 0;
     currentPageSize = 10;
-    // Pagination state
-
-    // @wire(getWaiverCount)
-    // getWaiverCount({ data, error }) {
-    //     if (data) {
-    //         this.totalRecords = data;
-    //         this.totalPages = Math.ceil(data / this.currentPageSize);
-    //     } else if (error) {
-    //         console.error(error);
-    //     }
-    // }
-
-    // @wire(getWaiverRecords, {
-    //     sortBy: "$sortedBy",
-    //     sortByType: "String",
-    //     sortOrder: "$sortDirection",
-    //     pageSize: "$currentPageSize",
-    //     first: "$first",
-    //     after: "$after",
-    //     lastId: "$lastId",
-    //     before: "$before",
-    //     firstId: "$firstId",
-    //     last: "$last",
-    //     lastPageSize: "$lastPageSize"
-    // })
-    // getWaiverRecords({ data, error }) {
-    //     this.isLoading = false;
-    //     if (data) {
-    //         this.initialRecords = data.waiverRecords;
-    //         this.records = data.waiverRecords;
-    //         this.totalRecords = data.waiverRecordsCount;
-    //         this.totalPages = Math.ceil(data.waiverRecordsCount / this.currentPageSize);
-    //     } else if (error) {
-    //         console.error(error);
-    //     }
-    // }
+    // END
 
     get noRecordsFound() {
         return this.records.length === 0;
@@ -119,17 +84,25 @@ export default class AwpWaiverListView extends LightningElement {
         this.fetchData();
     }
 
-    handleSearchChange(event) {
-        this.searchKey = event.target.value.toLowerCase();
+    handleSearch(event) {
+        window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            this.resetPaginationState();
+            this.currentPage = 1;
+            this.fetchData();
+        }, 300);
+
     }
 
-    handleSearch() {
-        this.isLoading = true;
-        const searchKey = this.searchKey;
-        this.resetPaginationState();
-        this.searchKey = searchKey;
-        this.currentPage = 1;
-        this.fetchData();
+    handleReset(event) {
+        if (!event.target.value) {
+            this.currentPage = 1;
+            this.searchKey = '';
+            this.resetPaginationState();
+            this.fetchData();
+        }
     }
 
     handlePageSize(event) {
@@ -140,40 +113,27 @@ export default class AwpWaiverListView extends LightningElement {
     }
 
     handleSort(event) {
-        const { fieldName: sortedBy, sortDirection } = event.detail;
-        console.log('sortDirection==', sortDirection);
+        const { fieldName: sortedBy, sortDirection: sortedDirection } = event.detail;
+        console.log('sortedDirection==', sortedDirection);
         this.resetPaginationState();
+        this.searchKey = '';
+        this.sortedDirection = sortedDirection;
         this.sortedBy = sortedBy;
-        this.sortDirection = sortDirection;
         this.currentPage = 1;
         this.fetchData();
     }
 
-    // sortBy(field, reverse, primer) {
-    //     const key = primer
-    //         ? function (x) {
-    //             return primer(x[field]);
-    //         }
-    //         : function (x) {
-    //             return x[field];
-    //         };
-
-    //     return function (a, b) {
-    //         a = key(a);
-    //         b = key(b);
-    //         return reverse * ((a > b) - (b > a));
-    //     };
-    // }
-
     handleFirst() {
         this.currentPage = 1;
         this.resetPaginationState();
+        this.searchKey = '';
         this.fetchData();
     }
 
     handleLast() {
         this.currentPage = this.totalPages;
         this.resetPaginationState();
+        this.searchKey = '';
         this.first = false;
         this.last = true;
         this.lastPageSize = this.totalRecords % this.currentPageSize;
@@ -182,11 +142,11 @@ export default class AwpWaiverListView extends LightningElement {
 
     handleNext() {
         this.currentPage++;
-        // this.resetPaginationState();
         const lastRecord = this.records[this.records.length - 1];
-        // this.after = lastRecord[this.sortedBy] || "NULL";
+        this.after = lastRecord[this.sortedBy] || 'NULL';
+        this.before = '';
         this.lastId = lastRecord.Id;
-        this.firstId = "";
+        this.firstId = '';
         this.first = false;
         this.last = (this.currentPage === this.totalPages);
         this.fetchData();
@@ -194,48 +154,39 @@ export default class AwpWaiverListView extends LightningElement {
 
     handlePrevious() {
         this.currentPage--;
-        // this.resetPaginationState();
         const firstRecord = this.records[0];
-        // this.before = firstRecord[this.sortedBy] || "NULL";
+        this.before = firstRecord[this.sortedBy] || 'NULL';
+        this.after = '';
         this.firstId = firstRecord.Id;
-        this.lastId = "";
+        this.lastId = '';
         this.first = (this.currentPage === 1);
         this.last = false;
         this.fetchData();
     }
 
-    handleReset() {
-        this.currentPage = 1;
-        this.resetPaginationState();
-        this.fetchData();
-    }
-
     resetPaginationState() {
         this.isLoading = true;
-        // this.before = "";
-        this.firstId = "";
-        // this.after = "";
-        this.lastId = "";
+        this.before = '';
+        this.firstId = '';
+        this.after = '';
+        this.lastId = '';
         this.first = true;
         this.last = false;
         this.lastPageSize = 0;
-        this.sortedBy = "Requesting_Portfolio__c";
-        this.sortDirection = "asc";
-        this.searchKey = "";
-        // this.fetchData();
+        this.sortedBy = 'Requesting_Portfolio__c';
+        this.sortedDirection = 'asc';
     }
 
     fetchData() {
         getWaiverRecords({
             searchKey: this.searchKey,
             sortBy: this.sortedBy,
-            // sortByType: "String",
-            sortOrder: this.sortDirection,
+            sortOrder: this.sortedDirection,
             pageSize: this.currentPageSize,
             first: this.first,
-            // after: this.after,
+            after: this.after,
             lastId: this.lastId,
-            // before: this.before,
+            before: this.before,
             firstId: this.firstId,
             last: this.last,
             lastPageSize: this.lastPageSize
@@ -254,6 +205,31 @@ export default class AwpWaiverListView extends LightningElement {
     }
 
     //Action Buttons
+    handleActions(event) {
+        if (event.target.dataset?.action) {
+            switch (event.target.dataset.action) {
+                case 'newwaiver':
+                    this.handleNewWaiver();
+                    break;
+                case 'home':
+                    this.handleHome();
+                    break;
+                case 'contactus':
+                    this.handleContactUs();
+                    break;
+                case 'faq':
+                    this.handleFAQ();
+                    break;
+                case 'help':
+                    this.handleHelp();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Action Methods
     handleNewWaiver() {
         // Add logic for handling New Waiver button click
     }
