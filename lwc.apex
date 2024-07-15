@@ -3,12 +3,11 @@ public with sharing class AWP_WaiverHandlerClass {
   public static Map<String, Object> getWaiverRecordAndPermissions(
     String searchKey,
     String sortBy,
-    // String sortByType,
     String sortOrder,
     Integer pageSize,
-    // String after,
+    String after,
     String lastId,
-    // String before,
+    String before,
     String firstId,
     boolean first,
     boolean last,
@@ -63,27 +62,124 @@ public with sharing class AWP_WaiverHandlerClass {
     //END
 
     // Add sorting and pagination logic
-    if ((firstId != '' && !last) || (lastId != '' && !first)) {
+    if (
+      (after != '' && !last) ||
+      (after != '' && last) ||
+      (before != '' && !first) ||
+      (before != '' && first)
+    ) {
+      String param = ':textParam';
+      String textParam = after != '' &&
+        after != 'NULL'
+        ? after
+        : (before != '' && before != 'NULL' ? before : null);
+
       String field = sortBy;
-      if (firstId != '' && !last) {
-        String operator = sortOrder == 'asc' ? '<' : '>';
-        if (!query.contains('WHERE')) {
-          query += ' WHERE ( Id' + operator + '\'' + firstId + '\') ';
-        } else {
-          query += ' AND ( Id' + operator + '\'' + firstId + '\') ';
-        }
-      } else if (lastId != '' && !first) {
+      if ((after != '' && !last) || (after != '' && last)) {
         String operator = sortOrder == 'asc' ? '>' : '<';
-        if (!query.contains('WHERE')) {
-          query += ' WHERE ( Id' + operator + '\'' + lastId + '\') ';
+        if (after == 'NULL') {
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
+            field +
+            ' != NULL OR (' +
+            field +
+            ' = NULL AND Id ' +
+            operator +
+            ' \'' +
+            lastId +
+            '\' )) ';
+        } else if (sortOrder == 'desc') {
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
+            field +
+            ' ' +
+            operator +
+            ' ' +
+            param +
+            ' OR ' +
+            field +
+            ' = NULL OR ( ' +
+            field +
+            ' = ' +
+            param +
+            ' AND Id ' +
+            operator +
+            ' \'' +
+            lastId +
+            '\' )) ';
         } else {
-          query += ' AND ( Id' + operator + '\'' + lastId + '\') ';
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
+            field +
+            ' ' +
+            operator +
+            ' ' +
+            param +
+            ' OR (' +
+            field +
+            ' = ' +
+            param +
+            ' AND Id ' +
+            operator +
+            ' \'' +
+            lastId +
+            '\' )) ';
+        }
+      } else if ((before != '' && !first) || (before != '' && first)) {
+        String operator = sortOrder == 'asc' ? '<' : '>';
+        if (before == 'NULL') {
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
+            field +
+            ' != NULL OR ( ' +
+            field +
+            '= NULL AND Id ' +
+            operator +
+            ' \'' +
+            firstId +
+            '\' )) ';
+        } else if (sortOrder == 'asc') {
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
+            field +
+            ' ' +
+            operator +
+            ' ' +
+            param +
+            ' OR ' +
+            field +
+            ' = NULL OR ( ' +
+            field +
+            ' = ' +
+            param +
+            ' AND Id ' +
+            operator +
+            ' \'' +
+            firstId +
+            '\' )) ';
+        } else {
+          query +=
+            (!query.contains('WHERE') ? 'WHERE (' : 'aAND ( ') +
+            field +
+            ' ' +
+            operator +
+            ' ' +
+            param +
+            ' OR (' +
+            field +
+            ' = ' +
+            param +
+            ' AND Id ' +
+            operator +
+            ' \'' +
+            firstId +
+            '\' )) ';
         }
       }
     }
 
     String orderQuery = '';
-    if (last) {
+    if (last || (before != '' && !first) || (before != '' && first)) {
       orderQuery =
         'ORDER BY ' +
         sortBy +
@@ -110,7 +206,7 @@ public with sharing class AWP_WaiverHandlerClass {
     waiverRecords = Database.query(query);
     waiverRecordsCount = Database.countQuery(countQuery);
 
-    if (last) {
+    if (last || (before != '' && !first) || (before != '' && first)) {
       List<AWP_Architecture_Waiver_Form__c> tmp = new List<AWP_Architecture_Waiver_Form__c>();
       for (Integer i = waiverRecords.size() - 1; i >= 0; i--) {
         tmp.add(waiverRecords.get(i));
