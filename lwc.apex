@@ -1,4 +1,6 @@
 public with sharing class AWP_WaiverHandlerClass {
+  public static Id userId = UserInfo.getUserId();
+
   @AuraEnabled(cacheable=true)
   public static Map<String, Object> getWaiverRecordAndPermissions(
     String searchKey,
@@ -11,7 +13,8 @@ public with sharing class AWP_WaiverHandlerClass {
     String firstId,
     boolean first,
     boolean last,
-    Integer lastPageSize
+    Integer lastPageSize,
+    String allOrMy
   ) {
     Map<String, Object> result = new Map<String, Object>();
 
@@ -55,6 +58,9 @@ public with sharing class AWP_WaiverHandlerClass {
       if (!query.contains('WHERE')) {
         query += ' WHERE ';
         countQuery += ' WHERE ';
+      } else {
+        query += ' AND ';
+        countQuery += ' AND ';
       }
       query = buildSearchTerm(query, textFilter);
       countQuery = buildSearchTerm(countQuery, textFilter);
@@ -177,6 +183,17 @@ public with sharing class AWP_WaiverHandlerClass {
         }
       }
     }
+
+    //Add for All or My waivers
+    if (allOrMy == 'mywaivers') {
+      query += (!query.contains('WHERE')
+        ? ' WHERE OwnerId = \'' + userId + '\' '
+        : ' AND OwnerId = \'' + userId + '\' ');
+      countQuery += (!countQuery.contains('WHERE')
+        ? ' WHERE OwnerId = \'' + userId + '\' '
+        : ' AND OwnerId = \'' + userId + '\' ');
+    }
+    //END
 
     String orderQuery = '';
     if (last || (before != '' && !first) || (before != '' && first)) {
