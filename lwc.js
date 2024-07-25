@@ -23,7 +23,15 @@ const COLUMNS = [
     },
     { label: 'Requesting TPM', fieldName: 'Requesting_TPM__c', sortable: true },
     { label: 'Application Name', fieldName: 'App_Name__c', sortable: true },
-    { label: 'Renew Counter', fieldName: 'Renew_Counter__c', sortable: true }
+    { label: 'Renew Counter', fieldName: 'Renew_Counter__c', sortable: true },
+    {
+        type: 'action',
+        typeAttributes: {
+            rowActions: [
+                { label: 'View', name: 'view' }
+            ]
+        },
+    }
 ];
 
 const PAGESIZE = [
@@ -44,6 +52,11 @@ export default class AwpWaiverListView extends LightningElement {
     sortedBy = 'Requesting_Portfolio__c';
     sortedDirection = 'asc';
     initialRecords = [];
+    selectedWaiver = 'mywaivers';
+    _tableSize = '12';
+    showFilter = false;
+    showRecord = false;
+    recordId;
 
     // Pagination state
     first = true;
@@ -78,6 +91,23 @@ export default class AwpWaiverListView extends LightningElement {
 
     get rowNumberOffset() {
         return (this.currentPage - 1) * this.currentPageSize;
+    }
+
+    get waiverOptions() {
+        return [
+            { label: 'My Waivers', value: 'mywaivers' },
+            { label: 'All Waivers', value: 'allwaivers' }
+        ];
+    }
+
+    get tableSize() {
+        return this._tableSize;
+    }
+
+    get rowActions() {
+        return [
+            { label: 'View', name: 'view' }
+        ];
     }
 
     connectedCallback() {
@@ -189,7 +219,8 @@ export default class AwpWaiverListView extends LightningElement {
             before: this.before,
             firstId: this.firstId,
             last: this.last,
-            lastPageSize: this.lastPageSize
+            lastPageSize: this.lastPageSize,
+            allOrMy: this.selectedWaiver
         }).then((data) => {
             if (this.initialRecords.length === 0) {
                 this.initialRecords = data.waiverRecords;
@@ -206,8 +237,9 @@ export default class AwpWaiverListView extends LightningElement {
 
     //Action Buttons
     handleActions(event) {
-        if (event.target.dataset?.action) {
-            switch (event.target.dataset.action) {
+        const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
+        if (actionName) {
+            switch (actionName) {
                 case 'newwaiver':
                     this.handleNewWaiver();
                     break;
@@ -222,6 +254,12 @@ export default class AwpWaiverListView extends LightningElement {
                     break;
                 case 'help':
                     this.handleHelp();
+                    break;
+                case 'view':
+                    this.handleView(event);
+                    break;
+                case 'close':
+                    this.handleView(event);
                     break;
                 default:
                     break;
@@ -249,4 +287,34 @@ export default class AwpWaiverListView extends LightningElement {
     handleHelp() {
         // Add logic for handling Help button click
     }
+
+    handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        this.resetPaginationState();
+        this.selectedWaiver = event.detail.value;
+        this.loading = true;
+        this.fetchData();
+    }
+
+    handleFilter() {
+        this.showFilter = !this.showFilter;
+        this.showRecord = false;
+        if (this.showFilter) {
+            this._tableSize = '9';
+        } else {
+            this._tableSize = '12';
+        }
+    }
+
+    handleView(event) {
+        this.showRecord = !this.showRecord;
+        if (this.showRecord) {
+            this.recordId = event.detail.row.Id;
+            this._tableSize = '4';
+        } else {
+            this._tableSize = '12';
+        }
+    }
+
 }
