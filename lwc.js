@@ -1,6 +1,9 @@
+/* eslint-disable no-case-declarations */
 /* eslint-disable @lwc/lwc/no-async-operation */
 import { LightningElement, track } from 'lwc';
 import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
+import getFilterDetails from '@salesforce/apex/AWP_WaiverHandlerClass.getFilterDetails';
+import getUniqueValues from '@salesforce/apex/AWP_WaiverHandlerClass.getUniqueValues';
 
 const COLUMNS = [
     { label: 'Name', fieldName: 'Name', sortable: true },
@@ -57,6 +60,15 @@ export default class AwpWaiverListView extends LightningElement {
     showFilter = false;
     showRecord = false;
     recordId;
+    @track _filterOptions = {
+        options: [],
+        selectedFilter: []
+    };
+    filterBy = [];
+    @track _filteredFieldValues = [];
+    selectedFilterValues = [];
+    isLoadingFilter = false;
+    filters = [];
 
     // Pagination state
     first = true;
@@ -110,8 +122,21 @@ export default class AwpWaiverListView extends LightningElement {
         ];
     }
 
+    get filterOptions() {
+        return this._filterOptions;
+    }
+
+    get filteredFieldValues() {
+        return this._filteredFieldValues;
+    }
+
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
+    }
+
     connectedCallback() {
         this.fetchData();
+        this.fetchFilterDetails();
     }
 
     handleSearch(event) {
@@ -220,7 +245,8 @@ export default class AwpWaiverListView extends LightningElement {
             firstId: this.firstId,
             last: this.last,
             lastPageSize: this.lastPageSize,
-            allOrMy: this.selectedWaiver
+            allOrMy: this.selectedWaiver,
+            filters: JSON.stringify(this.filters)
         }).then((data) => {
             if (this.initialRecords.length === 0) {
                 this.initialRecords = data.waiverRecords;
@@ -233,6 +259,14 @@ export default class AwpWaiverListView extends LightningElement {
             console.error(error);
             this.isLoading = false;
         });
+    }
+
+    async fetchFilterDetails() {
+        let result = await getFilterDetails();
+        if (result) {
+            const filterOptions = result.filterOptions;
+            this._filterOptions.options = filterOptions;
+        }
     }
 
     //Action Buttons
@@ -260,6 +294,21 @@ export default class AwpWaiverListView extends LightningElement {
                     break;
                 case 'close':
                     this.handleView(event);
+                    break;
+                case 'applyfilter':
+                    this.handleFilterBy(actionName);
+                    break;
+                case 'resetfilter':
+                    this.handleFilterBy(actionName);
+                    break;
+                case 'selectedValues':
+                    this.handleFilterBy(actionName, event);
+                    break;
+                case 'selectedfiltervalue':
+                    this.handleFilterBy(actionName, event);
+                    break;
+                case 'filterbyexpand':
+                    this.handleFilterBy(actionName, event);
                     break;
                 default:
                     break;
@@ -297,11 +346,11 @@ export default class AwpWaiverListView extends LightningElement {
         this.fetchData();
     }
 
-    handleFilter() {
-        this.showFilter = !this.showFilter;
+    handleFilter(showFilter) {
+        this.showFilter = showFilter;
         this.showRecord = false;
         if (this.showFilter) {
-            this._tableSize = '9';
+            this._tableSize = '10';
         } else {
             this._tableSize = '12';
         }
@@ -309,11 +358,91 @@ export default class AwpWaiverListView extends LightningElement {
 
     handleView(event) {
         this.showRecord = !this.showRecord;
+        this.showFilter = false;
         if (this.showRecord) {
             this.recordId = event.detail.row.Id;
-            this._tableSize = '4';
+            this.columns = [...COLUMNS.slice(0, 1)];
+            this._tableSize = '2';
         } else {
             this._tableSize = '12';
+            this.columns = [...COLUMNS];
+        }
+    }
+
+    handleFilterBy(actionName, event) {
+        let filterValue = event ? event.detail.value : null;
+        const index = event ? parseInt(event.target.dataset.index, 10) : null;
+        switch (actionName) {
+            case 'applyfilter':
+                console.log('applyfilter');
+                this.filters = this._filteredFieldValues.map(x => {
+                    return {
+                        [x.filterFieldApiName]: x.selectedValue
+                    }
+                });
+                this.fetchData();
+                break;
+            case 'resetfilter':
+                this.filterBy = [];
+                this.selectedFilterValues = [];
+                this._filteredFieldValues = [];
+                const options = this._filterOptions.options.map(x => {
+                    x.selected = false;
+                    return x;
+                });
+                this._filterOptions.options = [...options];
+                this.handleFilter(false);
+                console.log('resetfilter');
+                this.filters = [];
+                this.fetchData();
+                break;
+            case 'selectedfiltervalue':
+                console.log('selectedfiltervalue');
+                this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue;
+                break;
+            case 'filterbyexpand':
+                console.log('filterbyexpand');
+                this._filteredFieldValues.filter(x => x.id === index)[0].showValues = !this._filteredFieldValues.filter(x => x.id === index)[0].showValues;
+                this._filteredFieldValues.filter(x => x.id === index)[0].icon = (this._filteredFieldValues.filter(x => x.id === index)[0].showValues) ? 'utility:dash' : 'utility:add';
+                break;
+            case 'selectedValues':
+                filterValue = event.detail.selectedValues;
+                if (filterValue.length) {
+                    this._filterOptions.selectedFilter = filterValue;
+                    this.handleFilter(true);
+                    this.isLoadingFilter = true;
+                    getUniqueValues({ fieldApiName: filterValue }).then((data) => {
+                        const values = (data) ? Object.keys(data).map(x => {
+                            return {
+                                [x]: data[x].map((val) => {
+                                    return { label: (val.value + ' (' + val.count + ')'), value: val.value };
+                                })
+                            }
+                        }) : [];
+                        let filteredFieldValues = values.map((x, ind) => {
+                            return {
+                                id: ind,
+                                filterField: (this.filterOptions.options.filter(t => t.value === Object.keys(x)[0])[0].label),
+                                filterFieldApiName: Object.keys(x)[0],
+                                filteredFieldValue: Object.values(x)[0],
+                                showValues: false,
+                                selectedValue: [],
+                                icon: 'utility:add'
+                            }
+                        });
+                        this._filteredFieldValues = [...filteredFieldValues];
+                        this.isLoadingFilter = false;
+                    }).catch((error) => {
+                        console.error(error);
+                        this.isLoadingFilter = false;
+                    });
+                } else {
+                    this._filterOptions.selectedFilter = [];
+                }
+
+                break;
+            default:
+                break;
         }
     }
 
