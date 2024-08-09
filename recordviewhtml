@@ -1,0 +1,276 @@
+<template>
+    <lightning-card title="Waiver Management">
+        <div class="slds-grid slds-wrap slds-grid_align-end slds-var-p-right_large">
+            <div class="slds-col">
+                <lightning-button-group>
+                    <lightning-button variant="neutral" label="Edit" onclick={handleActions}
+                        data-action="edit"></lightning-button>
+                    <lightning-button variant="neutral" label="Submit for Approval" onclick={handleActions}
+                        data-action="approval"></lightning-button>
+                    <lightning-button variant="neutral" label="Withdraw" onclick={handleActions}
+                        data-action="withdraw"></lightning-button>
+                </lightning-button-group>
+            </div>
+        </div>
+        <div class="slds-var-p-around_large">
+            <lightning-tabset variant="scoped" class="tab-active">
+                <lightning-tab label="Waiver" value="waiver">
+                    <lightning-accordion allow-multiple-sections-open>
+                        <lightning-accordion-section name="waiversection1" label="Waiver Details"
+                            class="slds-theme_shade">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col1} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col2} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="waiversection2" label="Requesting Domain and Portfolio">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col3} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col4} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="waiversection3" label="Accordion Title C">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col5} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={waiverFields.col6} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+                </lightning-tab>
+                <lightning-tab label="Contacts" value="contacts">
+                    <lightning-accordion allow-multiple-sections-open>
+                        <lightning-accordion-section name="contactsection1" label="Requesting Domain and Portfolio"
+                            class="slds-theme_shade">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col1} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col2} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="contactsection2" label="Requesting Domain and Portfolio">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col3} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col4} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="contactsectio3" label="Accordion Title C">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col5} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={contactFields.col6} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+                </lightning-tab>
+                <lightning-tab label="Approval" value="approval">
+                    <lightning-accordion allow-multiple-sections-open>
+                        <lightning-accordion-section name="approvalsection1" label="Waiver Details"
+                            class="slds-theme_shade">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.col1} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.col2} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="approvalsection2" label="Requesting Domain and Portfolio">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.co3} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.col4} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="approvalsection3" label="Accordion Title C">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.col5} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={approvalFields.col6} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+                </lightning-tab>
+                <lightning-tab label="History" value="history">
+                    <lightning-accordion allow-multiple-sections-open>
+                        <lightning-accordion-section name="historysection1" label="Waiver Details"
+                            class="slds-theme_shade">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col1} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col2} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="historysection2" label="Requesting Domain and Portfolio">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col3} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col4} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="historysection3" label="Accordion Title C">
+                            <lightning-record-view-form record-id={recordId}
+                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                                <div class="slds-grid slds-theme_default">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col5} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <template for:each={historyFields.col6} for:item="field">
+                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                            </lightning-output-field>
+                                        </template>
+                                    </div>
+                                </div>
+                            </lightning-record-view-form>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+                </lightning-tab>
+            </lightning-tabset>
+        </div>
+    </lightning-card>
+</template>
