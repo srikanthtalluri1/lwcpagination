@@ -1,5 +1,9 @@
 public with sharing class AWP_WaiverHandlerClass {
   public static Id userId = UserInfo.getUserId();
+  public static Map<String, Schema.SObjectField> waiverFormFields = Schema.getGlobalDescribe()
+    .get('AWP_Architecture_Waiver_Form__c')
+    .getDescribe()
+    .fields.getMap();
 
   @AuraEnabled(cacheable=true)
   public static Map<String, Object> getWaiverRecordAndPermissions(
@@ -14,10 +18,13 @@ public with sharing class AWP_WaiverHandlerClass {
     boolean first,
     boolean last,
     Integer lastPageSize,
-    String allOrMy
+    String allOrMy,
+    String filters
   ) {
     Map<String, Object> result = new Map<String, Object>();
+    Set<String> filterValues = new Set<String>();
 
+    System.debug('filters====' + filters);
     // Get the Current User's Id
     String userId = UserInfo.getUserId();
 
@@ -195,6 +202,38 @@ public with sharing class AWP_WaiverHandlerClass {
     }
     //END
 
+    //Add for filter Logic
+    if (!String.isBlank(filters)) {
+      List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(
+        filters
+      );
+
+      if (filtersList.size() > 0) {
+        String filterQuery = ' AND (';
+        for (Object filter : filtersList) {
+          Map<String, Object> filterMap = (Map<String, Object>) filter;
+          System.debug('filterMap====' + filterMap);
+          for (String key : filterMap.keySet()) {
+            if (
+              filterMap.get(key) instanceof List<Object> &&
+              ((List<Object>) filterMap.get(key)).size() > 0
+            ) {
+              for (Object value : (List<Object>) filterMap.get(key)) {
+                filterValues.add(String.valueOf(value));
+              }
+              filterQuery += ' ' + key + ' IN :filterValues' + ' OR';
+            }
+          }
+        }
+        System.debug('filterQuery====' + filterQuery);
+        filterQuery = filterQuery.removeEnd(' OR') + ') ';
+        query += filterQuery;
+        countQuery += filterQuery;
+      }
+    }
+
+    //END
+
     String orderQuery = '';
     if (last || (before != '' && !first) || (before != '' && first)) {
       orderQuery =
@@ -219,6 +258,7 @@ public with sharing class AWP_WaiverHandlerClass {
       ' LIMIT ' +
       (lastPageSize > 0 ? lastPageSize : pageSize);
 
+    System.debug('filterValues====' + filterValues);
     System.debug('query===' + query);
     waiverRecords = Database.query(query);
     waiverRecordsCount = Database.countQuery(countQuery);
@@ -260,5 +300,57 @@ public with sharing class AWP_WaiverHandlerClass {
       searchKey +
       ' ) ';
     return query;
+  }
+
+  @AuraEnabled(cacheable=true)
+  public static Map<String, Object> getFilterDetails() {
+    Map<String, Object> result = new Map<String, Object>();
+    List<Object> filterOptions = new List<Object>();
+    for (Schema.SObjectField s : waiverFormFields.values()) {
+      if (s.getDescribe().isCustom()) {
+        filterOptions.add(
+          new Map<String, Object>{
+            'label' => s.getDescribe().getLabel(),
+            'value' => s.getDescribe().getName(),
+            'selected' => false
+          }
+        );
+      }
+    }
+    result.put('filterOptions', filterOptions);
+    return result;
+  }
+
+  @AuraEnabled(cacheable=true)
+  public static Map<String, List<Object>> getUniqueValues(
+    List<String> fieldApiName
+  ) {
+    try {
+      Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
+      Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
+      for (String field : fieldApiName) {
+        String query =
+          'SELECT ' +
+          field +
+          ',COUNT(Id) FROM AWP_Architecture_Waiver_Form__c GROUP BY ' +
+          field;
+        results.put(field, Database.query(query));
+      }
+      for (String field : results.keySet()) {
+        List<Object> uniqueValues = new List<Object>();
+        for (AggregateResult ar : results.get(field)) {
+          Map<String, Object> uni = new Map<String, Object>();
+          uni.put('value', (String) ar.get(field));
+          uni.put('count', (Integer) ar.get('expr0'));
+          uniqueValues.add((Object) uni);
+        }
+        fieldUniqueMap.put(field, uniqueValues);
+      }
+      return fieldUniqueMap;
+    } catch (Exception e) {
+      System.debug('message' + e.getMessage());
+      System.debug('stack' + e.getStackTraceString());
+      throw new AuraHandledException(e.getMessage());
+    }
   }
 }
