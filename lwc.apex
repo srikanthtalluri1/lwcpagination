@@ -4,6 +4,16 @@ public with sharing class AWP_WaiverHandlerClass {
     .get('AWP_Architecture_Waiver_Form__c')
     .getDescribe()
     .fields.getMap();
+  static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, Requesting_Domain_New__r.Port__r.Name, BARR_Risk_Level__c, Affected_Standard_Portfolio__c,Affected_Domain_New__r.Port__r.Name, Renew_Counter__c, App_Name__r.BARR_Risk_Level__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
+  static final String OBJECT_NAME = 'AWP_Architecture_Waiver_Form__c';
+
+  public static List<String> fieldList = new List<String>{
+    'Requesting_Portfolio__c',
+    'BARR_Risk_Level__c',
+    'Affected_Standard_Portfolio__c',
+    'Waiver_Reason__c',
+    'Status__c'
+  };
 
   @AuraEnabled(cacheable=true)
   public static Map<String, Object> getWaiverRecordAndPermissions(
@@ -49,10 +59,12 @@ public with sharing class AWP_WaiverHandlerClass {
     Integer waiverRecordsCount = 0;
 
     String query =
-      'SELECT Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level__c, Affected_Standard_Portfolio__c, Renew_Counter__c, Affected_Domain_New__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ' +
-      'FROM AWP_Architecture_Waiver_Form__c ';
-    String countQuery =
-      'SELECT COUNT()' + 'FROM AWP_Architecture_Waiver_Form__c ';
+      'SELECT ' +
+      FIELDS_TO_BE_QUERIED +
+      'FROM ' +
+      OBJECT_NAME +
+      ' ';
+    String countQuery = 'SELECT COUNT()' + 'FROM ' + OBJECT_NAME + ' ';
 
     if (!permissionSetNames.contains(permissionSetName)) {
       query += ' WHERE Status__c = \'Approved\'';
@@ -286,15 +298,13 @@ public with sharing class AWP_WaiverHandlerClass {
       searchKey +
       ' OR Requesting_TPM__c LIKE' +
       searchKey +
-      ' OR Requesting_Portfolio__c LIKE ' +
+      ' OR Requesting_Domain_New__r.Port__r.Name LIKE ' +
       searchKey +
       ' OR Renew_Counter__c LIKE ' +
       searchKey +
-      ' OR BARR_Risk_Level__c LIKE ' +
+      ' OR App_Name__r.BARR_Risk_Level__c LIKE ' +
       searchKey +
-      ' OR Affected_Standard_Portfolio__c LIKE ' +
-      searchKey +
-      ' OR Affected_Domain_New__c LIKE ' +
+      ' OR Affected_Domain_New__r.Port__r.Name LIKE ' +
       searchKey +
       ' OR Waiver_Reason__c LIKE ' +
       searchKey +
@@ -307,7 +317,10 @@ public with sharing class AWP_WaiverHandlerClass {
     Map<String, Object> result = new Map<String, Object>();
     List<Object> filterOptions = new List<Object>();
     for (Schema.SObjectField s : waiverFormFields.values()) {
-      if (s.getDescribe().isCustom()) {
+      if (
+        s.getDescribe().isCustom() &&
+        fieldList.contains(s.getDescribe().getName())
+      ) {
         filterOptions.add(
           new Map<String, Object>{
             'label' => s.getDescribe().getLabel(),
