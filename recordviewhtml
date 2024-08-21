@@ -16,8 +16,7 @@
             <lightning-tabset variant="scoped" class="tab-active">
                 <lightning-tab label="Waiver" value="waiver">
                     <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="waiversection1" label="Waiver Details"
-                            class="slds-theme_shade">
+                        <lightning-accordion-section name="waiversection1" label="Waiver Details">
                             <lightning-record-view-form record-id={recordId}
                                 object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
                                 <div class="slds-grid slds-theme_default">
@@ -80,8 +79,7 @@
                 </lightning-tab>
                 <lightning-tab label="Contacts" value="contacts">
                     <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="contactsection1" label="Requesting Domain and Portfolio"
-                            class="slds-theme_shade">
+                        <lightning-accordion-section name="contactsection1" label="Requesting Domain and Portfolio">
                             <lightning-record-view-form record-id={recordId}
                                 object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
                                 <div class="slds-grid slds-theme_default">
@@ -144,8 +142,7 @@
                 </lightning-tab>
                 <lightning-tab label="Approval" value="approval">
                     <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="approvalsection1" label="Waiver Details"
-                            class="slds-theme_shade">
+                        <lightning-accordion-section name="approvalsection1" label="Waiver Details">
                             <lightning-record-view-form record-id={recordId}
                                 object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
                                 <div class="slds-grid slds-theme_default">
@@ -208,8 +205,7 @@
                 </lightning-tab>
                 <lightning-tab label="History" value="history">
                     <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="historysection1" label="Waiver Details"
-                            class="slds-theme_shade">
+                        <lightning-accordion-section name="historysection1" label="Waiver Details">
                             <lightning-record-view-form record-id={recordId}
                                 object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
                                 <div class="slds-grid slds-theme_default">
@@ -271,6 +267,115 @@
                     </lightning-accordion>
                 </lightning-tab>
             </lightning-tabset>
+
+            <!-- <div class="slds-tabs_default slds-tabs_medium slds-p-top_medium">
+                <div role="heading" aria-level="2" class="slds-tabs_default__header">This is a sample header for tabs
+                </div>
+                <ul class="slds-tabs_default__nav" role="tablist">
+                    <li class="slds-tabs_default__item slds-is-active custom-tab" title="Item One" role="presentation">
+                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="0" aria-selected="true"
+                            aria-controls="tab-default-1" id="tab-default-1__item">Item One</a>
+                    </li>
+                    <li class="slds-tabs_default__item" title="Item Two" role="presentation">
+                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="-1" aria-selected="false"
+                            aria-controls="tab-default-2" id="tab-default-2__item">Item Two</a>
+                    </li>
+                    <li class="slds-tabs_default__item" title="Item Three" role="presentation">
+                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="-1" aria-selected="false"
+                            aria-controls="tab-default-3" id="tab-default-3__item">Item Three</a>
+                    </li>
+                </ul>
+                <div id="tab-default-1" class="slds-tabs_default__content slds-show" role="tabpanel"
+                    aria-labelledby="tab-default-1__item">
+
+                </div>
+                <div id="tab-default-2" class="slds-tabs_default__content slds-hide" role="tabpanel"
+                    aria-labelledby="tab-default-2__item">Item Two Content</div>
+                <div id="tab-default-3" class="slds-tabs_default__content slds-hide" role="tabpanel"
+                    aria-labelledby="tab-default-3__item">Item Three Content</div>
+            </div> -->
+
+            <!-- <div class="slds-tabs_scoped slds-tabs_medium slds-var-p-top_medium">
+                <ul class="slds-tabs_scoped__nav" role="tablist">
+                    <li class="slds-tabs_scoped__item slds-is-active waiver" title="Item One" role="presentation"
+                        onclick={handleTabClick}>
+                        <a class="slds-tabs_scoped__link custom-tab" id="tab-scoped-1__item"
+                            onclick={handleTabClick}>Waiver</a>
+                    </li>
+                    <li class="slds-tabs_scoped__item contacts" title="Item Two" role="presentation"
+                        onclick={handleTabClick}>
+                        <a class="slds-tabs_scoped__link" role="tab" id="tab-scoped-2__item"
+                            onclick={handleTabClick}>Contacts</a>
+                    </li>
+            </ul>
+            <div id="tab-scoped-1" class="slds-tabs_scoped__content slds-show" role="tabpanel"
+                aria-labelledby="tab-scoped-1__item">
+                <lightning-accordion allow-multiple-sections-open>
+                    <lightning-accordion-section name="waiversection1" label="Waiver Details" class="slds-theme_shade">
+                        <lightning-record-view-form record-id={recordId}
+                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                            <div class="slds-grid slds-theme_default">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col1} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col2} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-record-view-form>
+                    </lightning-accordion-section>
+
+                    <lightning-accordion-section name="waiversection2" label="Requesting Domain and Portfolio">
+                        <lightning-record-view-form record-id={recordId}
+                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                            <div class="slds-grid slds-theme_default">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col3} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col4} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-record-view-form>
+                    </lightning-accordion-section>
+
+                    <lightning-accordion-section name="waiversection3" label="Accordion Title C">
+                        <lightning-record-view-form record-id={recordId}
+                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
+                            <div class="slds-grid slds-theme_default">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col5} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template for:each={waiverFields.col6} for:item="field">
+                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
+                                        </lightning-output-field>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-record-view-form>
+                    </lightning-accordion-section>
+                </lightning-accordion>
+            </div>
+            <div id="tab-scoped-2" class="slds-tabs_scoped__content slds-hide" role="tabpanel"
+                aria-labelledby="tab-scoped-2__item">Item Two Content</div>
+            
+        </div> -->
         </div>
     </lightning-card>
 </template>
