@@ -1,177 +1,126 @@
-import { LightningElement, wire, track } from 'lwc';
-import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
-import getWaiverCount from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverCount';
+<!-- sldsValidatorIgnore -->
+<template>
+  <lightning-card title="Waivers List View" icon-name="custom:custom63">
+    <lightning-layout multiple-rows="true">
+      <lightning-layout-item padding="around-small" size="12">
+        <div class="slds-grid slds-wrap">
+          <div class="slds-col slds-size_2-of-12">
+            <div class="slds-grid slds-wrap">
+              <p class="slds-col slds-size_1-of-1">Filter by:</p>
+              <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
+                options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
+              <c-multi-select-picklist class="slds-col slds-size_1-of-1" values={filterOptions.options}
+                show-selection="false" onselectedvalues={handleActions}></c-multi-select-picklist>
+              <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                onchange={handleReset} onkeyup={handleSearch}></lightning-input>
+            </div>
+          </div>
+          <div class="slds-col slds-size_3-of-12 slds-p-left_small">
+            <!-- <c-multi-select-picklist values={filterOptions.options} show-selection="false"
+              onselectedvalues={handleActions}></c-multi-select-picklist> -->
+          </div>
+          <div class="slds-col slds-size_7-of-12">
+            <div class="slds-grid slds-wrap slds-grid--align-end">
+              <!-- <div class="slds-col slds-var-p-right_small">
+                <lightning-input name="search" label="Search" type="search" onchange={handleReset}
+                  onkeyup={handleSearch}></lightning-input>
+              </div> -->
+              <div class="slds-col slds-var-p-top_x-large" style="padding-top: 20px">
+                <lightning-button-group>
+                  <lightning-button label="New Waiver" data-action="newwaiver"
+                    onclick={handleActions}></lightning-button>
+                  <lightning-button label="Home" data-action="home" onclick={handleActions}></lightning-button>
+                  <lightning-button label="Contact Us" data-action="contactus"
+                    onclick={handleActions}></lightning-button>
+                  <lightning-button label="FAQ" data-action="faq" onclick={handleActions}></lightning-button>
+                  <lightning-button label="Help" data-action="help" onclick={handleActions}></lightning-button>
+                </lightning-button-group>
+              </div>
+            </div>
+          </div>
+        </div>
+      </lightning-layout-item>
 
-const columns = [
-    { label: 'Requesting Portfolio', fieldName: 'Requesting_Portfolio__c', sortable: true },
-    { label: 'Status', fieldName: 'Status__c', sortable: true },
-    { label: 'Waiver Reason', fieldName: 'Waiver_Reason__c', sortable: true },
-    { label: 'Standard Page Title', fieldName: 'Standard_Page_Title__c', sortable: true }
-];
+      <template if:true={showFilter}>
+        <lightning-layout-item padding="around-small" size="2">
+          <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+            for:each={filteredFieldValues} for:item="filteredFieldValue">
+            <div class="slds-grid slds-align--spread slds-wrap">
+              <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+              <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
+                size="small" variant="bare" onclick={handleActions} data-action="filterbyexpand"
+                data-index={filteredFieldValue.id}></lightning-button-icon>
+            </div>
+            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+              name="filterValue" options={filteredFieldValue.filteredFieldValue} data-action="selectedfiltervalue"
+              data-index={filteredFieldValue.id} onchange={handleActions} value={filteredFieldValue.selectedValue}>
+            </lightning-checkbox-group>
+          </div>
+          <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+            <div class="slds-col">
+              <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+          </div>
+          <template if:true={isLoadingFilter}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+          </template>
+        </lightning-layout-item>
+      </template>
 
-const pageSize = 10;
+      <lightning-layout-item padding="around-small" size={tableSize}>
+        <div>
+          <lightning-datatable key-field="Id" data={records} columns={columns} hide-checkbox-column
+            show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
+            row-number-offset={rowNumberOffset} onrowaction={handleActions}>
+          </lightning-datatable>
+          <template if:true={noRecordsFound}> No records to display </template>
+        </div>
+        <div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large">
+          <div class="slds-col">
+            <!-- <lightning-combobox label="Page Size" value={currentPageSize} options={pageSizeOptions}
+              onchange={handlePageSize}></lightning-combobox> -->
+          </div>
+          <div class="slds-col slds-var-p-top_xx-large">
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+                disabled={isFirstPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+                disabled={isFirstPage}></lightning-button>
+            </lightning-button-group>
+            <span class="slds-m-horizontal_small">
+              {currentPage}/{totalPages}
+            </span>
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+                onclick={handleNext} disabled={isLastPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+                onclick={handleLast} disabled={isLastPage}></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+      </lightning-layout-item>
 
-export default class AwpWaiverListView extends LightningElement {
-    @track records = [];
-    @track columns = columns;
-    @track isLoading = true;
-    @track currentPage = 1;
-    @track totalRecords;
-    @track totalPages;
-    @track sortBy = 'Requesting_Portfolio__c';
-    @track sortDirection = 'asc';
-
-    // Pagination state
-    first = true;
-    after = '';
-    lastId = '';
-    before = '';
-    firstId = '';
-    last = false;
-    lastPageSize = 0;
-
-    @wire(getWaiverCount)
-    getWaiverCount({ data, error }) {
-        if (data) {
-            this.totalRecords = data;
-            this.totalPages = Math.ceil(data / pageSize);
-        } else if (error) {
-            console.error(error);
-        }
-    }
-
-    @wire(getWaiverRecords, {
-        sortBy: '$sortBy',
-        sortByType: 'String',
-        sortOrder: '$sortDirection',
-        pageSize,
-        first: '$first',
-        after: '$after',
-        lastId: '$lastId',
-        before: '$before',
-        firstId: '$firstId',
-        last: '$last',
-        lastPageSize: '$lastPageSize'
-    })
-    getWaiverRecords({ data, error }) {
-        this.isLoading = false;
-        if (data) {
-            this.records = data.waiverRecords;
-        } else if (error) {
-            console.error(error);
-        }
-    }
-
-    handleSort(event) {
-        this.sortBy = event.detail.fieldName;
-        this.sortDirection = event.detail.sortDirection;
-        this.currentPage = 1;
-        this.resetPaginationState();
-        this.fetchData();
-    }
-
-    handleFirst() {
-        this.currentPage = 1;
-        this.resetPaginationState();
-        this.fetchData();
-    }
-
-    handleNext() {
-        this.currentPage++;
-        this.resetPaginationState();
-        const lastRecord = this.records[this.records.length - 1];
-        this.after = lastRecord[this.sortBy] || 'NULL';
-        this.lastId = lastRecord.Id;
-        this.first = false;
-        this.last = this.currentPage === this.totalPages;
-        this.fetchData();
-    }
-
-    handlePrevious() {
-        this.currentPage--;
-        this.resetPaginationState();
-        const firstRecord = this.records[0];
-        this.before = firstRecord[this.sortBy] || 'NULL';
-        this.firstId = firstRecord.Id;
-        this.first = this.currentPage === 1;
-        this.fetchData();
-    }
-
-    handleLast() {
-        this.currentPage = this.totalPages;
-        this.resetPaginationState();
-        this.first = false;
-        this.last = true;
-        this.lastPageSize = this.totalRecords % pageSize;
-        this.fetchData();
-    }
-
-    resetPaginationState() {
-        this.isLoading = true;
-        this.before = '';
-        this.firstId = '';
-        this.after = '';
-        this.lastId = '';
-        this.first = true;
-        this.last = false;
-        this.lastPageSize = 0;
-    }
-
-    fetchData() {
-        getWaiverRecords({
-            sortBy: this.sortBy,
-            sortByType: 'String',
-            sortOrder: this.sortDirection,
-            pageSize,
-            first: this.first,
-            after: this.after,
-            lastId: this.lastId,
-            before: this.before,
-            firstId: this.firstId,
-            last: this.last,
-            lastPageSize: this.lastPageSize
-        }).then(data => {
-            this.records = data.waiverRecords;
-            this.isLoading = false;
-        }).catch(error => {
-            console.error(error);
-            this.isLoading = false;
-        });
-    }
-
-    get showPaginationBar() {
-        return this.totalPages > 1;
-    }
-
-    get isFirstPage() {
-        return this.currentPage === 1;
-    }
-
-    get isLastPage() {
-        return this.currentPage === this.totalPages;
-    }
-
-    get rowNumberOffset() {
-        return (this.currentPage - 1) * pageSize;
-    }
-
-    handleNewWaiver() {
-        // Add logic for handling New Waiver button click
-    }
-
-    handleHome() {
-        // Add logic for handling Home button click
-    }
-
-    handleContactUs() {
-        // Add logic for handling Contact Us button click
-    }
-
-    handleFAQ() {
-        // Add logic for handling FAQ button click
-    }
-
-    handleHelp() {
-        // Add logic for handling Help button click
-    }
-}
+      <template if:true={showRecord}>
+        <lightning-layout-item padding="around-small" size="10">
+          <!-- <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+            layout-type="Full" mode="view">
+          </lightning-record-form> -->
+          <c-waivers-record-page record-id={recordId}
+            object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+          <div class="slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </lightning-layout-item>
+      </template>
+    </lightning-layout>
+    <template if:true={isLoading}>
+      <lightning-spinner alternative-text="Loading"></lightning-spinner>
+    </template>
+  </lightning-card>
+</template>
