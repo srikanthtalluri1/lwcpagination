@@ -145,5 +145,10 @@ export default class WaiversRecordPage extends LightningElement {
         }
     }
 
+    handleTabClick(event) {
+        this.template.querySelectorAll('li').forEach((el) => {
+            el.classList();
+        })
+    }
 
 }
