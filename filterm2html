@@ -1,58 +1,62 @@
 <template>
-
-    <!-- Start Header Label Passed from Parent -->
-    <template if:true={label}>
-        <label class="slds-form-element__label">{label}</label>
-    </template>
-    <!-- End Header Label Passed from Parent -->
-    <div class="slds-combobox_container">
-        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open" aria-expanded="true"
-            aria-haspopup="listbox" role="combobox" onmouseleave={handleMouseOut} onmouseenter={handleMouseIn}>
-            <!-- Search Input -->
-            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
-                <lightning-input disabled={disabled} class="inputBox" placeholder="Select an Option" onblur={handleBlur}
-                    onclick={showOptions} onkeyup={filterOptions} value={searchString} variant="label-hidden"
-                    id="combobox-id-1"></lightning-input>
-                <lightning-icon class="slds-input__icon" icon-name="utility:down" size="x-small"
-                    alternative-text="downicon"></lightning-icon>
+    <div class="slds-form-element selectbox">
+        <label class="slds-form-element__label" for="combobox-id-5">{pickListLabel}</label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"
+                    aria-expanded="true" aria-haspopup="listbox" role="combobox" onmouseleave={handleLeave}>
+                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                        <input type="text"
+                            class="slds-input slds-combobox__input slds-has-focus slds-combobox__input-value"
+                            id="combobox-id-5" aria-controls="listbox-id-5" role="textbox"
+                            placeholder="Select an Option" readonly="" value={selectedMessage}
+                            onclick={handleShowDropdown} />
+                        <span
+                            class="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
+                            <lightning-icon icon-name="utility:down" size="x-small" aria-hidden="true"
+                                alternative-text="drop-down" title="click to drop-down">
+                            </lightning-icon>
+                        </span>
+                    </div>
+                    <!-- Drop down section : Start -->
+                    <template if:true={showDropdown}>
+                        <div id="listbox-id-5" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
+                            role="listbox">
+                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                <template for:each={values} for:item="eachvalue">
+                                    <c-picklist-value key={eachvalue.label} label={eachvalue.label}
+                                        value={eachvalue.value} selected={eachvalue.selected}>
+                                    </c-picklist-value>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                    <!-- Drop down section : Start -->
+                </div>
             </div>
-            <!-- Dropdown List -->
-            <template if:true={showDropdown}>
-                <div id="listbox-id-1" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid">
-                    <ul class="slds-listbox slds-listbox_vertical recordListBox" role="presentation">
-                        <template if:false={noResultMessage}>
-                            <template for:each={optionData} for:item="option">
-                                <li key={option.value} data-id={option.value} onmousedown={selectItem}
-                                    class="slds-listbox__item eachItem" if:true={option.isVisible}>
-                                    <template if:true={option.selected}>
-                                        <lightning-icon icon-name="utility:check" size="x-small"
-                                            alternative-text="icon"></lightning-icon>
-                                    </template>
-                                    <span
-                                        class="slds-media slds-listbox__option_entity verticalAlign slds-truncate">{option.label}</span>
-                                </li>
-                            </template>
-                        </template>
-                        <template if:true={noResultMessage}>
-                            <li class="slds-listbox__item">
-                                <span
-                                    class="slds-media slds-listbox__option_entity verticalAlign slds-truncate">{noResultMessage}</span>
+            <!-- Selected Pills section : Start-->
+            <template if:true={showSelection}>
+                <div class="slds-listbox_selection-group">
+                    <ul class="slds-listbox slds-listbox_horizontal" role="listbox" aria-label="Selected Options:"
+                        aria-orientation="horizontal">
+                        <template for:each={selectedValues} for:item="eachvalue">
+                            <li key={eachvalue} class="slds-listbox-item" role="presentation">
+                                <span class="slds-pill" role="option" tabindex="0" aria-selected="true">
+                                    <span class="slds-pill__label" title={eachvalue}>{eachvalue}</span>
+                                    <span class="slds-icon_container slds-pill__remove" title="Remove">
+                                        <lightning-icon icon-name="utility:close" size="x-small" aria-hidden="true"
+                                            alternative-text="Remove" title="Remove" onclick={closePill}
+                                            data-value={eachvalue}>
+                                        </lightning-icon>
+                                        <span class="slds-assistive-text">Click to remove</span>
+                                    </span>
+                                </span>
                             </li>
                         </template>
                     </ul>
                 </div>
             </template>
+            <!-- Selected Pills section : End-->
         </div>
     </div>
-    <!-- Multi Select Pills -->
-    <template if:true={showSelection}>
-        <template for:each={optionData} for:item="option">
-            <template if:true={option.selected}>
-                <lightning-pill label={option.label} key={option.value} name={option.value} onremove={closePill}>
-                    <lightning-icon icon-name="custom:custom11" alternative-text="Account"></lightning-icon>
-                </lightning-pill>
-            </template>
-        </template>
-    </template>
-
 </template>
