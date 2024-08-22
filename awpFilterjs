@@ -56,7 +56,7 @@ export default class AwpWaiverListView extends LightningElement {
     sortedDirection = 'asc';
     initialRecords = [];
     selectedWaiver = 'mywaivers';
-    _tableSize = '12';
+    _tableSize = '10';
     showFilter = false;
     showRecord = false;
     recordId;
@@ -349,11 +349,11 @@ export default class AwpWaiverListView extends LightningElement {
     handleFilter(showFilter) {
         this.showFilter = showFilter;
         this.showRecord = false;
-        if (this.showFilter) {
-            this._tableSize = '10';
-        } else {
-            this._tableSize = '12';
-        }
+        // if (this.showFilter) {
+        //     this._tableSize = '10';
+        // } else {
+        //     this._tableSize = '12';
+        // }
     }
 
     handleView(event) {
@@ -364,7 +364,7 @@ export default class AwpWaiverListView extends LightningElement {
             this.columns = [...COLUMNS.slice(0, 1)];
             this._tableSize = '2';
         } else {
-            this._tableSize = '12';
+            this._tableSize = '10';
             this.columns = [...COLUMNS];
         }
     }
