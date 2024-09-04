@@ -1,15 +1,1 @@
-<template>
-    <c-custom-text record-id={typeAttributes.recordId} value={value}></c-custom-text>
-</template>
 
-import LightningDatatable from 'lightning/datatable';
-import customTextTemplate from './customTextTemplate.html';
-
-export default class CustomDatatableDataTypeProvider extends LightningDatatable {
-    static customTypes = {
-        customText: {
-            template: customTextTemplate,
-            typeAttributes: ['recordId'],
-        }
-    };
-}
