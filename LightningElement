@@ -1,11 +1,1 @@
-public AWP_WaiverHandlerClass() {
-    for(Schema.PicklistEntry status :AWP_Architecture_Waiver_Form__c.Status__c.getDescribe().getPicklistValues()){
-      waiverStatus.add(status.getValue());
-    }
-    for(Schema.PicklistEntry reason :AWP_Architecture_Waiver_Form__c.Waiver_Reason__c.getDescribe().getPicklistValues()){
-      waiverReason.add(reason.getValue());
-    }
-    for(Schema.PicklistEntry risk :AWP_Architecture_Waiver_Form__c.BARR_Risk_Level_UI__c.getDescribe().getPicklistValues()){
-      waiverBarrRisk.add(risk.getValue());
-    }
-  }
+
