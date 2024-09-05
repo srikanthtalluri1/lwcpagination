@@ -1,18 +1,17 @@
-
 <!-- sldsValidatorIgnore -->
 <template>
   <lightning-card>
+    <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+      onclick={handleActions} variant="border-filled" data-action="showfiltertoggle"></lightning-button-icon-stateful>
     <lightning-layout multiple-rows="true">
       <template if:true={showFilter}>
-        <lightning-layout-item padding="around-small" size="2">
+        <lightning-layout-item padding="around-small" size="2" class="slds-color__background_gray-2">
           <div class="slds-grid slds-wrap">
-            <div class="slds-col slds-size_1-of-1">
+            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
               <div class="slds-grid slds-wrap">
                 <p class="slds-col slds-size_1-of-1">Filter by:</p>
                 <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
                   options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
-                <!-- <c-multi-select-picklist class="slds-col slds-size_1-of-1" values={filterOptions} show-selection="false"
-                  onselectedvalues={handleActions}></c-multi-select-picklist> -->
                 <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
                   showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
                 <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
@@ -20,8 +19,8 @@
               </div>
             </div>
           </div>
-          <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
-            for:each={filteredFieldValues} for:item="filteredFieldValue">
+          <div if:true={showFilterValues} class="slds-card slds-p-top--medium slds-color__background_gray-2"
+            key={filteredFieldValue.id} for:each={filteredFieldValues} for:item="filteredFieldValue">
             <div class="slds-grid slds-align--spread slds-wrap">
               <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
               <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
@@ -53,7 +52,7 @@
         </lightning-layout-item>
       </template>
 
-      <lightning-layout-item padding="around-small" size={tableSize}>
+      <lightning-layout-item padding="around-small" size={tableSize} class="slds-border_left slds-border_right">
         <div>
           <c-custom-datatable-data-type-provider key-field="Id" data={records} columns={columns} hide-checkbox-column
             show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
@@ -87,7 +86,7 @@
       </lightning-layout-item>
 
       <template if:true={showRecord}>
-        <lightning-layout-item padding="around-small" size="10">
+        <lightning-layout-item padding="around-small" size={recordViewSize}>
           <c-waivers-record-page record-id={recordId}
             object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
           <div class="slds-m-top_x-large">
@@ -100,7 +99,7 @@
     <template if:true={isLoading}>
       <lightning-spinner alternative-text="Loading"></lightning-spinner>
     </template>
-    <div if:true={showFilterToggle}>
+    <!-- <div if:true={showFilterToggle}>
       <lightning-button-icon-stateful class="filter-button" icon-name="utility:filterList"
         selected={showFilterToggleClicked} size="medium" onclick={handleActions} variant="border-filled"
         data-action="showfilteroptions"></lightning-button-icon-stateful>
@@ -112,8 +111,6 @@
                 <p class="slds-col slds-size_1-of-1">Filter by:</p>
                 <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
                   options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
-                <!-- <c-multi-select-picklist class="slds-col slds-size_1-of-1" values={filterOptions} show-selection="false"
-                  onselectedvalues={handleActions}></c-multi-select-picklist> -->
                 <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
                   showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
                 <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
@@ -149,7 +146,7 @@
           </template>
         </div>
       </template>
-    </div>
+    </div> -->
   </lightning-card>
 
   <!-- Modal to copy the filter link -->
