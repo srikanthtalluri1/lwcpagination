@@ -25,7 +25,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     // showFilterToggleClicked = false;
     recordId;
     @track _filterOptions = [];
-    @track selectedFilter = [];
+    selectedFilter;
     filterBy = [];
     @track _filteredFieldValues = [];
     isLoadingFilter = false;
@@ -76,9 +76,21 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
         ];
     }
 
+    get selectedWaiverLabel() {
+        return this.selectedWaiver === 'mywaivers' ? 'My Waivers' : 'All Waivers';
+    }
+
     get tableSize() {
         return this._tableSize;
     }
+
+    // get tableSizeClass() {
+    //     return this._tableSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : (this._tableSize === '2' ? 'slds-size_2-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right');
+    // }
+
+    // get recordViewSizeClass() {
+    //     return this._recordViewSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right';
+    // }
 
     get recordViewSize() {
         return this._recordViewSize;
@@ -105,7 +117,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     @wire(CurrentPageReference)
     getPageReferenceParameters(currentPageReference) {
         if (currentPageReference) {
-            this.selectedFilter = (currentPageReference.state.c__filterValues ? currentPageReference.state.c__filterValues : []);
+            this.selectedFilter = (currentPageReference.state.c__filterValues ? currentPageReference.state.c__filterValues : '');
             this.selectedWaiver = (currentPageReference.state.c__all === 'true') ? 'allwaivers' : 'mywaivers';
         }
     }
@@ -429,7 +441,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                 this.isLoading = true;
                 this.filterBy = [];
                 this._filteredFieldValues = [];
-                this.selectedFilter = [];
+                this.selectedFilter = '';
                 this.showFilter = false;
                 this.searchKey = '';
                 this.handleFilter('reset');
@@ -481,7 +493,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                         this.isLoadingFilter = false;
                     });
                 } else {
-                    this.selectedFilter = [];
+                    this.selectedFilter = '';
                 }
 
                 break;
@@ -497,9 +509,8 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     generateFilterLink() {
-        const selectedFilter = this.selectedFilter.split(';');
         const baseUrl = window.location.origin;
-        const generatedUrl = baseUrl + '/lightning/n/Waiver_Records_List_View?c__all=' + (this.selectedWaiver === 'allwaivers' ? true : false) + '&c__filterValues=' + (selectedFilter.length ? selectedFilter.join(';') : '')
+        const generatedUrl = baseUrl + '/lightning/n/Waiver_Records_List_View?c__all=' + (this.selectedWaiver === 'allwaivers' ? true : false) + (this.selectedFilter ? '&c__filterValues=' + this.selectedFilter : '')
         console.log('generateFilterLink=== ' + generatedUrl);
         this.generatedFilterLink = generatedUrl;
     }
