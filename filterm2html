@@ -1,63 +1,80 @@
-
 <template>
-    <div class="slds-form-element selectbox">
-        <label class="slds-form-element__label" for="combobox-id-5">{pickListLabel}</label>
-        <div class="slds-form-element__control">
-            <div class="slds-combobox_container">
-                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"
-                    aria-expanded="true" aria-haspopup="listbox" role="combobox" onmouseleave={handleLeave}>
-                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
-                        <input type="text"
-                            class="slds-input slds-combobox__input slds-has-focus slds-combobox__input-value"
-                            id="combobox-id-5" aria-controls="listbox-id-5" role="textbox"
-                            placeholder="Select an Option" readonly="" value={selectedMessage}
-                            onclick={handleShowDropdown} />
-                        <span
-                            class="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
-                            <lightning-icon icon-name="utility:down" size="x-small" aria-hidden="true"
-                                alternative-text="drop-down" title="click to drop-down">
-                            </lightning-icon>
-                        </span>
-                    </div>
-                    <!-- Drop down section : Start -->
-                    <template if:true={showDropdown}>
-                        <div id="listbox-id-5" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
-                            role="listbox">
-                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
-                                <template for:each={values} for:item="eachvalue">
-                                    <c-picklist-value key={eachvalue.label} label={eachvalue.label}
-                                        value={eachvalue.value} selected={eachvalue.selected}>
-                                    </c-picklist-value>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label">
+            <abbr if:true={required} title="required" class="slds-required">*</abbr>{label}
+        </label>
+        <div class="slds-input-has-icon slds-input-has-icon_right">
+            <lightning-icon icon-name="utility:down" size="xx-small"
+                class="slds-icon slds-input__icon slds-input__icon_right"
+                style="margin-right:-0.2rem;top:15px;"></lightning-icon>
+            <lightning-input type="text" placeholder={placeholder} onchange={onSearch} class="cmpl-input"
+                variant="label-hidden"></lightning-input>
+        </div>
+        <template if:true={showDD}>
+            <div class="slds-dropdown slds-dropdown_length-10 slds-dropdown_fluid" onblur={onBlur}>
+                <ul class="slds-listbox slds-listbox_vertical">
+                    <li class="slds-listbox__item slds-border_bottom">
+                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                            <span class="slds-media__figure slds-listbox__option-icon">
+                                <template if:true={isSelectAll}>
+                                    <lightning-input type="checkbox" value='SelectAll' class='select-all' checked
+                                        onchange={onSelect}></lightning-input>
                                 </template>
-                            </ul>
+                                <template if:false={isSelectAll}>
+                                    <lightning-input type="checkbox" value='SelectAll' class='select-all'
+                                        onchange={onSelect}></lightning-input>
+                                </template>
+                            </span>
+                            <span class="slds-media__body">
+                                <span class="slds-truncate" title='Filters' style="font-weight:bold">Filters</span>
+                            </span>
                         </div>
-                    </template>
-                    <!-- Drop down section : Start -->
-                </div>
-            </div>
-            <!-- Selected Pills section : Start-->
-            <template if:true={showSelection}>
-                <div class="slds-listbox_selection-group">
-                    <ul class="slds-listbox slds-listbox_horizontal" role="listbox" aria-label="Selected Options:"
-                        aria-orientation="horizontal">
-                        <template for:each={selectedValues} for:item="eachvalue">
-                            <li key={eachvalue} class="slds-listbox-item" role="presentation">
-                                <span class="slds-pill" role="option" tabindex="0" aria-selected="true">
-                                    <span class="slds-pill__label" title={eachvalue}>{eachvalue}</span>
-                                    <span class="slds-icon_container slds-pill__remove" title="Remove">
-                                        <lightning-icon icon-name="utility:close" size="x-small" aria-hidden="true"
-                                            alternative-text="Remove" title="Remove" onclick={closePill}
-                                            data-value={eachvalue}>
-                                        </lightning-icon>
-                                        <span class="slds-assistive-text">Click to remove</span>
+                    </li>
+                    <template for:each={options} for:item="option">
+                        <template if:true={option.show}>
+                            <li key={option.index} class="slds-listbox__item">
+                                <div
+                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                                    <!-- <span class="slds-media__figure slds-listbox__option-icon"> -->
+                                    <span>
+                                        <template if:true={option.checked}>
+                                            <lightning-input type="checkbox" label={option.label} value={option.label}
+                                                checked onchange={onSelect}></lightning-input>
+                                        </template>
+                                        <template if:false={option.checked}>
+                                            <lightning-input type="checkbox" label={option.label} value={option.label}
+                                                onchange={onSelect}></lightning-input>
+                                        </template>
                                     </span>
-                                </span>
+                                    <!-- <span class="slds-media__body">
+                                        <span class="slds-truncate" title={option.label}>{option.label}</span>
+                                    </span> -->
+                                </div>
                             </li>
+                        </template>
+                    </template>
+                </ul>
+            </div>
+        </template>
+        <template if:true={showPillView}>
+            <div class="slds-m-top_x-small slds-grid">
+                <div class="slds-listbox_selection-group">
+                    <ul class="slds-listbox slds-is-relative slds-listbox_horizontal" role="listbox">
+                        <template for:each={options} for:item="option">
+                            <template if:true={option.checked}>
+                                <li key={option.index} class="slds-listbox-item">
+                                    <lightning-pill label={option.label} name={option.label} onremove={onRemove}
+                                        role="pill"></lightning-pill>
+                                </li>
+                            </template>
                         </template>
                     </ul>
                 </div>
-            </template>
-            <!-- Selected Pills section : End-->
-        </div>
+                <div class="slds-align_absolute-center">
+                    <a onclick={showMore} style="text-wrap: nowrap;" class="slds-hide" role="more">..More</a>
+                    <a onclick={showLess} style="text-wrap: nowrap;" class="slds-hide" role="less">..Show Less</a>
+                </div>
+            </div>
+        </template>
     </div>
 </template>
