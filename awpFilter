@@ -114,8 +114,19 @@
 
     <template if:true={showRecord}>
       <lightning-layout-item size={recordViewSize}>
+        <!-- <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+          field-set="CompactPanelFieldSet"></c-custom-highlight-panel> -->
         <c-waivers-record-page record-id={recordId}
           object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+        <!-- <lightning-card title="Architecture Waiver Record" icon-name="standard:opportunity">
+          <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+            layout-type="Full" columns="2" mode="readonly">
+          </lightning-record-form>
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </lightning-card> -->
         <div class="slds-p-left_small slds-m-top_x-large">
           <lightning-button variant="brand" label="Close" data-action="close"
             onclick={handleActions}></lightning-button>
@@ -240,6 +251,14 @@
 
   <template if:true={isLoading}>
     <lightning-spinner alternative-text="Loading"></lightning-spinner>
+  </template>
+
+  <template if:false={showFilter}>
+    <!-- <div class="filter-container slds-is-fixed"> -->
+    <lightning-button-icon-stateful class="filter-button slds-is-fixed" icon-name="utility:filterList"
+      selected={showFilter} size="medium" onclick={handleActions} variant="border-filled"
+      data-action="showfiltertoggle"></lightning-button-icon-stateful>
+    <!-- </div> -->
   </template>
   <!-- </lightning-card> -->
 
