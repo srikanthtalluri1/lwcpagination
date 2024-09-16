@@ -1,80 +1,42 @@
 <template>
-    <div class="slds-form-element">
-        <label class="slds-form-element__label">
-            <abbr if:true={required} title="required" class="slds-required">*</abbr>{label}
-        </label>
-        <div class="slds-input-has-icon slds-input-has-icon_right">
-            <lightning-icon icon-name="utility:down" size="xx-small"
-                class="slds-icon slds-input__icon slds-input__icon_right"
-                style="margin-right:-0.2rem;top:15px;"></lightning-icon>
-            <lightning-input type="text" placeholder={placeholder} onchange={onSearch} class="cmpl-input"
-                variant="label-hidden"></lightning-input>
+    <div class="slds-page-header slds-page-header_record-home">
+        <div class="slds-page-header__row">
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:contact" size="medium"
+                            alternative-text="Contact"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body" style="line-height: 13px;">
+                        <span>{objectLabelName}</span>
+                        <span class="slds-page-header__title slds-truncate" title={nameField}>{nameField}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <lightning-button-group>
+                            <lightning-button label="Edit" data-action="edit"
+                                onclick={handleActions}></lightning-button>
+                            <lightning-button label="Save"></lightning-button>
+                        </lightning-button-group>
+                    </div>
+                </div>
+            </div>
         </div>
-        <template if:true={showDD}>
-            <div class="slds-dropdown slds-dropdown_length-10 slds-dropdown_fluid" onblur={onBlur}>
-                <ul class="slds-listbox slds-listbox_vertical">
-                    <li class="slds-listbox__item slds-border_bottom">
-                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
-                            <span class="slds-media__figure slds-listbox__option-icon">
-                                <template if:true={isSelectAll}>
-                                    <lightning-input type="checkbox" value='SelectAll' class='select-all' checked
-                                        onchange={onSelect}></lightning-input>
-                                </template>
-                                <template if:false={isSelectAll}>
-                                    <lightning-input type="checkbox" value='SelectAll' class='select-all'
-                                        onchange={onSelect}></lightning-input>
-                                </template>
-                            </span>
-                            <span class="slds-media__body">
-                                <span class="slds-truncate" title='Filters' style="font-weight:bold">Filters</span>
-                            </span>
-                        </div>
-                    </li>
-                    <template for:each={options} for:item="option">
-                        <template if:true={option.show}>
-                            <li key={option.index} class="slds-listbox__item">
-                                <div
-                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
-                                    <!-- <span class="slds-media__figure slds-listbox__option-icon"> -->
-                                    <span>
-                                        <template if:true={option.checked}>
-                                            <lightning-input type="checkbox" label={option.label} value={option.label}
-                                                checked onchange={onSelect}></lightning-input>
-                                        </template>
-                                        <template if:false={option.checked}>
-                                            <lightning-input type="checkbox" label={option.label} value={option.label}
-                                                onchange={onSelect}></lightning-input>
-                                        </template>
-                                    </span>
-                                    <!-- <span class="slds-media__body">
-                                        <span class="slds-truncate" title={option.label}>{option.label}</span>
-                                    </span> -->
-                                </div>
+        <div class="slds-page-header__row slds-page-header__row_gutters">
+            <div class="slds-page-header__col-details">
+                <lightning-record-view-form record-id={recordId} object-api-name={objectApiName}>
+                    <ul class="slds-page-header__detail-row" style="padding-left: 12px;">
+                        <template for:each={fieldList} for:item="field" for:index="index">
+                            <li key={field} class="slds-page-header__detail-block">
+                                <lightning-output-field field-name={field}></lightning-output-field>
                             </li>
                         </template>
-                    </template>
-                </ul>
-            </div>
-        </template>
-        <template if:true={showPillView}>
-            <div class="slds-m-top_x-small slds-grid">
-                <div class="slds-listbox_selection-group">
-                    <ul class="slds-listbox slds-is-relative slds-listbox_horizontal" role="listbox">
-                        <template for:each={options} for:item="option">
-                            <template if:true={option.checked}>
-                                <li key={option.index} class="slds-listbox-item">
-                                    <lightning-pill label={option.label} name={option.label} onremove={onRemove}
-                                        role="pill"></lightning-pill>
-                                </li>
-                            </template>
-                        </template>
                     </ul>
-                </div>
-                <div class="slds-align_absolute-center">
-                    <a onclick={showMore} style="text-wrap: nowrap;" class="slds-hide" role="more">..More</a>
-                    <a onclick={showLess} style="text-wrap: nowrap;" class="slds-hide" role="less">..Show Less</a>
-                </div>
+                </lightning-record-view-form>
             </div>
-        </template>
+        </div>
     </div>
 </template>
