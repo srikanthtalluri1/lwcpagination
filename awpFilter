@@ -1,442 +1,295 @@
+<!-- sldsValidatorIgnore -->
 <template>
-    <!-- <lightning-card> -->
-    <!-- <div class="slds-grid slds-wrap slds-grid_align-end slds-var-p-right_large">
-            <div class="slds-col">
-                <lightning-button-group>
-                    <lightning-button variant="neutral" label="Edit" onclick={handleActions}
-                        data-action="edit"></lightning-button>
-                    <lightning-button variant="neutral" label="Submit for Approval" onclick={handleActions}
-                        data-action="approval"></lightning-button>
-                    <lightning-button variant="neutral" label="Withdraw" onclick={handleActions}
-                        data-action="withdraw"></lightning-button>
-                </lightning-button-group>
+  <!-- <lightning-card> -->
+  <lightning-layout multiple-rows="true" class="slds-color__background_gray-2">
+    <template if:true={showFilter}>
+      <lightning-layout-item padding="around-small" size="2">
+        <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+          onclick={handleActions} variant="border-filled"
+          data-action="showfiltertoggle"></lightning-button-icon-stateful>
+        <div class="slds-grid slds-wrap">
+          <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+            <div class="slds-grid slds-wrap">
+              <p class="slds-col slds-size_1-of-1">Filter by:</p>
+              <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
+                options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
+              <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
+                showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
+              <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
             </div>
-        </div> -->
-    <div style="background: white">
-        <c-custom-highlight-panel record-id={recordId} object-api-name={objectApiName}
-            field-set="CompactPanelFieldSet"></c-custom-highlight-panel>
-        <div class="slds-var-p-around_large">
-            <lightning-tabset class="tab-active">
-                <lightning-tab label="Details" value="waiver">
-                    <!-- <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="waiversection1" label="Waiver Details">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col1} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col2} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="waiversection2" label="Requesting Domain and Portfolio">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col3} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col4} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="waiversection3" label="Accordion Title C">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col5} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col6} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-                    </lightning-accordion> -->
-                    <c-section title="Waiver Details">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col1} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col2} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </c-section>
-                    <c-section title="Requesting Domain and Portfolio">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col3} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col4} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </c-section>
-                    <c-section title="Accordion Title C">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col5} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col6} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </c-section>
-                </lightning-tab>
-                <lightning-tab label="Related" value="contacts">
-                    <!-- <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="contactsection1" label="Requesting Domain and Portfolio">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col1} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col2} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="contactsection2" label="Requesting Domain and Portfolio">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col3} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col4} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="contactsectio3" label="Accordion Title C">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col5} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={contactFields.col6} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-                    </lightning-accordion> -->
-                </lightning-tab>
-                <!-- <lightning-tab label="Approval" value="approval">
-                    <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="approvalsection1" label="Waiver Details">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.col1} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.col2} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="approvalsection2" label="Requesting Domain and Portfolio">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.co3} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.col4} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="approvalsection3" label="Accordion Title C">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.col5} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={approvalFields.col6} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-                    </lightning-accordion>
-                </lightning-tab>
-                <lightning-tab label="History" value="history">
-                    <lightning-accordion allow-multiple-sections-open>
-                        <lightning-accordion-section name="historysection1" label="Waiver Details">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col1} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col2} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="historysection2" label="Requesting Domain and Portfolio">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col3} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col4} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="historysection3" label="Accordion Title C">
-                            <lightning-record-view-form record-id={recordId}
-                                object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                                <div class="slds-grid slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col5} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={historyFields.col6} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
-                        </lightning-accordion-section>
-                    </lightning-accordion>
-                </lightning-tab> -->
-            </lightning-tabset>
-
-            <!-- <div class="slds-tabs_default slds-tabs_medium slds-p-top_medium">
-                <div role="heading" aria-level="2" class="slds-tabs_default__header">This is a sample header for tabs
-                </div>
-                <ul class="slds-tabs_default__nav" role="tablist">
-                    <li class="slds-tabs_default__item slds-is-active custom-tab" title="Item One" role="presentation">
-                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="0" aria-selected="true"
-                            aria-controls="tab-default-1" id="tab-default-1__item">Item One</a>
-                    </li>
-                    <li class="slds-tabs_default__item" title="Item Two" role="presentation">
-                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="-1" aria-selected="false"
-                            aria-controls="tab-default-2" id="tab-default-2__item">Item Two</a>
-                    </li>
-                    <li class="slds-tabs_default__item" title="Item Three" role="presentation">
-                        <a class="slds-tabs_default__link" href="#" role="tab" tabindex="-1" aria-selected="false"
-                            aria-controls="tab-default-3" id="tab-default-3__item">Item Three</a>
-                    </li>
-                </ul>
-                <div id="tab-default-1" class="slds-tabs_default__content slds-show" role="tabpanel"
-                    aria-labelledby="tab-default-1__item">
-
-                </div>
-                <div id="tab-default-2" class="slds-tabs_default__content slds-hide" role="tabpanel"
-                    aria-labelledby="tab-default-2__item">Item Two Content</div>
-                <div id="tab-default-3" class="slds-tabs_default__content slds-hide" role="tabpanel"
-                    aria-labelledby="tab-default-3__item">Item Three Content</div>
-            </div> -->
-
-            <!-- <div class="slds-tabs_scoped slds-tabs_medium slds-var-p-top_medium">
-                <ul class="slds-tabs_scoped__nav" role="tablist">
-                    <li class="slds-tabs_scoped__item slds-is-active waiver" title="Item One" role="presentation"
-                        onclick={handleTabClick}>
-                        <a class="slds-tabs_scoped__link custom-tab" id="tab-scoped-1__item"
-                            onclick={handleTabClick}>Waiver</a>
-                    </li>
-                    <li class="slds-tabs_scoped__item contacts" title="Item Two" role="presentation"
-                        onclick={handleTabClick}>
-                        <a class="slds-tabs_scoped__link" role="tab" id="tab-scoped-2__item"
-                            onclick={handleTabClick}>Contacts</a>
-                    </li>
-            </ul>
-            <div id="tab-scoped-1" class="slds-tabs_scoped__content slds-show" role="tabpanel"
-                aria-labelledby="tab-scoped-1__item">
-                <lightning-accordion allow-multiple-sections-open>
-                    <lightning-accordion-section name="waiversection1" label="Waiver Details" class="slds-theme_shade">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col1} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col2} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </lightning-accordion-section>
-
-                    <lightning-accordion-section name="waiversection2" label="Requesting Domain and Portfolio">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col3} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col4} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </lightning-accordion-section>
-
-                    <lightning-accordion-section name="waiversection3" label="Accordion Title C">
-                        <lightning-record-view-form record-id={recordId}
-                            object-api-name="AWP_Architecture_Waiver_Form__c" density="compact">
-                            <div class="slds-grid slds-theme_default">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col5} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <template for:each={waiverFields.col6} for:item="field">
-                                        <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                        </lightning-output-field>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-record-view-form>
-                    </lightning-accordion-section>
-                </lightning-accordion>
-            </div>
-            <div id="tab-scoped-2" class="slds-tabs_scoped__content slds-hide" role="tabpanel"
-                aria-labelledby="tab-scoped-2__item">Item Two Content</div>
-            
-        </div> -->
+          </div>
         </div>
+        <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+          for:each={filteredFieldValues} for:item="filteredFieldValue">
+          <div class="slds-grid slds-align--spread slds-wrap">
+            <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+            <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
+              size="small" variant="bare" onclick={handleActions} data-action="filterbyexpand"
+              data-index={filteredFieldValue.id}></lightning-button-icon>
+          </div>
+          <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+            name="filterValue" options={filteredFieldValue.filteredFieldValue} data-action="selectedfiltervalue"
+            data-index={filteredFieldValue.id} onchange={handleActions} value={filteredFieldValue.selectedValue}>
+          </lightning-checkbox-group>
+        </div>
+        <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+          <div class="slds-col">
+            <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+              onclick={handleActions}></lightning-button>
+          </div>
+          <div class="slds-col slds-var-p-left_small">
+            <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+              onclick={handleActions}></lightning-button>
+          </div>
+          <div class="slds-col slds-var-p-left_small">
+            <lightning-button label="Share Filter" variant="bare" data-action="sharefilter"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </div>
+        <template if:true={isLoadingFilter}>
+          <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+      </lightning-layout-item>
+    </template>
+
+    <lightning-layout-item size={tableSize} class="slds-border_left slds-border_right background-white">
+      <div>
+        <div class="slds-page-header">
+          <div class="slds-page-header__row">
+            <div class="slds-page-header__col-title">
+              <div class="slds-media">
+                <div class="slds-media__figure">
+                  <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                </div>
+                <div class="slds-media__body">
+                  <div class="slds-page-header__name">
+                    <div class="slds-page-header__name-title">
+                      <h1>
+                        <span>Architecture Waivers</span>
+                        <span class="slds-page-header__title slds-truncate"
+                          title="Recently Viewed">{selectedWaiverLabel}</span>
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
+                {selectedWaiverLabel}
+              </div>
+            </div>
+          </div>
+        </div>
+        <c-custom-datatable-data-type-provider key-field="Id" data={records} columns={columns} hide-checkbox-column
+          show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
+          row-number-offset={rowNumberOffset} onrowaction={handleActions} oncustomtext={handleActions}>
+        </c-custom-datatable-data-type-provider>
+        <template if:true={noRecordsFound}> No records to display </template>
+      </div>
+      <div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large">
+        <div class="slds-col">
+          <!-- <lightning-combobox label="Page Size" value={currentPageSize} options={pageSizeOptions}
+              onchange={handlePageSize}></lightning-combobox> -->
+        </div>
+        <div class="slds-col slds-var-p-top_xx-large">
+          <lightning-button-group>
+            <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+              disabled={isFirstPage}></lightning-button>
+            <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+              disabled={isFirstPage}></lightning-button>
+          </lightning-button-group>
+          <span class="slds-m-horizontal_small">
+            {currentPage}/{totalPages}
+          </span>
+          <lightning-button-group>
+            <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+              onclick={handleNext} disabled={isLastPage}></lightning-button>
+            <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+              onclick={handleLast} disabled={isLastPage}></lightning-button>
+          </lightning-button-group>
+        </div>
+      </div>
+    </lightning-layout-item>
+
+    <template if:true={showRecord}>
+      <lightning-layout-item size={recordViewSize}>
+        <!-- <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+          field-set="CompactPanelFieldSet"></c-custom-highlight-panel> -->
+        <c-waivers-record-page record-id={recordId}
+          object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+        <!-- <lightning-card title="Architecture Waiver Record" icon-name="standard:opportunity">
+          <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+            layout-type="Full" columns="2" mode="readonly">
+          </lightning-record-form>
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </lightning-card> -->
+        <div class="slds-p-left_small slds-m-top_x-large">
+          <lightning-button variant="brand" label="Close" data-action="close"
+            onclick={handleActions}></lightning-button>
+        </div>
+      </lightning-layout-item>
+    </template>
+  </lightning-layout>
+
+  <!-- <div class="slds-grid slds-wrap">
+      <template if:true={showFilter}>
+        <div class="slds-col slds-size_2-of-12 slds-p-around_small slds-color__background_gray-2">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+              <div class="slds-grid slds-wrap">
+                <p class="slds-col slds-size_1-of-1">Filter by:</p>
+                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
+                  options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
+                <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
+                  showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
+                <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                  onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
+              </div>
+            </div>
+          </div>
+          <div if:true={showFilterValues} class="slds-card slds-p-top--medium slds-color__background_gray-2"
+            key={filteredFieldValue.id} for:each={filteredFieldValues} for:item="filteredFieldValue">
+            <div class="slds-grid slds-align--spread slds-wrap">
+              <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+              <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
+                size="small" variant="bare" onclick={handleActions} data-action="filterbyexpand"
+                data-index={filteredFieldValue.id}></lightning-button-icon>
+            </div>
+            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+              name="filterValue" options={filteredFieldValue.filteredFieldValue} data-action="selectedfiltervalue"
+              data-index={filteredFieldValue.id} onchange={handleActions} value={filteredFieldValue.selectedValue}>
+            </lightning-checkbox-group>
+          </div>
+          <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+            <div class="slds-col">
+              <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Share Filter" variant="bare" data-action="sharefilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+          </div>
+          <template if:true={isLoadingFilter}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+          </template>
+        </div>
+      </template>
+
+      <div class={tableSizeClass}>
+        <div>
+          <div class="slds-page-header">
+            <div class="slds-page-header__row">
+              <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                  <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                  </div>
+                  <div class="slds-media__body">
+                    <div class="slds-page-header__name">
+                      <div class="slds-page-header__name-title">
+                        <h1>
+                          <span>Architecture Waivers</span>
+                          <span class="slds-page-header__title slds-truncate"
+                            title="Recently Viewed">{selectedWaiverLabel}</span>
+                        </h1>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <c-custom-datatable-data-type-provider key-field="Id" data={records} columns={columns} hide-checkbox-column
+            show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
+            row-number-offset={rowNumberOffset} onrowaction={handleActions} oncustomtext={handleActions}>
+          </c-custom-datatable-data-type-provider>
+          <template if:true={noRecordsFound}> No records to display </template>
+        </div>
+        <div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large">
+          <div class="slds-col">
+          </div>
+          <div class="slds-col slds-var-p-top_xx-large">
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+                disabled={isFirstPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+                disabled={isFirstPage}></lightning-button>
+            </lightning-button-group>
+            <span class="slds-m-horizontal_small">
+              {currentPage}/{totalPages}
+            </span>
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+                onclick={handleNext} disabled={isLastPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+                onclick={handleLast} disabled={isLastPage}></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+      </div>
+
+      <template if:true={showRecord}>
+        <div class={recordViewSizeClass}>
+          <c-waivers-record-page record-id={recordId}
+            object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </div>
+      </template>
+    </div> -->
+
+  <template if:true={isLoading}>
+    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+  </template>
+
+  <template if:false={showFilter}>
+    <!-- <div class="filter-container slds-is-fixed"> -->
+    <lightning-button-icon-stateful class="filter-button slds-is-fixed" icon-name="utility:filterList"
+      selected={showFilter} size="medium" onclick={handleActions} variant="border-filled"
+      data-action="showfiltertoggle"></lightning-button-icon-stateful>
+    <!-- </div> -->
+  </template>
+  <!-- </lightning-card> -->
+
+  <!-- Modal to copy the filter link -->
+  <template if:true={showShareLinkModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <h2>Share Filter </h2>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_11-of-12 slds-box slds-theme_shade slds-theme_alert-texture"
+              style="word-wrap: break-word;">
+              <p class="slds-text-body_small">{generatedFilterLink}</p>
+            </div>
+            <div class="slds-col slds-size_1-of-12 slds-p-top--medium slds-text-align--center">
+              <lightning-button-icon class="slds-p-left_small" icon-name="utility:copy" variant="bare" size="large"
+                onclick={handleCopy}></lightning-button-icon>
+            </div>
+          </div>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button label="close" variant="brand" onclick={closeModal}>
+          </lightning-button>
+        </div>
+      </div>
     </div>
-    <!-- </lightning-card> -->
+  </template>
+  <!-- END Modal to copy the filter link -->
 </template>
