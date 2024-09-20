@@ -1,3 +1,22 @@
+.filter-button {
+    top: 15rem;
+    z-index: 1000;
+    left: 0rem;
+    opacity: 60%;
+}
+
+.filter-button:hover {
+    opacity: 100%;
+}
+
+.background-white {
+    background-color: white;
+}
+
+:host {
+    --lwc-templateGutters: 0rem;
+}
+
 import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -5,6 +24,7 @@ import NoHeader from '@salesforce/resourceUrl/NoHeader';
 import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
 import getFilterDetails from '@salesforce/apex/AWP_WaiverHandlerClass.getFilterDetails';
 import getUniqueValues from '@salesforce/apex/AWP_WaiverHandlerClass.getUniqueValues';
+
 
 const PAGESIZE = [
     { label: '10', value: 10 },
