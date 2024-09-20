@@ -1,154 +1,545 @@
-/* eslint-disable @lwc/lwc/no-api-reassignments */
-import { LightningElement, wire, api } from 'lwc';
+import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import NoHeader from '@salesforce/resourceUrl/NoHeader';
+import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
+import getFilterDetails from '@salesforce/apex/AWP_WaiverHandlerClass.getFilterDetails';
+import getUniqueValues from '@salesforce/apex/AWP_WaiverHandlerClass.getUniqueValues';
 
-const WAIVERFIELDSCOL1 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
+const PAGESIZE = [
+    { label: '10', value: 10 },
+    { label: '20', value: 20 },
+    { label: '30', value: 30 },
+    { label: '40', value: 40 },
+    { label: '50', value: 50 }
 ];
 
-const WAIVERFIELDSCOL2 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
+export default class AwpWaiverListView extends NavigationMixin(LightningElement) {
+    @track records = [];
+    columns = COLUMNS;
+    isLoading = true;
+    currentPage = 1;
+    totalRecords;
+    totalPages;
+    sortedBy = 'Requesting_Portfolio__c';
+    sortedDirection = 'asc';
+    initialRecords = [];
+    selectedWaiver = 'mywaivers';
+    _tableSize = '10';
+    _recordViewSize = '10';
+    showFilter = true;
+    showRecord = false;
+    // showFilterToggle = false;
+    // showFilterToggleClicked = false;
+    recordId;
+    @track _filterOptions = [];
+    selectedFilter;
+    filterBy = [];
+    @track _filteredFieldValues = [];
+    isLoadingFilter = false;
+    filters = [];
+    valueFalse = false;
+    generatedFilterLink = '';
+    showShareLinkModal = false;
 
-const WAIVERFIELDSCOL3 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
+    // Pagination state
+    first = true;
+    after = '';
+    lastId = '';
+    before = '';
+    firstId = '';
+    last = false;
+    lastPageSize = 0;
+    currentPageSize = 30;
+    // END
 
-const WAIVERFIELDSCOL4 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL5 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL6 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-export default class WaiversRecordPage extends LightningElement {
-
-    @api recordId;
-    @api objectApiName;
-    _fields = [];
-
-    get waiverFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
+    get noRecordsFound() {
+        return this.records.length === 0;
     }
 
-    get contactFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
-
+    get pageSizeOptions() {
+        return PAGESIZE;
     }
 
-    get approvalFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
+    get showPaginationBar() {
+        return this.totalPages > 1;
     }
 
-    get historyFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
+    get isFirstPage() {
+        return this.currentPage === 1;
+    }
+
+    get isLastPage() {
+        return this.currentPage === this.totalPages;
+    }
+
+    get rowNumberOffset() {
+        return (this.currentPage - 1) * this.currentPageSize;
+    }
+
+    get waiverOptions() {
+        return [
+            { label: 'My Waivers', value: 'mywaivers' },
+            { label: 'All Waivers', value: 'allwaivers' }
+        ];
+    }
+
+    get selectedWaiverLabel() {
+        return this.selectedWaiver === 'mywaivers' ? 'My Waivers' : 'All Waivers';
+    }
+
+    get tableSize() {
+        return this._tableSize;
+    }
+
+    // get tableSizeClass() {
+    //     return this._tableSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : (this._tableSize === '2' ? 'slds-size_2-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right');
+    // }
+
+    // get recordViewSizeClass() {
+    //     return this._recordViewSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right';
+    // }
+
+    get recordViewSize() {
+        return this._recordViewSize;
+    }
+
+    get rowActions() {
+        return [
+            { label: 'View', name: 'view' }
+        ];
+    }
+
+    get filterOptions() {
+        return this._filterOptions;
+    }
+
+    get filteredFieldValues() {
+        return this._filteredFieldValues;
+    }
+
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
     }
 
     @wire(CurrentPageReference)
     getPageReferenceParameters(currentPageReference) {
-        if (!this.recordId && !this.objectApiName) {
-            if (currentPageReference.attributes?.recordId) {
-                this.recordId = currentPageReference.attributes.recordId;
-            }
-            if (currentPageReference.attributes?.objectApiName) {
-                this.objectApiName = currentPageReference.attributes.objectApiName;
-            }
+        if (currentPageReference) {
+            this.selectedFilter = (currentPageReference.state.c__filterValues ? currentPageReference.state.c__filterValues : '');
+            this.selectedWaiver = (currentPageReference.state.c__all === 'true') ? 'allwaivers' : 'mywaivers';
         }
     }
 
     connectedCallback() {
-        console.log(this.recordId, '====', this.objectApiName);
+        this.fetchData();
+        this.fetchFilterDetails();
+        loadStyle(this, NoHeader);
     }
 
+    handleSearch(event) {
+        window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            this.resetPaginationState();
+            this.currentPage = 1;
+            this.fetchData();
+        }, 300);
+
+    }
+
+    handleReset(event) {
+        if (!event.target.value) {
+            this.currentPage = 1;
+            this.searchKey = '';
+            this.resetPaginationState();
+            this.fetchData();
+        }
+    }
+
+    handlePageSize(event) {
+        this.currentPageSize = parseInt(event.target.value, 10);
+        this.currentPage = 1;
+        this.isLoading = true;
+        this.fetchData();
+    }
+
+    handleSort(event) {
+        const { fieldName: sortedBy, sortDirection: sortedDirection } = event.detail;
+        console.log('sortedDirection==', sortedDirection);
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.sortedDirection = sortedDirection;
+        this.sortedBy = sortedBy;
+        this.currentPage = 1;
+        this.fetchData();
+    }
+
+    handleFirst() {
+        this.currentPage = 1;
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.fetchData();
+    }
+
+    handleLast() {
+        this.currentPage = this.totalPages;
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.first = false;
+        this.last = true;
+        this.lastPageSize = this.totalRecords % this.currentPageSize;
+        this.fetchData();
+    }
+
+    handleNext() {
+        this.currentPage++;
+        const lastRecord = this.records[this.records.length - 1];
+        this.after = lastRecord[this.sortedBy] || 'NULL';
+        this.before = '';
+        this.lastId = lastRecord.Id;
+        this.firstId = '';
+        this.first = false;
+        this.last = (this.currentPage === this.totalPages);
+        this.fetchData();
+    }
+
+    handlePrevious() {
+        this.currentPage--;
+        const firstRecord = this.records[0];
+        this.before = firstRecord[this.sortedBy] || 'NULL';
+        this.after = '';
+        this.firstId = firstRecord.Id;
+        this.lastId = '';
+        this.first = (this.currentPage === 1);
+        this.last = false;
+        this.fetchData();
+    }
+
+    resetPaginationState() {
+        this.isLoading = true;
+        this.before = '';
+        this.firstId = '';
+        this.after = '';
+        this.lastId = '';
+        this.first = true;
+        this.last = false;
+        this.lastPageSize = 0;
+        this.sortedBy = 'Requesting_Portfolio__c';
+        this.sortedDirection = 'asc';
+    }
+
+    fetchData() {
+        getWaiverRecords({
+            searchKey: this.searchKey,
+            sortBy: this.sortedBy,
+            sortOrder: this.sortedDirection,
+            pageSize: this.currentPageSize,
+            first: this.first,
+            after: this.after,
+            lastId: this.lastId,
+            before: this.before,
+            firstId: this.firstId,
+            last: this.last,
+            lastPageSize: this.lastPageSize,
+            allOrMy: this.selectedWaiver,
+            filters: JSON.stringify(this.filters)
+        }).then((data) => {
+            if (this.initialRecords.length === 0) {
+                this.initialRecords = data.waiverRecords;
+            }
+            this.records = data.waiverRecords;
+            this.totalRecords = data.waiverRecordsCount;
+            this.totalPages = Math.ceil(data.waiverRecordsCount / this.currentPageSize);
+            this.isLoading = false;
+        }).catch((error) => {
+            console.error(error);
+            this.isLoading = false;
+        });
+    }
+
+    fetchFilterDetails() {
+        getFilterDetails().then(result => {
+            if (result) {
+                const filterOptions = result.filterOptions;
+                this._filterOptions = filterOptions;
+                this.template.querySelector('[role="cm-picklist"]').setOptions(this._filterOptions);
+                this.template.querySelector('[role="cm-picklist"]').setSelectedList(this.selectedFilter);
+                if (this.selectedFilter.length) {
+                    const evt = {
+                        detail: {
+                            selectedValues: this.selectedFilter
+                        }
+                    };
+                    this.handleFilterBy('selectedValues', evt);
+                }
+            }
+        }).catch(error => {
+            console.error(error);
+        });
+    }
+
+    //Action Buttons
     handleActions(event) {
-        const actionName = event.target.dataset.action;
-        console.log('actionName', actionName);
+        const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
+        if (actionName) {
+            switch (actionName) {
+                case 'newwaiver':
+                    this.handleNewWaiver();
+                    break;
+                case 'home':
+                    this.handleHome();
+                    break;
+                case 'contactus':
+                    this.handleContactUs();
+                    break;
+                case 'faq':
+                    this.handleFAQ();
+                    break;
+                case 'help':
+                    this.handleHelp();
+                    break;
+                case 'view':
+                    this.handleView(event, actionName);
+                    break;
+                case 'close':
+                    this.handleView(event, actionName);
+                    break;
+                case 'applyfilter':
+                    this.handleFilterBy(actionName);
+                    break;
+                case 'resetfilter':
+                    this.handleFilterBy(actionName);
+                    break;
+                case 'selectedValues':
+                    this.handleFilterBy(actionName, event);
+                    break;
+                case 'selectedfiltervalue':
+                    this.handleFilterBy(actionName, event);
+                    break;
+                case 'filterbyexpand':
+                    this.handleFilterBy(actionName, event);
+                    break;
+                // case 'showfilteroptions':
+                //     this.showFilterToggleClicked = !this.showFilterToggleClicked;
+                //     if (this.showFilterToggleClicked && this.showRecord) {
+                //         this.setOptions();
+                //         this.showFilter = true;
+                //         this._recordViewSize = '8';
+                //     } else {
+                //         this.showFilter = false;
+                //         this._recordViewSize = '10';
+                //     }
+                //     break;
+                case 'sharefilter':
+                    this.generateFilterLink();
+                    this.showShareLinkModal = true;
+                    break;
+                case 'showfiltertoggle':
+                    this.showFilter = !this.showFilter;
+                    if (this.showFilter) {
+                        this.showFilter = true;
+                        if (this.showRecord) {
+                            this._recordViewSize = '8';
+                            this._tableSize = '2';
+                        } else {
+                            this._recordViewSize = '10';
+                            this._tableSize = '10';
+                        }
+                        this.setOptions();
+                    } else {
+                        this.showFilter = false;
+                        if (this.showRecord) {
+                            this._recordViewSize = '10';
+                            this._tableSize = '2';
+                        } else {
+                            this._recordViewSize = '10';
+                            this._tableSize = '12';
+                        }
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Action Methods
+    handleNewWaiver() {
+        // Add logic for handling New Waiver button click
+    }
+
+    handleHome() {
+        // Add logic for handling Home button click
+    }
+
+    handleContactUs() {
+        // Add logic for handling Contact Us button click
+    }
+
+    handleFAQ() {
+        // Add logic for handling FAQ button click
+    }
+
+    handleHelp() {
+        // Add logic for handling Help button click
+    }
+
+    handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        this.resetPaginationState();
+        this.selectedWaiver = event.detail.value;
+        this.loading = true;
+        this.fetchData();
+    }
+
+    handleFilter(filterAction) {
+        if (this.showFilterToggle && filterAction === 'apply') {
+            this.showRecord = (this.showRecord ? true : false);
+            this.showFilter = false;
+            // this.showFilterToggle = true;
+            // this.showFilterToggleClicked = false;
+            this._tableSize = '2';
+            this.columns = [...COLUMNS.slice(0, 1)];
+        } else {
+            this.showRecord = false;
+            this.showFilter = true;
+            // this.showFilterToggle = true;
+            // this.showFilterToggleClicked = false;
+            this._tableSize = '10';
+            this.columns = [...COLUMNS];
+        }
+
+    }
+
+    handleView(event, actionName) {
+        this.showRecord = (actionName === 'view' ? true : false);
+        // this.showFilter = false;
+        if (this.showRecord) {
+            this.showFilter = false;
+            // this.showFilterToggle = true;
+            this.recordId = event.detail.row.Id;
+            this.columns = [...COLUMNS.slice(0, 1)];
+            this._tableSize = '2';
+        } else {
+            this.showFilter = true;
+            // this.showFilterToggle = false;
+            this._tableSize = '10';
+            this.columns = [...COLUMNS];
+            this.setOptions();
+        }
+    }
+
+    handleFilterBy(actionName, event) {
+        let filterValue = event ? event?.detail?.value : null;
+        const index = event?.target?.dataset ? parseInt(event.target.dataset.index, 10) : null;
         switch (actionName) {
-            case 'edit':
-                this.handleEdit(event);
+            case 'applyfilter':
+                console.log('applyfilter');
+                this.handleFilter('apply');
+                this.filters = this._filteredFieldValues.map(x => {
+                    return {
+                        [x.filterFieldApiName]: x.selectedValue
+                    }
+                });
+                this.fetchData();
                 break;
-            case 'approval':
-                this.handleApproval(event);
+            case 'resetfilter':
+                this.isLoading = true;
+                this.filterBy = [];
+                this._filteredFieldValues = [];
+                this.selectedFilter = '';
+                this.showFilter = false;
+                this.searchKey = '';
+                this.handleFilter('reset');
+                console.log('reset filter');
+                this.filters = [];
+                this.fetchData();
+                this.setOptions();
                 break;
-            case 'withdraw':
-                this.handleWithdraw(event);
+            case 'selectedfiltervalue':
+                console.log('selectedfiltervalue');
+                this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue;
+                break;
+            case 'filterbyexpand':
+                console.log('filterbyexpand');
+                this._filteredFieldValues.filter(x => x.id === index)[0].showValues = !this._filteredFieldValues.filter(x => x.id === index)[0].showValues;
+                this._filteredFieldValues.filter(x => x.id === index)[0].icon = (this._filteredFieldValues.filter(x => x.id === index)[0].showValues) ? 'utility:dash' : 'utility:add';
+                break;
+            case 'selectedValues':
+                filterValue = event.detail.selectedValues;
+                if (filterValue.length) {
+                    this.selectedFilter = filterValue;
+                    const selectedFilter = (filterValue.split(';'));
+                    // this.showFilter = (this.showFilterToggleClicked) ? false : true;
+                    this.showFilter = true;
+                    this.isLoadingFilter = true;
+                    getUniqueValues({ fieldApiName: selectedFilter, allOrMy: this.selectedWaiver }).then((data) => {
+                        const values = (data) ? Object.keys(data).map(x => {
+                            return {
+                                [x]: data[x].map((val) => {
+                                    return { label: (val.value + ' (' + val.count + ')'), value: val.value };
+                                })
+                            }
+                        }) : [];
+                        let filteredFieldValues = values.map((x, ind) => {
+                            return {
+                                id: ind,
+                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
+                                filterFieldApiName: Object.keys(x)[0],
+                                filteredFieldValue: Object.values(x)[0],
+                                showValues: false,
+                                selectedValue: [],
+                                icon: 'utility:add'
+                            }
+                        });
+                        this._filteredFieldValues = [...filteredFieldValues];
+                        this.isLoadingFilter = false;
+                    }).catch((error) => {
+                        console.error(error);
+                        this.isLoadingFilter = false;
+                    });
+                } else {
+                    this.selectedFilter = '';
+                }
+
                 break;
             default:
                 break;
         }
     }
-
-    handleEdit(event) {
-
+    setOptions() {
+        setTimeout(() => {
+            this.template.querySelector('[role="cm-picklist"]').setOptions(this._filterOptions);
+            this.template.querySelector('[role="cm-picklist"]').setSelectedList(this.selectedFilter);
+        }, 0);
     }
 
-    handleApproval(event) {
-
+    generateFilterLink() {
+        const baseUrl = window.location.origin;
+        const generatedUrl = baseUrl + '/lightning/n/Waiver_Records_List_View?c__all=' + (this.selectedWaiver === 'allwaivers' ? true : false) + (this.selectedFilter ? '&c__filterValues=' + this.selectedFilter : '')
+        console.log('generateFilterLink=== ' + generatedUrl);
+        this.generatedFilterLink = generatedUrl;
     }
 
-    handleWithdraw(event) {
-
+    // eslint-disable-next-line consistent-return
+    handleCopy() {
+        if (
+            navigator.clipboard &&
+            window.isSecureContext
+        ) {
+            return navigator.clipboard.writeText(
+                this.generatedFilterLink
+            );
+        }
+        return null;
     }
 
-    handleSectionToggle(event) {
-        const openSections = event.detail.openSections;
-        if (openSections.length === 0) {
-            this.activeSectionsMessage = 'All sections are closed';
-        } else {
-            this.activeSectionsMessage =
-                'Open sections: ' + openSections.join(', ');
+    closeModal() {
+        if (this.showShareLinkModal) {
+            this.showShareLinkModal = false;
         }
     }
-
-    handleTabClick(event) {
-        this.template.querySelectorAll('li').forEach((el) => {
-            el.classList();
-        })
-    }
-
 }
