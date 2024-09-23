@@ -9,7 +9,15 @@ export default class CustomHighlightPanel extends LightningElement {
     @api recordId;
     @api objectApiName;
     @api fieldSet;
-    nameField = '';
+    @api get recordName() {
+        return this._name;
+    }
+    set recordName(value) {
+        if (value) {
+            this._name = value;
+        }
+    }
+    _name = '';
     fieldList = [];
     objectLabelName = '';
     intervalId;
@@ -26,7 +34,7 @@ export default class CustomHighlightPanel extends LightningElement {
                     this.showToast('Error', 'error', result.message);
                     return;
                 }
-                this.nameField = result.nameField;
+                // this.nameField = result.nameField;
                 this.fieldList = result.fieldsAPI;
                 this.objectLabelName = result.objectLabelName;
             }
