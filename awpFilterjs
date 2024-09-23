@@ -1,31 +1,3 @@
-.filter-button {
-    top: 15rem;
-    z-index: 1000;
-    left: 0rem;
-    opacity: 60%;
-}
-
-.filter-button:hover {
-    opacity: 100%;
-}
-
-.background-white {
-    background-color: white;
-}
-
-:host {
-    --lwc-templateGutters: 0rem;
-}
-
-import { LightningElement, track, wire } from 'lwc';
-import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
-import { loadStyle } from 'lightning/platformResourceLoader';
-import NoHeader from '@salesforce/resourceUrl/NoHeader';
-import getWaiverRecords from '@salesforce/apex/AWP_WaiverHandlerClass.getWaiverRecordAndPermissions';
-import getFilterDetails from '@salesforce/apex/AWP_WaiverHandlerClass.getFilterDetails';
-import getUniqueValues from '@salesforce/apex/AWP_WaiverHandlerClass.getUniqueValues';
-
-
 const PAGESIZE = [
     { label: '10', value: 10 },
     { label: '20', value: 20 },
@@ -61,6 +33,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     valueFalse = false;
     generatedFilterLink = '';
     showShareLinkModal = false;
+    selectedRecordName = '';
 
     // Pagination state
     first = true;
@@ -140,6 +113,10 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
 
     get showFilterValues() {
         return this._filteredFieldValues.length > 0;
+    }
+
+    get recordName() {
+        return `${this.selectedRecordName}`;
     }
 
     @wire(CurrentPageReference)
@@ -441,6 +418,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             this.showFilter = false;
             // this.showFilterToggle = true;
             this.recordId = event.detail.row.Id;
+            this.selectedRecordName = event.detail.row.Name;
             this.columns = [...COLUMNS.slice(0, 1)];
             this._tableSize = '2';
         } else {
@@ -509,7 +487,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                                 id: ind,
                                 filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
                                 filterFieldApiName: Object.keys(x)[0],
-                                filteredFieldValue: Object.values(x)[0],
+                                filteredFieldValue: Object.values(x)[0].sort((a, b) => (a.value || '').localeCompare(b.value || '')),
                                 showValues: false,
                                 selectedValue: [],
                                 icon: 'utility:add'
@@ -563,3 +541,4 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
         }
     }
 }
+
