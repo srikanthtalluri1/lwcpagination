@@ -1,6 +1,10 @@
 <!-- sldsValidatorIgnore -->
 <template>
   <!-- <lightning-card> -->
+  <template if:true={showRecord}>
+    <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+      field-set="CompactPanelFieldSet" record-name={recordName}></c-custom-highlight-panel>
+  </template>
   <lightning-layout multiple-rows="true" class="slds-color__background_gray-2">
     <template if:true={showFilter}>
       <lightning-layout-item padding="around-small" size="2">
@@ -116,8 +120,8 @@
       <lightning-layout-item size={recordViewSize}>
         <!-- <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
           field-set="CompactPanelFieldSet"></c-custom-highlight-panel> -->
-        <c-waivers-record-page record-id={recordId}
-          object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+        <c-waivers-record-page record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+          record-name={recordName}></c-waivers-record-page>
         <!-- <lightning-card title="Architecture Waiver Record" icon-name="standard:opportunity">
           <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
             layout-type="Full" columns="2" mode="readonly">
