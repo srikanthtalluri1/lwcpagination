@@ -9,7 +9,7 @@
                     </div>
                     <div class="slds-media__body" style="line-height: 13px;">
                         <span>{objectLabelName}</span>
-                        <span class="slds-page-header__title slds-truncate" title={nameField}>{nameField}</span>
+                        <span class="slds-page-header__title slds-truncate" title={recordName}>{recordName}</span>
                     </div>
                 </div>
             </div>
