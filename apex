@@ -4,7 +4,7 @@ public with sharing class AWP_WaiverHandlerClass {
     .get('AWP_Architecture_Waiver_Form__c')
     .getDescribe()
     .fields.getMap();
-  static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level_UI__c, Affected_Standard_Portfolio__c,Renew_Counter__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
+  static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level_UI__c, Affected_Standard_Portfolio__c,Renew_Counter__c, App_Name__c, Standard_Page_Title__c ';
   // static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, Requesting_Domain_New__r.Port__r.Name, BARR_Risk_Level__c, Affected_Standard_Portfolio__c,Affected_Domain_New__r.Port__r.Name, Renew_Counter__c, App_Name__r.BARR_Risk_Level__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
   static final String OBJECT_NAME = 'AWP_Architecture_Waiver_Form__c';
   Map<String, String> waiverStatus = new Map<String, String>();
@@ -439,10 +439,10 @@ public with sharing class AWP_WaiverHandlerClass {
         .get(objectName)
         .getDescribe()
         .getLabel();
-      List<sObject> objectList = Database.query(
-        'SELECT id, Name FROM ' + objectName + ' WHERE Id =: recordId'
-      );
-      res.nameField = String.valueof(objectList[0].get('Name'));
+      // List<sObject> objectList = Database.query(
+      //   'SELECT id, Name FROM ' + objectName + ' WHERE Id =: recordId'
+      // );
+      // res.nameField = String.valueof(objectList[0].get('Name'));
 
       // Fetching Highlight Panel Field Set
       if (String.isBlank(fieldSetName)) {
