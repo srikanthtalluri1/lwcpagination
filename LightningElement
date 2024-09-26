@@ -1,30 +1,18 @@
 <template>
-    <a onclick={handleClick}>{value}</a>
+    <lightning-record-view-form record-id= {recordid} object-api-name="Account">
+        <lightning-card>
+   <lightning-output-field field-name="Name" ></lightning-output-field>
+   <lightning-output-field field-name="Description" ></lightning-output-field>
+   <lightning-output-field field-name="Industry" ></lightning-output-field>
+   <lightning-output-field field-name="Phone" ></lightning-output-field>
+        </lightning-card>
+    </lightning-record-view-form>
 </template>
 
-import { LightningElement, api } from 'lwc';
 
-export default class CustomText extends LightningElement {
-    @api recordId;
-    @api value;
+import { LightningElement , api} from 'lwc';
 
-    handleClick() {
-        let paramData = {
-            action: {
-                name: 'view',
-            },
-            row: {
-                Id: this.recordId,
-                Name: this.value
-            }
-        };
-        console.log(paramData);
-        const ev = new CustomEvent('customtext', {
-            composed: true,
-            bubbles: true,
-            cancelable: true,
-            detail: paramData,
-        });
-        this.dispatchEvent(ev);
-    }
+export default class Recordviewlwc extends LightningElement {
+   @api recordid = '001Ho00001DV9tEIAT';
+
 }
