@@ -77,6 +77,16 @@
                     </div>
                   </div>
                 </div>
+                <template if:false={showRecord}>
+                  <div class="slds-media__body" style="text-align-last: end;">
+                    <div class="slds-page-header__name">
+                      <div class="slds-page-header__name-title">
+                        <lightning-button variant="neutral" label="New" data-action="newrecord" onclick={handleActions}>
+                        </lightning-button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
               <div>
                 {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
@@ -296,4 +306,27 @@
     </div>
   </template>
   <!-- END Modal to copy the filter link -->
+
+  <template if:true={showNewRecordModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <span class="slds-text-heading_medium">New Record </span>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col">
+              <c-waivers-create-record-page onclose={closeModal}></c-waivers-create-record-page>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="slds-modal__footer">
+        </div> -->
+      </div>
+    </div>
+  </template>
+
 </template>
