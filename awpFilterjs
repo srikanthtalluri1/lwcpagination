@@ -34,6 +34,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     generatedFilterLink = '';
     showShareLinkModal = false;
     selectedRecordName = '';
+    showNewRecordModal = false;
 
     // Pagination state
     first = true;
@@ -356,6 +357,9 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                     }
 
                     break;
+                case 'newrecord':
+                    this.showNewRecordModal = true;
+                    break;
                 default:
                     break;
             }
@@ -535,10 +539,26 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
         return null;
     }
 
-    closeModal() {
+    closeModal(event) {
         if (this.showShareLinkModal) {
             this.showShareLinkModal = false;
         }
+
+        if (this.showNewRecordModal) {
+            const newRecordId = event?.detail?.recordId;
+            const newRecordName = event?.detail?.recordName;
+            if (newRecordId) {
+                const evt = {
+                    detail: {
+                        row: {
+                            Id: newRecordId,
+                            Name: newRecordName
+                        }
+                    }
+                }
+                this.handleView(evt, 'view');
+            }
+            this.showNewRecordModal = false;
+        }
     }
 }
-
