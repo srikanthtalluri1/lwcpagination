@@ -14,13 +14,15 @@
         <div class="slds-grid slds-wrap">
           <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
             <div class="slds-grid slds-wrap">
-              <p class="slds-col slds-size_1-of-1">Filter by:</p>
+              <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
+                <div style="margin-top: 10px;"></div>
+                <p class="slds-col slds-size_1-of-1">Filter by:</p>
               <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
                 options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
               <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
                 showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
-              <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
-                onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
+              
             </div>
           </div>
         </div>
@@ -88,7 +90,7 @@
                   </div>
                 </template>
               </div>
-              <div>
+              <div class="slds-m-top_medium">
                 {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
                 {selectedWaiverLabel}
               </div>
