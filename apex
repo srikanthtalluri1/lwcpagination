@@ -250,7 +250,7 @@ public with sharing class AWP_WaiverHandlerClass {
     //END
 
     //Add for filter Logic
-    if (!String.isBlank(filters)) {
+    if(!String.isBlank(filters)) {
       List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(
         filters
       );
@@ -277,13 +277,20 @@ public with sharing class AWP_WaiverHandlerClass {
           }
         }
         System.debug('filterQuery====' + filterQuery);
-        filterQuery = filterQuery.removeEnd(' AND') + ') ';
+        filterQuery = filterQuery.removeEnd('AND') + ') ';
+        if(query.contains('WHERE') & query.endsWithIgnoreCase('AND')) {
+          filterQuery = filterQuery.removeStartIgnoreCase('AND');
+        } else if(query.contains('WHERE') & query.endsWithIgnoreCase('WHERE')) {
+          filterQuery = filterQuery.removeStartIgnoreCase('AND');
+        } else if (!query.contains('WHERE')) {
+          filterQuery = filterQuery.replaceFirst('AND', 'WHERE');
+        }
         query += filterQuery;
         countQuery += filterQuery;
       }
-    }
-
-    //END
+    } 
+  
+  //END
 
     String orderQuery = '';
     if (last || (before != '' && !first) || (before != '' && first)) {
