@@ -1,77 +1,84 @@
-import { api, LightningElement } from 'lwc';
-import NAME_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Name';
-import AFFECTEDPORTFOLIO_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Affected_Standard_Portfolio__c';
-import REQUESTINGTPM_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Requesting_TPM__c';
-import WAIVER_REASON_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Waiver_Reason__c';
+/* eslint-disable @lwc/lwc/no-async-operation */
 
-export default class WaiversCreateRecordPage extends LightningElement {
+import { LightningElement, api } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import fetchFields from '@salesforce/apex/AWP_WaiverHandlerClass.fetchFields';
 
-    objectApiName = 'AWP_Architecture_Waiver_Form__c';
+export default class CustomHighlightPanel extends LightningElement {
+
     @api recordId;
-    newRecordName;
-
-    fields = [];
-
-    get record() {
-        return this.recordId;
+    @api objectApiName;
+    @api fieldSet;
+    @api get recordName() {
+        return this._name;
     }
-
-    get showEdit() {
-        return this.recordId ? true : false;
+    set recordName(value) {
+        if (value) {
+            this._name = value;
+        }
     }
+    _name = '';
+    fieldList = [];
+    objectLabelName = '';
+    intervalId;
+    showEditRecordModal = false;
 
     connectedCallback() {
-        console.log('record: ', this.record);
-        if (this.record) {
-            this.fields = [
-                { index: 0, fieldName: NAME_FIELD, required: true },
-                { index: 1, fieldName: AFFECTEDPORTFOLIO_FIELD, required: false },
-                { index: 2, fieldName: REQUESTINGTPM_FIELD, required: false },
-                { index: 3, fieldName: WAIVER_REASON_FIELD, required: false }
-            ]
-        } else {
-            this.fields = [
-                { index: 4, fieldName: NAME_FIELD, fieldValue: '', required: true },
-                { index: 5, fieldName: AFFECTEDPORTFOLIO_FIELD, fieldValue: '', required: false },
-                { index: 6, fieldName: REQUESTINGTPM_FIELD, fieldValue: '', required: false },
-                { index: 7, fieldName: WAIVER_REASON_FIELD, fieldValue: '', required: false }
-            ]
-        }
-    }
-
-    handleSuccess(event) {
-        const updatedRecord = event.detail.id;
-        console.log('onsuccess: ', updatedRecord);
-        this.dispatchEvent(new CustomEvent('close', {
-            detail: {
-                recordId: updatedRecord,
-                recordName: this.newRecordName
+        fetchFields({
+            recordId: this.recordId,
+            objectName: this.objectApiName,
+            fieldSetName: this.fieldSet
+        }).then(result => {
+            if (result) {
+                console.log(result);
+                if (result.message) {
+                    this.showToast('Error', 'error', result.message);
+                    return;
+                }
+                // this.nameField = result.nameField;
+                this.fieldList = result.fieldsAPI;
+                this.objectLabelName = result.objectLabelName;
             }
-        }));
-    }
-
-    handleReset(event) {
-        event.preventDefault();
-        this.dispatchEvent(new CustomEvent('close'));
-    }
-
-    handleSubmit(event) {
-        event.preventDefault();       // stop the form from submitting
-        const fields = event.detail.fields;
-        let isFormValid = false;
-        this.template.querySelectorAll('lightning-input-field').forEach(element => {
-            if (element.value && element.reportValidity()) {
-                isFormValid = true;
-            }
-
-            if (element.fieldName === 'Name') {
-                this.newRecordName = element.value;
+        }).catch(error => {
+            if (error && error.body && error.body.message) {
+                this.showToast('Error', 'error', error.body.message);
             }
         });
-        if (!isFormValid) {
+        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+    }
 
-            return;
+    disconnectedCallback() {
+        clearInterval(this.intervalId);
+    }
+    removeHorizontalClass() {
+        // this.loading = false;
+        this.template.querySelectorAll('lightning-output-field')?.forEach(x => {
+            x.classList.remove('slds-form-element_horizontal')
+        })
+    }
+
+    showToast(title, variant, message) {
+        const event = new ShowToastEvent({
+            title: title,
+            variant: variant,
+            message: message,
+        });
+        this.dispatchEvent(event);
+    }
+
+    handleActions(event) {
+        const actionName = event.target.dataset.action;
+        switch (actionName) {
+            case 'edit':
+                console.log('edit');
+                this.showEditRecordModal = true;
+                break;
+            default:
+                break;
         }
-        this.template.querySelector('lightning-record-edit-form').submit(fields);
+    }
+
+    closeModal() {
+        this.showEditRecordModal = false;
     }
 }
