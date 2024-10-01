@@ -1,163 +1,137 @@
-/* eslint-disable @lwc/lwc/no-api-reassignments */
-import { LightningElement, wire, api } from 'lwc';
-import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
+import { api, LightningElement } from 'lwc';
+import NAME_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Name';
+import WAIVER_REASON_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Waiver_Reason__c';
+import WAIVERREL_STANDARD from '@salesforce/schema/AWP_Waiver_Relationship__c.Standard__c';
+import WAIVERREL_REQ_APPLICATION from '@salesforce/schema/AWP_Waiver_Relationship__c.Requesting_Application__c';
+import WAIVERREL_WAIVERID from '@salesforce/schema/AWP_Waiver_Relationship__c.Waiver_Id__c';
+import WAIVERREL_PRIMARY from '@salesforce/schema/AWP_Waiver_Relationship__c.Primary__c';
 
-const WAIVERFIELDSCOL1 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
+export default class WaiversCreateRecordPage extends LightningElement {
 
-const WAIVERFIELDSCOL2 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL3 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL4 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL5 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-const WAIVERFIELDSCOL6 = [
-    { fieldName: 'Name' },
-    { fieldName: 'Waiver_Reason__c' },
-    { fieldName: 'Status__c' }
-];
-
-export default class WaiversRecordPage extends LightningElement {
-
+    objectApiName = 'AWP_Architecture_Waiver_Form__c';
+    relatingObjectApiName = 'AWP_Waiver_Relationship__c';
     @api recordId;
-    @api objectApiName;
-    @api set recordName(value) {
-        if (value) {
-            this._name = value;
-        }
-    }
-    get recordName() {
-        return this._name;
-    }
-    _name = '';
-    _fields = [];
+    childRecordId;
+    newRecordName;
+    parentRecordId;
 
-    get waiverFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
+    fields = {
+        waiverFields: [],
+        waiverRelFields: []
+    };
+
+    get record() {
+        return this.recordId;
     }
 
-    get contactFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
-
+    get showEdit() {
+        return this.recordId ? true : false;
     }
 
-    get approvalFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
-    }
-
-    get historyFields() {
-        return {
-            col1: WAIVERFIELDSCOL1,
-            col2: WAIVERFIELDSCOL2,
-            col3: WAIVERFIELDSCOL3,
-            col4: WAIVERFIELDSCOL4,
-            col5: WAIVERFIELDSCOL5,
-            col6: WAIVERFIELDSCOL6,
-        }
-    }
-
-    @wire(CurrentPageReference)
-    getPageReferenceParameters(currentPageReference) {
-        if (!this.recordId && !this.objectApiName) {
-            if (currentPageReference.attributes?.recordId) {
-                this.recordId = currentPageReference.attributes.recordId;
-            }
-            if (currentPageReference.attributes?.objectApiName) {
-                this.objectApiName = currentPageReference.attributes.objectApiName;
-            }
-        }
+    get childRecord() {
+        return this.childRecordId;
     }
 
     connectedCallback() {
-        console.log(this.recordId, '====', this.objectApiName);
-    }
-
-    handleActions(event) {
-        const actionName = event.target.dataset.action;
-        console.log('actionName', actionName);
-        switch (actionName) {
-            case 'edit':
-                this.handleEdit(event);
-                break;
-            case 'approval':
-                this.handleApproval(event);
-                break;
-            case 'withdraw':
-                this.handleWithdraw(event);
-                break;
-            default:
-                break;
-        }
-    }
-
-    handleEdit(event) {
-
-    }
-
-    handleApproval(event) {
-
-    }
-
-    handleWithdraw(event) {
-
-    }
-
-    handleSectionToggle(event) {
-        const openSections = event.detail.openSections;
-        if (openSections.length === 0) {
-            this.activeSectionsMessage = 'All sections are closed';
+        console.log('record: ', this.record);
+        if (this.record) {
+            this.fields.waiverFields = [
+                { index: 0, fieldName: NAME_FIELD, required: true },
+                { index: 1, fieldName: WAIVER_REASON_FIELD, required: true }
+            ];
+            this.fields.waiverRelFields = [
+                { index: 2, fieldName: WAIVERREL_STANDARD, fieldValue: '', required: true },
+                { index: 3, fieldName: WAIVERREL_REQ_APPLICATION, fieldValue: '', required: true },
+                // { index: 4, fieldName: WAIVERREL_WAIVERID, fieldValue: '', required: false },
+            ];
         } else {
-            this.activeSectionsMessage =
-                'Open sections: ' + openSections.join(', ');
+            this.fields.waiverFields = [
+                { index: 4, fieldName: NAME_FIELD, required: true },
+                { index: 5, fieldName: WAIVER_REASON_FIELD, required: true }
+            ];
+            this.fields.waiverRelFields = [
+                { index: 6, fieldName: WAIVERREL_STANDARD, fieldValue: '', required: true },
+                { index: 7, fieldName: WAIVERREL_REQ_APPLICATION, fieldValue: '', required: true },
+                // { index: 4, fieldName: WAIVERREL_WAIVERID, fieldValue: '', required: true },
+            ];
         }
     }
 
-    handleTabClick(event) {
-        this.template.querySelectorAll('li').forEach((el) => {
-            el.classList();
-        })
+    handleSuccessParent(event) {
+        this.parentRecordId = event.detail.id;
+        console.log('onsuccess: ', this.parentRecordId);
+        this.handleCreateWaiverRelationship(this.parentRecordId);
     }
 
+    handleSuccessChild(event) {
+        console.log('onsuccess: ', event.detail.id);
+        this.dispatchEvent(new CustomEvent('close', {
+            detail: {
+                recordId: this.parentRecordId,
+                recordName: this.newRecordName
+            }
+        }));
+    }
+
+    handleReset(event) {
+        event.preventDefault();
+        const objectApiName = event.target.dataset.object;
+        console.log('onsuccess: ', objectApiName);
+        this.dispatchEvent(new CustomEvent('close'));
+    }
+
+    handleSubmit(event) {
+        event.preventDefault();       // stop the form from submitting
+        let fields = {};
+        let isFormValid = false;
+        if (this.parentRecordId) {
+            this.handleCreateWaiverRelationship(this.parentRecordId);
+        } else {
+            this.template.querySelectorAll('lightning-input-field[data-object="' + this.objectApiName + '"]').forEach(element => {
+                if (element.value && element.reportValidity()) {
+                    isFormValid = true;
+                    fields = {
+                        ...fields,
+                        [element.fieldName]: element.value
+                    }
+                } else {
+                    isFormValid = false;
+                }
+                if (element.fieldName === 'Name') {
+                    this.newRecordName = element.value;
+                }
+            });
+
+            if (!isFormValid) {
+                return;
+            }
+
+            this.template.querySelector('lightning-record-edit-form[data-object="' + this.objectApiName + '"]').submit(fields);
+        }
+    }
+
+    handleCreateWaiverRelationship(parentId) {
+        let isFormValid = false;
+        let fields = {};
+        fields = {
+            ...fields,
+            [WAIVERREL_WAIVERID.fieldApiName]: parentId,
+            [WAIVERREL_PRIMARY.fieldApiName]: true,
+        };
+        this.template.querySelectorAll('lightning-input-field[data-object="' + this.relatingObjectApiName + '"]').forEach(element => {
+            if (element.value && element.reportValidity()) {
+                isFormValid = true;
+                fields = {
+                    ...fields,
+                    [element.fieldName]: element.value
+                }
+            } else {
+                isFormValid = false;
+            }
+        });
+        if (!isFormValid) {
+            return;
+        }
+        this.template.querySelector('lightning-record-edit-form[data-object="' + this.relatingObjectApiName + '"]').submit(fields);
+    }
 }
