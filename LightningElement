@@ -1,18 +1,333 @@
+<!-- sldsValidatorIgnore -->
 <template>
-    <lightning-record-view-form record-id= {recordid} object-api-name="Account">
-        <lightning-card>
-   <lightning-output-field field-name="Name" ></lightning-output-field>
-   <lightning-output-field field-name="Description" ></lightning-output-field>
-   <lightning-output-field field-name="Industry" ></lightning-output-field>
-   <lightning-output-field field-name="Phone" ></lightning-output-field>
-        </lightning-card>
-    </lightning-record-view-form>
+  <lightning-card>
+    <template if:true={showRecord}>
+      <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+        field-set="CompactPanelFieldSet" record-name={recordName}></c-custom-highlight-panel>
+    </template>
+    <lightning-layout multiple-rows="true" class="slds-color__background_gray-2">
+      <template if:true={showFilter}>
+        <lightning-layout-item padding="around-small" size="2">
+          <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+            onclick={handleActions} variant="border-filled"
+            data-action="showfiltertoggle"></lightning-button-icon-stateful>
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+              <div class="slds-grid slds-wrap">
+                <p class="slds-col slds-size_1-of-1">Filter by:</p>
+                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
+                  options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
+                <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
+                  showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
+                <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                  onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
+              </div>
+            </div>
+          </div>
+          <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+            for:each={filteredFieldValues} for:item="filteredFieldValue">
+            <div class="slds-grid slds-align--spread slds-wrap">
+              <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+              <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
+                size="small" variant="bare" onclick={handleActions} data-action="filterbyexpand"
+                data-index={filteredFieldValue.id}></lightning-button-icon>
+            </div>
+            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+              name="filterValue" options={filteredFieldValue.filteredFieldValue} data-action="selectedfiltervalue"
+              data-index={filteredFieldValue.id} onchange={handleActions} value={filteredFieldValue.selectedValue}>
+            </lightning-checkbox-group>
+          </div>
+          <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+            <div class="slds-col">
+              <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Share Filter" variant="bare" data-action="sharefilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+          </div>
+          <template if:true={isLoadingFilter}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+          </template>
+        </lightning-layout-item>
+      </template>
+
+      <lightning-layout-item size={tableSize} class="slds-border_left slds-border_right background-white">
+        <div>
+          <div class="slds-page-header">
+            <div class="slds-page-header__row">
+              <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                  <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                  </div>
+                  <div class="slds-media__body">
+                    <div class="slds-page-header__name">
+                      <div class="slds-page-header__name-title">
+                        <h1>
+                          <span>Architecture Waivers</span>
+                          <span class="slds-page-header__title slds-truncate"
+                            title="Recently Viewed">{selectedWaiverLabel}</span>
+                        </h1>
+                      </div>
+                    </div>
+                  </div>
+                  <template if:false={showRecord}>
+                    <div class="slds-media__body" style="text-align-last: end;">
+                      <div class="slds-page-header__name">
+                        <div class="slds-page-header__name-title">
+                          <lightning-button variant="neutral" label="New" data-action="newrecord"
+                            onclick={handleActions}>
+                          </lightning-button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div>
+                  {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
+                  {selectedWaiverLabel}
+                </div>
+              </div>
+            </div>
+          </div>
+          <c-custom-datatable-data-type-provider key-field="Id" data={records} columns={columns} hide-checkbox-column
+            show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
+            row-number-offset={rowNumberOffset} onrowaction={handleActions} oncustomtext={handleActions}>
+          </c-custom-datatable-data-type-provider>
+          <template if:true={noRecordsFound}> No records to display </template>
+        </div>
+        <div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large">
+          <div class="slds-col">
+            <!-- <lightning-combobox label="Page Size" value={currentPageSize} options={pageSizeOptions}
+              onchange={handlePageSize}></lightning-combobox> -->
+          </div>
+          <div class="slds-col slds-var-p-top_xx-large">
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+                disabled={isFirstPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+                disabled={isFirstPage}></lightning-button>
+            </lightning-button-group>
+            <span class="slds-m-horizontal_small">
+              {currentPage}/{totalPages}
+            </span>
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+                onclick={handleNext} disabled={isLastPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+                onclick={handleLast} disabled={isLastPage}></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+      </lightning-layout-item>
+
+      <template if:true={showRecord}>
+        <lightning-layout-item size={recordViewSize}>
+          <!-- <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+          field-set="CompactPanelFieldSet"></c-custom-highlight-panel> -->
+          <c-waivers-record-page record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+            record-name={recordName}></c-waivers-record-page>
+          <!-- <lightning-card title="Architecture Waiver Record" icon-name="standard:opportunity">
+          <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+            layout-type="Full" columns="2" mode="readonly">
+          </lightning-record-form>
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </lightning-card> -->
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </lightning-layout-item>
+      </template>
+    </lightning-layout>
+
+    <!-- <div class="slds-grid slds-wrap">
+      <template if:true={showFilter}>
+        <div class="slds-col slds-size_2-of-12 slds-p-around_small slds-color__background_gray-2">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+              <div class="slds-grid slds-wrap">
+                <p class="slds-col slds-size_1-of-1">Filter by:</p>
+                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List" value={selectedWaiver}
+                  options={waiverOptions} onchange={handleWaiverChange}></lightning-combobox>
+                <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label="" required={valueFalse}
+                  showpills={valueFalse} role="cm-picklist" onselectedvalues={handleActions}></c-custom-multi-pick-list>
+                <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search" type="search"
+                  onchange={handleReset} onkeyup={handleSearch} value={searchKey}></lightning-input>
+              </div>
+            </div>
+          </div>
+          <div if:true={showFilterValues} class="slds-card slds-p-top--medium slds-color__background_gray-2"
+            key={filteredFieldValue.id} for:each={filteredFieldValues} for:item="filteredFieldValue">
+            <div class="slds-grid slds-align--spread slds-wrap">
+              <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+              <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon}
+                size="small" variant="bare" onclick={handleActions} data-action="filterbyexpand"
+                data-index={filteredFieldValue.id}></lightning-button-icon>
+            </div>
+            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+              name="filterValue" options={filteredFieldValue.filteredFieldValue} data-action="selectedfiltervalue"
+              data-index={filteredFieldValue.id} onchange={handleActions} value={filteredFieldValue.selectedValue}>
+            </lightning-checkbox-group>
+          </div>
+          <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+            <div class="slds-col">
+              <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+            <div class="slds-col slds-var-p-left_small">
+              <lightning-button label="Share Filter" variant="bare" data-action="sharefilter"
+                onclick={handleActions}></lightning-button>
+            </div>
+          </div>
+          <template if:true={isLoadingFilter}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+          </template>
+        </div>
+      </template>
+
+      <div class={tableSizeClass}>
+        <div>
+          <div class="slds-page-header">
+            <div class="slds-page-header__row">
+              <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                  <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                  </div>
+                  <div class="slds-media__body">
+                    <div class="slds-page-header__name">
+                      <div class="slds-page-header__name-title">
+                        <h1>
+                          <span>Architecture Waivers</span>
+                          <span class="slds-page-header__title slds-truncate"
+                            title="Recently Viewed">{selectedWaiverLabel}</span>
+                        </h1>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <c-custom-datatable-data-type-provider key-field="Id" data={records} columns={columns} hide-checkbox-column
+            show-row-number-column="true" sorted-by={sortedBy} sorted-direction={sortedDirection} onsort={handleSort}
+            row-number-offset={rowNumberOffset} onrowaction={handleActions} oncustomtext={handleActions}>
+          </c-custom-datatable-data-type-provider>
+          <template if:true={noRecordsFound}> No records to display </template>
+        </div>
+        <div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large">
+          <div class="slds-col">
+          </div>
+          <div class="slds-col slds-var-p-top_xx-large">
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+                disabled={isFirstPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+                disabled={isFirstPage}></lightning-button>
+            </lightning-button-group>
+            <span class="slds-m-horizontal_small">
+              {currentPage}/{totalPages}
+            </span>
+            <lightning-button-group>
+              <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+                onclick={handleNext} disabled={isLastPage}></lightning-button>
+              <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+                onclick={handleLast} disabled={isLastPage}></lightning-button>
+            </lightning-button-group>
+          </div>
+        </div>
+      </div>
+
+      <template if:true={showRecord}>
+        <div class={recordViewSizeClass}>
+          <c-waivers-record-page record-id={recordId}
+            object-api-name="AWP_Architecture_Waiver_Form__c"></c-waivers-record-page>
+          <div class="slds-p-left_small slds-m-top_x-large">
+            <lightning-button variant="brand" label="Close" data-action="close"
+              onclick={handleActions}></lightning-button>
+          </div>
+        </div>
+      </template>
+    </div> -->
+
+    <template if:true={isLoading}>
+      <lightning-spinner alternative-text="Loading"></lightning-spinner>
+    </template>
+
+    <template if:false={showFilter}>
+      <!-- <div class="filter-container slds-is-fixed"> -->
+      <lightning-button-icon-stateful class="filter-button slds-is-fixed" icon-name="utility:filterList"
+        selected={showFilter} size="medium" onclick={handleActions} variant="border-filled"
+        data-action="showfiltertoggle"></lightning-button-icon-stateful>
+      <!-- </div> -->
+    </template>
+  </lightning-card>
+
+  <!-- Modal to copy the filter link -->
+  <template if:true={showShareLinkModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <h2>Share Filter </h2>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_11-of-12 slds-box slds-theme_shade slds-theme_alert-texture"
+              style="word-wrap: break-word;">
+              <p class="slds-text-body_small">{generatedFilterLink}</p>
+            </div>
+            <div class="slds-col slds-size_1-of-12 slds-p-top--medium slds-text-align--center">
+              <lightning-button-icon class="slds-p-left_small" icon-name="utility:copy" variant="bare" size="large"
+                onclick={handleCopy}></lightning-button-icon>
+            </div>
+          </div>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button label="close" variant="brand" onclick={closeModal}>
+          </lightning-button>
+        </div>
+      </div>
+    </div>
+  </template>
+  <!-- END Modal to copy the filter link -->
+
+  <template if:true={showNewRecordModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <span class="slds-text-heading_medium">New Record </span>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col">
+              <c-waivers-create-record-page onclose={closeModal}></c-waivers-create-record-page>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="slds-modal__footer">
+        </div> -->
+      </div>
+    </div>
+  </template>
+
 </template>
-
-
-import { LightningElement , api} from 'lwc';
-
-export default class Recordviewlwc extends LightningElement {
-   @api recordid = '001Ho00001DV9tEIAT';
-
-}
