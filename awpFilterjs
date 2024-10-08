@@ -1,564 +1,152 @@
-const PAGESIZE = [
-    { label: '10', value: 10 },
-    { label: '20', value: 20 },
-    { label: '30', value: 30 },
-    { label: '40', value: 40 },
-    { label: '50', value: 50 }
-];
+import { api, LightningElement } from 'lwc';
+import NAME_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Name';
+import WAIVER_REASON_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Waiver_Reason__c';
+import WAIVER_STATUS_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Status__c';
+import WAIVER_BARR_RISK_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.BARR_Risk_Level_UI__c';
+// import WAIVERREL_STANDARD from '@salesforce/schema/AWP_Waiver_Relationship__c.Standard__c';
+import WAIVERREL_STANDARD_PORTFOLIO from '@salesforce/schema/AWP_Waiver_Relationship__c.Affected_Standard_Portfolio__c';
+import WAIVERREL_STANDARD_DOMAIN from '@salesforce/schema/AWP_Waiver_Relationship__c.Affected_Standard_Domain__c';
+import WAIVERREL_REQ_APPLICATION from '@salesforce/schema/AWP_Waiver_Relationship__c.Requesting_Application__c';
+import WAIVERREL_WAIVERID from '@salesforce/schema/AWP_Waiver_Relationship__c.Waiver_Id__c';
 
-export default class AwpWaiverListView extends NavigationMixin(LightningElement) {
-    @track records = [];
-    columns = COLUMNS;
-    isLoading = true;
-    currentPage = 1;
-    totalRecords;
-    totalPages;
-    sortedBy = 'Requesting_Portfolio__c';
-    sortedDirection = 'asc';
-    initialRecords = [];
-    selectedWaiver = 'mywaivers';
-    _tableSize = '10';
-    _recordViewSize = '10';
-    showFilter = true;
-    showRecord = false;
-    // showFilterToggle = false;
-    // showFilterToggleClicked = false;
-    recordId;
-    @track _filterOptions = [];
-    selectedFilter;
-    filterBy = [];
-    @track _filteredFieldValues = [];
-    isLoadingFilter = false;
-    filters = [];
-    valueFalse = false;
-    generatedFilterLink = '';
-    showShareLinkModal = false;
-    selectedRecordName = '';
-    showNewRecordModal = false;
+export default class WaiversCreateRecordPage extends LightningElement {
 
-    // Pagination state
-    first = true;
-    after = '';
-    lastId = '';
-    before = '';
-    firstId = '';
-    last = false;
-    lastPageSize = 0;
-    currentPageSize = 30;
-    // END
+    objectApiName = 'AWP_Architecture_Waiver_Form__c';
+    relatingObjectApiName = 'AWP_Waiver_Relationship__c';
+    @api recordId;
+    @api childRecordId;
+    newRecordName;
+    parentRecordId;
+    isLoading = false;
 
-    get noRecordsFound() {
-        return this.records.length === 0;
+    fields = {
+        waiverFields: [],
+        waiverRelFields: []
+    };
+
+    get record() {
+        return this.recordId;
     }
 
-    get pageSizeOptions() {
-        return PAGESIZE;
+    get showEdit() {
+        return this.recordId ? true : false;
     }
 
-    get showPaginationBar() {
-        return this.totalPages > 1;
-    }
-
-    get isFirstPage() {
-        return this.currentPage === 1;
-    }
-
-    get isLastPage() {
-        return this.currentPage === this.totalPages;
-    }
-
-    get rowNumberOffset() {
-        return (this.currentPage - 1) * this.currentPageSize;
-    }
-
-    get waiverOptions() {
-        return [
-            { label: 'My Waivers', value: 'mywaivers' },
-            { label: 'All Waivers', value: 'allwaivers' }
-        ];
-    }
-
-    get selectedWaiverLabel() {
-        return this.selectedWaiver === 'mywaivers' ? 'My Waivers' : 'All Waivers';
-    }
-
-    get tableSize() {
-        return this._tableSize;
-    }
-
-    // get tableSizeClass() {
-    //     return this._tableSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : (this._tableSize === '2' ? 'slds-size_2-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right');
-    // }
-
-    // get recordViewSizeClass() {
-    //     return this._recordViewSize === '10' ? 'slds-size_10-of-12 slds-col slds-border_left slds-border_right' : 'slds-size_12-of-12 slds-col slds-border_left slds-border_right';
-    // }
-
-    get recordViewSize() {
-        return this._recordViewSize;
-    }
-
-    get rowActions() {
-        return [
-            { label: 'View', name: 'view' }
-        ];
-    }
-
-    get filterOptions() {
-        return this._filterOptions;
-    }
-
-    get filteredFieldValues() {
-        return this._filteredFieldValues;
-    }
-
-    get showFilterValues() {
-        return this._filteredFieldValues.length > 0;
-    }
-
-    get recordName() {
-        return `${this.selectedRecordName}`;
-    }
-
-    @wire(CurrentPageReference)
-    getPageReferenceParameters(currentPageReference) {
-        if (currentPageReference) {
-            this.selectedFilter = (currentPageReference.state.c__filterValues ? currentPageReference.state.c__filterValues : '');
-            this.selectedWaiver = (currentPageReference.state.c__all === 'true') ? 'allwaivers' : 'mywaivers';
-        }
+    get childRecord() {
+        return this.childRecordId;
     }
 
     connectedCallback() {
-        this.fetchData();
-        this.fetchFilterDetails();
-        loadStyle(this, NoHeader);
+        console.log('record: ', this.record);
+        if (this.record) {
+            this.fields.waiverFields = [
+                { index: 0, fieldName: NAME_FIELD, required: true },
+                { index: 1, fieldName: WAIVER_REASON_FIELD, required: true },
+                { index: 2, fieldName: WAIVER_STATUS_FIELD, required: true },
+                { index: 3, fieldName: WAIVER_BARR_RISK_FIELD, required: true }
+
+            ];
+            this.fields.waiverRelFields = [
+                { index: 4, fieldName: WAIVERREL_STANDARD_PORTFOLIO, fieldValue: '', required: true },
+                { index: 5, fieldName: WAIVERREL_STANDARD_DOMAIN, fieldValue: '', required: true },
+                { index: 6, fieldName: WAIVERREL_REQ_APPLICATION, fieldValue: '', required: true },
+            ];
+        } else {
+            this.fields.waiverFields = [
+                { index: 7, fieldName: NAME_FIELD, required: true },
+                { index: 8, fieldName: WAIVER_REASON_FIELD, required: true }
+            ];
+            this.fields.waiverRelFields = [
+                { index: 9, fieldName: WAIVERREL_STANDARD_PORTFOLIO, fieldValue: '', required: true },
+                { index: 10, fieldName: WAIVERREL_STANDARD_DOMAIN, fieldValue: '', required: true },
+                { index: 11, fieldName: WAIVERREL_REQ_APPLICATION, fieldValue: '', required: true },
+            ];
+        }
     }
 
-    handleSearch(event) {
-        window.clearTimeout(this.delayTimeout);
-        this.searchKey = event.target.value.toLowerCase() ?? '';
-        this.delayTimeout = setTimeout(() => {
-            this.isLoading = true;
-            this.resetPaginationState();
-            this.currentPage = 1;
-            this.fetchData();
-        }, 300);
+    handleSuccessParent(event) {
+        this.parentRecordId = event.detail.id;
+        console.log('onsuccess: ', this.parentRecordId);
+        this.handleCreateWaiverRelationship(this.parentRecordId);
+    }
 
+    handleSuccessChild(event) {
+        console.log('onsuccess: ', event.detail.id);
+        this.isLoading = false;
+        this.dispatchEvent(new CustomEvent('close', {
+            detail: {
+                recordId: this.parentRecordId,
+                recordName: this.newRecordName
+            }
+        }));
     }
 
     handleReset(event) {
-        if (!event.target.value) {
-            this.currentPage = 1;
-            this.searchKey = '';
-            this.resetPaginationState();
-            this.fetchData();
-        }
+        event.preventDefault();
+        const objectApiName = event.target.dataset.object;
+        console.log('onsuccess: ', objectApiName);
+        this.dispatchEvent(new CustomEvent('close'));
     }
 
-    handlePageSize(event) {
-        this.currentPageSize = parseInt(event.target.value, 10);
-        this.currentPage = 1;
+    handleSubmit(event) {
+        event.preventDefault();       // stop the form from submitting
         this.isLoading = true;
-        this.fetchData();
-    }
+        let fields = {};
+        let isFormValid = false;
+        // if (this.showEdit) {
 
-    handleSort(event) {
-        const { fieldName: sortedBy, sortDirection: sortedDirection } = event.detail;
-        console.log('sortedDirection==', sortedDirection);
-        this.resetPaginationState();
-        this.searchKey = '';
-        this.sortedDirection = sortedDirection;
-        this.sortedBy = sortedBy;
-        this.currentPage = 1;
-        this.fetchData();
-    }
-
-    handleFirst() {
-        this.currentPage = 1;
-        this.resetPaginationState();
-        this.searchKey = '';
-        this.fetchData();
-    }
-
-    handleLast() {
-        this.currentPage = this.totalPages;
-        this.resetPaginationState();
-        this.searchKey = '';
-        this.first = false;
-        this.last = true;
-        this.lastPageSize = this.totalRecords % this.currentPageSize;
-        this.fetchData();
-    }
-
-    handleNext() {
-        this.currentPage++;
-        const lastRecord = this.records[this.records.length - 1];
-        this.after = lastRecord[this.sortedBy] || 'NULL';
-        this.before = '';
-        this.lastId = lastRecord.Id;
-        this.firstId = '';
-        this.first = false;
-        this.last = (this.currentPage === this.totalPages);
-        this.fetchData();
-    }
-
-    handlePrevious() {
-        this.currentPage--;
-        const firstRecord = this.records[0];
-        this.before = firstRecord[this.sortedBy] || 'NULL';
-        this.after = '';
-        this.firstId = firstRecord.Id;
-        this.lastId = '';
-        this.first = (this.currentPage === 1);
-        this.last = false;
-        this.fetchData();
-    }
-
-    resetPaginationState() {
-        this.isLoading = true;
-        this.before = '';
-        this.firstId = '';
-        this.after = '';
-        this.lastId = '';
-        this.first = true;
-        this.last = false;
-        this.lastPageSize = 0;
-        this.sortedBy = 'Requesting_Portfolio__c';
-        this.sortedDirection = 'asc';
-    }
-
-    fetchData() {
-        getWaiverRecords({
-            searchKey: this.searchKey,
-            sortBy: this.sortedBy,
-            sortOrder: this.sortedDirection,
-            pageSize: this.currentPageSize,
-            first: this.first,
-            after: this.after,
-            lastId: this.lastId,
-            before: this.before,
-            firstId: this.firstId,
-            last: this.last,
-            lastPageSize: this.lastPageSize,
-            allOrMy: this.selectedWaiver,
-            filters: JSON.stringify(this.filters)
-        }).then((data) => {
-            if (this.initialRecords.length === 0) {
-                this.initialRecords = data.waiverRecords;
-            }
-            this.records = data.waiverRecords;
-            this.totalRecords = data.waiverRecordsCount;
-            this.totalPages = Math.ceil(data.waiverRecordsCount / this.currentPageSize);
-            this.isLoading = false;
-        }).catch((error) => {
-            console.error(error);
-            this.isLoading = false;
-        });
-    }
-
-    fetchFilterDetails() {
-        getFilterDetails().then(result => {
-            if (result) {
-                const filterOptions = result.filterOptions;
-                this._filterOptions = filterOptions;
-                this.template.querySelector('[role="cm-picklist"]').setOptions(this._filterOptions);
-                this.template.querySelector('[role="cm-picklist"]').setSelectedList(this.selectedFilter);
-                if (this.selectedFilter.length) {
-                    const evt = {
-                        detail: {
-                            selectedValues: this.selectedFilter
-                        }
-                    };
-                    this.handleFilterBy('selectedValues', evt);
-                }
-            }
-        }).catch(error => {
-            console.error(error);
-        });
-    }
-
-    //Action Buttons
-    handleActions(event) {
-        const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
-        if (actionName) {
-            switch (actionName) {
-                case 'newwaiver':
-                    this.handleNewWaiver();
-                    break;
-                case 'home':
-                    this.handleHome();
-                    break;
-                case 'contactus':
-                    this.handleContactUs();
-                    break;
-                case 'faq':
-                    this.handleFAQ();
-                    break;
-                case 'help':
-                    this.handleHelp();
-                    break;
-                case 'view':
-                    this.handleView(event, actionName);
-                    break;
-                case 'close':
-                    this.handleView(event, actionName);
-                    break;
-                case 'applyfilter':
-                    this.handleFilterBy(actionName);
-                    break;
-                case 'resetfilter':
-                    this.handleFilterBy(actionName);
-                    break;
-                case 'selectedValues':
-                    this.handleFilterBy(actionName, event);
-                    break;
-                case 'selectedfiltervalue':
-                    this.handleFilterBy(actionName, event);
-                    break;
-                case 'filterbyexpand':
-                    this.handleFilterBy(actionName, event);
-                    break;
-                // case 'showfilteroptions':
-                //     this.showFilterToggleClicked = !this.showFilterToggleClicked;
-                //     if (this.showFilterToggleClicked && this.showRecord) {
-                //         this.setOptions();
-                //         this.showFilter = true;
-                //         this._recordViewSize = '8';
-                //     } else {
-                //         this.showFilter = false;
-                //         this._recordViewSize = '10';
-                //     }
-                //     break;
-                case 'sharefilter':
-                    this.generateFilterLink();
-                    this.showShareLinkModal = true;
-                    break;
-                case 'showfiltertoggle':
-                    this.showFilter = !this.showFilter;
-                    if (this.showFilter) {
-                        this.showFilter = true;
-                        if (this.showRecord) {
-                            this._recordViewSize = '8';
-                            this._tableSize = '2';
-                        } else {
-                            this._recordViewSize = '10';
-                            this._tableSize = '10';
-                        }
-                        this.setOptions();
-                    } else {
-                        this.showFilter = false;
-                        if (this.showRecord) {
-                            this._recordViewSize = '10';
-                            this._tableSize = '2';
-                        } else {
-                            this._recordViewSize = '10';
-                            this._tableSize = '12';
-                        }
-                    }
-
-                    break;
-                case 'newrecord':
-                    this.showNewRecordModal = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-    // Action Methods
-    handleNewWaiver() {
-        // Add logic for handling New Waiver button click
-    }
-
-    handleHome() {
-        // Add logic for handling Home button click
-    }
-
-    handleContactUs() {
-        // Add logic for handling Contact Us button click
-    }
-
-    handleFAQ() {
-        // Add logic for handling FAQ button click
-    }
-
-    handleHelp() {
-        // Add logic for handling Help button click
-    }
-
-    handleWaiverChange(event) {
-        this.currentPage = 1;
-        this.searchKey = '';
-        this.resetPaginationState();
-        this.selectedWaiver = event.detail.value;
-        this.loading = true;
-        this.fetchData();
-    }
-
-    handleFilter(filterAction) {
-        if (this.showFilterToggle && filterAction === 'apply') {
-            this.showRecord = (this.showRecord ? true : false);
-            this.showFilter = false;
-            // this.showFilterToggle = true;
-            // this.showFilterToggleClicked = false;
-            this._tableSize = '2';
-            this.columns = [...COLUMNS.slice(0, 1)];
+        // } else {
+        if (this.parentRecordId) {
+            this.handleCreateWaiverRelationship(this.parentRecordId);
         } else {
-            this.showRecord = false;
-            this.showFilter = true;
-            // this.showFilterToggle = true;
-            // this.showFilterToggleClicked = false;
-            this._tableSize = '10';
-            this.columns = [...COLUMNS];
-        }
-
-    }
-
-    handleView(event, actionName) {
-        this.showRecord = (actionName === 'view' ? true : false);
-        // this.showFilter = false;
-        if (this.showRecord) {
-            this.showFilter = false;
-            // this.showFilterToggle = true;
-            this.recordId = event.detail.row.Id;
-            this.selectedRecordName = event.detail.row.Name;
-            this.columns = [...COLUMNS.slice(0, 1)];
-            this._tableSize = '2';
-        } else {
-            this.showFilter = true;
-            // this.showFilterToggle = false;
-            this._tableSize = '10';
-            this.columns = [...COLUMNS];
-            this.setOptions();
-        }
-    }
-
-    handleFilterBy(actionName, event) {
-        let filterValue = event ? event?.detail?.value : null;
-        const index = event?.target?.dataset ? parseInt(event.target.dataset.index, 10) : null;
-        switch (actionName) {
-            case 'applyfilter':
-                console.log('applyfilter');
-                this.handleFilter('apply');
-                this.filters = this._filteredFieldValues.map(x => {
-                    return {
-                        [x.filterFieldApiName]: x.selectedValue
+            this.template.querySelectorAll('lightning-input-field[data-object="' + this.objectApiName + '"]').forEach(element => {
+                if (element.value && element.reportValidity()) {
+                    isFormValid = true;
+                    fields = {
+                        ...fields,
+                        [element.fieldName]: element.value
                     }
-                });
-                this.fetchData();
-                break;
-            case 'resetfilter':
-                this.isLoading = true;
-                this.filterBy = [];
-                this._filteredFieldValues = [];
-                this.selectedFilter = '';
-                this.showFilter = false;
-                this.searchKey = '';
-                this.handleFilter('reset');
-                console.log('reset filter');
-                this.filters = [];
-                this.fetchData();
-                this.setOptions();
-                break;
-            case 'selectedfiltervalue':
-                console.log('selectedfiltervalue');
-                this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue;
-                break;
-            case 'filterbyexpand':
-                console.log('filterbyexpand');
-                this._filteredFieldValues.filter(x => x.id === index)[0].showValues = !this._filteredFieldValues.filter(x => x.id === index)[0].showValues;
-                this._filteredFieldValues.filter(x => x.id === index)[0].icon = (this._filteredFieldValues.filter(x => x.id === index)[0].showValues) ? 'utility:dash' : 'utility:add';
-                break;
-            case 'selectedValues':
-                filterValue = event.detail.selectedValues;
-                if (filterValue.length) {
-                    this.selectedFilter = filterValue;
-                    const selectedFilter = (filterValue.split(';'));
-                    // this.showFilter = (this.showFilterToggleClicked) ? false : true;
-                    this.showFilter = true;
-                    this.isLoadingFilter = true;
-                    getUniqueValues({ fieldApiName: selectedFilter, allOrMy: this.selectedWaiver }).then((data) => {
-                        const values = (data) ? Object.keys(data).map(x => {
-                            return {
-                                [x]: data[x].map((val) => {
-                                    return { label: (val.value + ' (' + val.count + ')'), value: val.value };
-                                })
-                            }
-                        }) : [];
-                        let filteredFieldValues = values.map((x, ind) => {
-                            return {
-                                id: ind,
-                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
-                                filterFieldApiName: Object.keys(x)[0],
-                                filteredFieldValue: Object.values(x)[0].sort((a, b) => (a.value || '').localeCompare(b.value || '')),
-                                showValues: false,
-                                selectedValue: [],
-                                icon: 'utility:add'
-                            }
-                        });
-                        this._filteredFieldValues = [...filteredFieldValues];
-                        this.isLoadingFilter = false;
-                    }).catch((error) => {
-                        console.error(error);
-                        this.isLoadingFilter = false;
-                    });
                 } else {
-                    this.selectedFilter = '';
+                    isFormValid = false;
                 }
 
-                break;
-            default:
-                break;
-        }
-    }
-    setOptions() {
-        setTimeout(() => {
-            this.template.querySelector('[role="cm-picklist"]').setOptions(this._filterOptions);
-            this.template.querySelector('[role="cm-picklist"]').setSelectedList(this.selectedFilter);
-        }, 0);
-    }
-
-    generateFilterLink() {
-        const baseUrl = window.location.origin;
-        const generatedUrl = baseUrl + '/lightning/n/Waiver_Records_List_View?c__all=' + (this.selectedWaiver === 'allwaivers' ? true : false) + (this.selectedFilter ? '&c__filterValues=' + this.selectedFilter : '')
-        console.log('generateFilterLink=== ' + generatedUrl);
-        this.generatedFilterLink = generatedUrl;
-    }
-
-    // eslint-disable-next-line consistent-return
-    handleCopy() {
-        if (
-            navigator.clipboard &&
-            window.isSecureContext
-        ) {
-            return navigator.clipboard.writeText(
-                this.generatedFilterLink
-            );
-        }
-        return null;
-    }
-
-    closeModal(event) {
-        if (this.showShareLinkModal) {
-            this.showShareLinkModal = false;
-        }
-
-        if (this.showNewRecordModal) {
-            const newRecordId = event?.detail?.recordId;
-            const newRecordName = event?.detail?.recordName;
-            if (newRecordId) {
-                const evt = {
-                    detail: {
-                        row: {
-                            Id: newRecordId,
-                            Name: newRecordName
-                        }
-                    }
+                if (element.fieldName === 'Name') {
+                    this.newRecordName = element.value;
                 }
-                this.handleView(evt, 'view');
+
+            });
+
+            if (!isFormValid) {
+                this.isLoading = false;
+                return;
             }
-            this.showNewRecordModal = false;
+
+            this.template.querySelector('lightning-record-edit-form[data-object="' + this.objectApiName + '"]').submit(fields);
         }
+        // }
+    }
+
+    handleCreateWaiverRelationship(parentId) {
+        let isFormValid = false;
+        let fields = {};
+        fields = {
+            ...fields,
+            [WAIVERREL_WAIVERID.fieldApiName]: parentId
+        };
+        this.template.querySelectorAll('lightning-input-field[data-object="' + this.relatingObjectApiName + '"]').forEach(element => {
+            if (element.value && element.reportValidity()) {
+                isFormValid = true;
+                fields = {
+                    ...fields,
+                    [element.fieldName]: element.value
+                }
+            } else {
+                isFormValid = false;
+            }
+        });
+        if (!isFormValid) {
+            return;
+        }
+        this.template.querySelector('lightning-record-edit-form[data-object="' + this.relatingObjectApiName + '"]').submit(fields);
     }
 }
