@@ -4,9 +4,12 @@ public with sharing class AWP_WaiverHandlerClass {
     .get('AWP_Architecture_Waiver_Form__c')
     .getDescribe()
     .fields.getMap();
-  static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level_UI__c, Affected_Standard_Portfolio__c,Renew_Counter__c, App_Name__c, Standard_Page_Title__c ';
-  // static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, Requesting_Domain_New__r.Port__r.Name, BARR_Risk_Level__c, Affected_Standard_Portfolio__c,Affected_Domain_New__r.Port__r.Name, Renew_Counter__c, App_Name__r.BARR_Risk_Level__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
-  static final String OBJECT_NAME = 'AWP_Architecture_Waiver_Form__c';
+  // static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level_UI__c, Affected_Standard_Portfolio__c,Renew_Counter__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
+
+  //Above please add the fields that you want to be queried
+  static final String FIELDS_TO_BE_QUERIED_NEW = 'Id, Waiver_Id__c, Waiver_Id__r.Name, Waiver_Id__r.Status__c, Waiver_Id__r.Waiver_Reason__c, Waiver_Id__r.Requesting_Portfolio__c, Waiver_Id__r.BARR_Risk_Level_UI__c, Waiver_Id__r.Renew_Counter__c, Waiver_Id__r.App_Name__c, Waiver_Id__r.Standard_Page_Title__c, Requesting_Application__c, Affected_Standard_Portfolio__c ';
+
+  static final String OBJECT_NAME = 'AWP_Waiver_Relationship__c';
   Map<String, String> waiverStatus = new Map<String, String>();
   Map<String, String> waiverReason = new Map<String, String>();
   Map<String, String> waiverBarrRisk = new Map<String, String>();
@@ -42,12 +45,13 @@ public with sharing class AWP_WaiverHandlerClass {
     }
   }
 
+  //Added the fields that we are looking to have filter options. If the field from Relationship record use the formula field in the value and the label in the key
   public static Map<String, String> fieldList = new Map<String, String>{
-    'Requesting Portfolio' => 'Requesting_Portfolio__c',
+    'Requesting Application' => 'Requesting_Application__c',
     'Affected Standard Portfolio' => 'Affected_Standard_Portfolio__c',
-    'BARR Risk Level' => 'BARR_Risk_Level_UI__c',
-    'Waiver Reason' => 'Waiver_Reason__c',
-    'Status' => 'Status__c'
+    'BARR Risk Level' => 'Waiver_Id__r.BARR_Risk_Level_UI__c',
+    'Waiver Reason' => 'Waiver_Id__r.Waiver_Reason__c',
+    'Status' => 'Waiver_Id__r.Status__c'
   };
 
   @AuraEnabled(cacheable=true)
@@ -90,20 +94,20 @@ public with sharing class AWP_WaiverHandlerClass {
     String permissionSetName = Label.See_All_Waivers;
 
     // Determine the query based on the user's permission sets
-    List<AWP_Architecture_Waiver_Form__c> waiverRecords;
+    List<AWP_Waiver_Relationship__c> waiverRecords;
     Integer waiverRecordsCount = 0;
 
     String query =
       'SELECT ' +
-      FIELDS_TO_BE_QUERIED +
+      FIELDS_TO_BE_QUERIED_NEW +
       'FROM ' +
       OBJECT_NAME +
       ' ';
     String countQuery = 'SELECT COUNT()' + 'FROM ' + OBJECT_NAME + ' ';
 
     if (!permissionSetNames.contains(permissionSetName)) {
-      query += ' WHERE Status__c = \'Approved\'';
-      countQuery += ' WHERE Status__c = \'Approved\'';
+      query += ' WHERE Waiver_Id__r.Status__c = \'Approved\'';
+      countQuery += ' WHERE Waiver_Id__r.Status__c = \'Approved\'';
     }
 
     //Search logic
@@ -241,16 +245,16 @@ public with sharing class AWP_WaiverHandlerClass {
     //Add for All or My waivers
     if (allOrMy == 'mywaivers') {
       query += (!query.contains('WHERE')
-        ? ' WHERE OwnerId = \'' + userId + '\' '
-        : ' AND OwnerId = \'' + userId + '\' ');
+        ? ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' '
+        : ' AND Waiver_Id__r.OwnerId = \'' + userId + '\' ');
       countQuery += (!countQuery.contains('WHERE')
-        ? ' WHERE OwnerId = \'' + userId + '\' '
-        : ' AND OwnerId = \'' + userId + '\' ');
+        ? ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' '
+        : ' AND Waiver_Id__r.OwnerId = \'' + userId + '\' ');
     }
     //END
 
     //Add for filter Logic
-    if(!String.isBlank(filters)) {
+    if (!String.isBlank(filters)) {
       List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(
         filters
       );
@@ -277,20 +281,13 @@ public with sharing class AWP_WaiverHandlerClass {
           }
         }
         System.debug('filterQuery====' + filterQuery);
-        filterQuery = filterQuery.removeEnd('AND') + ') ';
-        if(query.contains('WHERE') & query.endsWithIgnoreCase('AND')) {
-          filterQuery = filterQuery.removeStartIgnoreCase('AND');
-        } else if(query.contains('WHERE') & query.endsWithIgnoreCase('WHERE')) {
-          filterQuery = filterQuery.removeStartIgnoreCase('AND');
-        } else if (!query.contains('WHERE')) {
-          filterQuery = filterQuery.replaceFirst('AND', 'WHERE');
-        }
+        filterQuery = filterQuery.removeEnd(' AND') + ') ';
         query += filterQuery;
         countQuery += filterQuery;
       }
-    } 
-  
-  //END
+    }
+
+    //END
 
     String orderQuery = '';
     if (last || (before != '' && !first) || (before != '' && first)) {
@@ -322,7 +319,7 @@ public with sharing class AWP_WaiverHandlerClass {
     waiverRecordsCount = Database.countQuery(countQuery);
 
     if (last || (before != '' && !first) || (before != '' && first)) {
-      List<AWP_Architecture_Waiver_Form__c> tmp = new List<AWP_Architecture_Waiver_Form__c>();
+      List<AWP_Waiver_Relationship__c> tmp = new List<AWP_Waiver_Relationship__c>();
       for (Integer i = waiverRecords.size() - 1; i >= 0; i--) {
         tmp.add(waiverRecords.get(i));
       }
@@ -336,11 +333,11 @@ public with sharing class AWP_WaiverHandlerClass {
 
   private static String buildSearchTerm(String query, String searchKey) {
     query +=
-      '( Name LIKE ' +
+      '( Waiver_Id__r.Name LIKE ' +
       searchKey +
-      ' OR Status__c LIKE ' +
+      ' OR Waiver_Id__r.Status__c LIKE ' +
       searchKey +
-      ' OR Waiver_Reason__c LIKE ' +
+      ' OR Waiver_Id__r.Waiver_Reason__c LIKE ' +
       searchKey +
       ' ) ';
     return query;
@@ -373,51 +370,58 @@ public with sharing class AWP_WaiverHandlerClass {
       Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
       String condition = '';
       if (allOrMy == 'mywaivers') {
-        condition += ' WHERE OwnerId = \'' + userId + '\' ';
+        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
       }
+
+      List<String> tempFieldList = new List<String>{
+        'BARR Risk Level',
+        'Waiver Reason',
+        'Status'
+      };
+
       for (String field : fieldApiName) {
-        if (
-          new List<String>{ 'BARR Risk Level', 'Waiver Reason', 'Status' }
-            .contains(field)
-        ) {
-          String query =
-            'SELECT ' +
-            fieldList.get(field) +
-            ',COUNT(Id) FROM AWP_Architecture_Waiver_Form__c' +
-            condition +
-            ' GROUP BY ' +
-            fieldList.get(field);
-          results.put(field, Database.query(query));
-        } else if (
-          field == 'Affected Standard Portfolio' ||
-          field == 'Requesting Portfolio'
-        ) {
-          String query =
-            'SELECT Name, COUNT(Id) FROM TPM_Port__c' +
-            condition +
-            ' GROUP BY Name';
-          results.put(field, Database.query(query));
-        }
+        String query =
+          'SELECT ' +
+          fieldList.get(field) +
+          ',COUNT(Id) FROM AWP_Waiver_Relationship__c' +
+          condition +
+          ' GROUP BY ' +
+          fieldList.get(field);
+        results.put(field, Database.query(query));
+        //}
+        // else if (
+        //   field == 'Affected Standard Portfolio' ||
+        //   field == 'Requesting Application'
+        // ) {
+        //   String query =
+        //     'SELECT ' +
+        //     fieldList.get(field) +
+        //     ',COUNT(Id) FROM AWP_Waiver_Relationship__c' +
+        //     condition +
+        //     ' GROUP BY ' +
+        //     fieldList.get(field);
+        //   results.put(field, Database.query(query));
+        // }
       }
       for (String field : results.keySet()) {
         List<Object> uniqueValues = new List<Object>();
         for (AggregateResult ar : results.get(field)) {
           Map<String, Object> uni = new Map<String, Object>();
-          if (
-            new List<String>{ 'BARR Risk Level', 'Waiver Reason', 'Status' }
-              .contains(field)
-          ) {
-            uni.put('value', (String) ar.get(fieldList.get(field)));
-            uni.put('count', (Integer) ar.get('expr0'));
-            uniqueValues.add((Object) uni);
-          } else if (
-            field == 'Affected Standard Portfolio' ||
-            field == 'Requesting Portfolio'
-          ) {
-            uni.put('value', (String) ar.get('Name'));
-            uni.put('count', (Integer) ar.get('expr0'));
-            uniqueValues.add((Object) uni);
-          }
+          uni.put(
+            'value',
+            (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
+          );
+          uni.put('count', (Integer) ar.get('expr0'));
+          uniqueValues.add((Object) uni);
+          // }
+          // else if (
+          //   field == 'Affected Standard Portfolio' ||
+          //   field == 'Requesting Application'
+          // ) {
+          //   uni.put('value', (String) ar.get('Name'));
+          //   uni.put('count', (Integer) ar.get('expr0'));
+          //   uniqueValues.add((Object) uni);
+          // }
         }
         fieldUniqueMap.put(field, uniqueValues);
       }
