@@ -7,7 +7,8 @@ const PAGESIZE = [
 ];
 
 export default class AwpWaiverListView extends NavigationMixin(LightningElement) {
-    @track records = [];
+    //@track records = [];
+    @api records = [];
     columns = COLUMNS;
     isLoading = true;
     currentPage = 1;
@@ -16,9 +17,9 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     sortedBy = 'Waiver_Id__r.Requesting_Portfolio__c';
     sortedDirection = 'asc';
     initialRecords = [];
-    selectedWaiver = 'mywaivers';
-    _tableSize = '10';
-    _recordViewSize = '10';
+    @track selectedWaiver = 'mywaivers';
+    _tableSize = '12';
+    _recordViewSize = '8';
     showFilter = true;
     showRecord = false;
     // showFilterToggle = false;
@@ -27,7 +28,8 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     @track _filterOptions = [];
     selectedFilter;
     filterBy = [];
-    @track _filteredFieldValues = [];
+    //@track _filteredFieldValues = [];
+    @api _filteredFieldValues = [];
     isLoadingFilter = false;
     filters = [];
     valueFalse = false;
@@ -79,6 +81,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     get selectedWaiverLabel() {
+        console.log('this.selectedWaiver in getter '+this.selectedWaiver);
         return this.selectedWaiver === 'mywaivers' ? 'My Waivers' : 'All Waivers';
     }
 
@@ -129,9 +132,30 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     connectedCallback() {
-        this.fetchData();
-        this.fetchFilterDetails();
+        pubsub.subscribe('waiverRecordsFetched', this.handleWaiverRecordsFetched.bind(this));
+        //pubsub.subscribe('filterBy', this.handleFilterBy.bind(this));
+        //this.fetchData();
+        //this.fetchFilterDetails();
         loadStyle(this, NoHeader);
+    }
+
+    handleWaiverRecordsFetched(payload) {
+        console.log('Received payload:', JSON.stringify(payload));
+        this.records = payload.records;
+        this.totalRecords = payload.totalRecords;
+        this.totalPages = payload.totalPages;
+        this.isLoading = payload.isLoading;
+        this.selectedWaiver = payload.selectedWaiver;
+        this.selectedFilter = payload.selectedFilter;
+    }
+
+    handleFilterBy(payload) {
+        console.log('Received payload Filter By:', JSON.stringify(payload));
+        this._filteredFieldValues = payload._filteredFieldValues;
+        this.totalRecords = payload.totalRecords;
+        this.totalPages = payload.totalPages;
+        this.isLoadingFilter = payload.isLoadingFilter;
+        this.selectedWaiver = payload.selectedWaiver;
     }
 
     handleSearch(event) {
@@ -292,22 +316,8 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
         const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
         if (actionName) {
             switch (actionName) {
-                case 'newwaiver':
-                    this.handleNewWaiver();
-                    break;
-                case 'home':
-                    this.handleHome();
-                    break;
-                case 'contactus':
-                    this.handleContactUs();
-                    break;
-                case 'faq':
-                    this.handleFAQ();
-                    break;
-                case 'help':
-                    this.handleHelp();
-                    break;
                 case 'view':
+                    console.log('record clicked 349');
                     this.handleView(event, actionName);
                     break;
                 case 'close':
@@ -338,19 +348,19 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                         this.showFilter = true;
                         if (this.showRecord) {
                             this._recordViewSize = '8';
-                            this._tableSize = '2';
+                            this._tableSize = '4';
                         } else {
-                            this._recordViewSize = '10';
-                            this._tableSize = '10';
+                            this._recordViewSize = '8';
+                            this._tableSize = '12';
                         }
                         this.setOptions();
                     } else {
                         this.showFilter = false;
                         if (this.showRecord) {
-                            this._recordViewSize = '10';
-                            this._tableSize = '2';
+                            this._recordViewSize = '8';
+                            this._tableSize = '4';
                         } else {
-                            this._recordViewSize = '10';
+                            this._recordViewSize = '8';
                             this._tableSize = '12';
                         }
                     }
@@ -362,27 +372,6 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                     break;
             }
         }
-    }
-
-    // Action Methods
-    handleNewWaiver() {
-        // Add logic for handling New Waiver button click
-    }
-
-    handleHome() {
-        // Add logic for handling Home button click
-    }
-
-    handleContactUs() {
-        // Add logic for handling Contact Us button click
-    }
-
-    handleFAQ() {
-        // Add logic for handling FAQ button click
-    }
-
-    handleHelp() {
-        // Add logic for handling Help button click
     }
 
     handleWaiverChange(event) {
@@ -400,14 +389,14 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             this.showFilter = false;
             // this.showFilterToggle = true;
             // this.showFilterToggleClicked = false;
-            this._tableSize = '2';
+            this._tableSize = '4';
             this.columns = [...COLUMNS.slice(0, 1)];
         } else {
             this.showRecord = false;
             this.showFilter = true;
             // this.showFilterToggle = true;
             // this.showFilterToggleClicked = false;
-            this._tableSize = '10';
+            this._tableSize = '12';
             this.columns = [...COLUMNS];
         }
 
@@ -420,12 +409,36 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             this.recordId = event.detail.row.Id;
             this.selectedRecordName = event.detail.row.Name;
             this.columns = [...COLUMNS.slice(0, 1)];
-            this._tableSize = '2';
+            this._tableSize = '4';
+            
+
+            /*Event Fire*/
+            console.log('record clicked 445');
+            const payload = {
+                recordId: this.recordId,
+                objectApiName: 'AWP_Architecture_Waiver_Form__c',
+                fieldSet: 'CompactPanelFieldSet'
+            };
+            pubsub.publish('navigate', payload);
+            console.log('Event published with payload:', JSON.stringify(payload));
+            /*Event Fire*/
+
         } else {
             this.showFilter = true;
-            this._tableSize = '10';
+            this._tableSize = '12';
             this.columns = [...COLUMNS];
             this.setOptions();
+
+            /*Event Fire*/
+            console.log('record clicked 464');
+            const payload = {
+                recordId: '',
+                objectApiName: 'AWP_Architecture_Waiver_Form__c',
+                fieldSet: 'CompactPanelFieldSet'
+            };
+            pubsub.publish('navigate', payload);
+            console.log('Event published with payload close:', JSON.stringify(payload));
+            /*Event Fire*/
         }
     }
 
