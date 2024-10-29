@@ -1,88 +1,77 @@
 <template>
-    <div class="slds-form-element">
-        <label class="slds-form-element__label">
-            <abbr if:true={required} title="required" class="slds-required">*</abbr>{label}
-        </label>
-        <div class="slds-input-has-icon slds-input-has-icon_right">
-            <lightning-icon icon-name="utility:down" size="xx-small"
-                class="slds-icon slds-input__icon slds-input__icon_right"
-                style="margin-right:-0.2rem;top:15px;"></lightning-icon>
-            <lightning-input type="text" placeholder={placeholder} onchange={onSearch} class="cmpl-input"
-                variant="label-hidden"></lightning-input>
-        </div>
-        <template if:true={showDD}>
-            <div class="slds-dropdown slds-dropdown_length-10 slds-dropdown_fluid" onblur={onBlur}>
-                <ul class="slds-listbox slds-listbox_vertical">
-                    <li class="slds-listbox__item slds-border_bottom">
-                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
-                            <span class="slds-media__figure slds-listbox__option-icon">
-                                <template if:true={isSelectAll}>
-                                    <lightning-input type="checkbox" value='SelectAll' class='select-all' checked
-                                        onchange={onSelect}></lightning-input>
-                                </template>
-                                <template if:false={isSelectAll}>
-                                    <lightning-input type="checkbox" value='SelectAll' class='select-all'
-                                        onchange={onSelect}></lightning-input>
-                                </template>
-                            </span>
-                            <span class="slds-media__body">
-                                <span class="slds-truncate" title='Filters' style="font-weight:bold">Filters</span>
-                            </span>
+    <lightning-card class={filterCardClass}>
+        <lightning-layout multiple-rows="true" class="slds-color__background_gray-2">
+            <template if:true={showFilter}>
+                <lightning-layout-item padding="around-small" size="12">
+                    <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+                        onclick={handleActions} variant="border-filled" data-action="showfiltertoggle">
+                    </lightning-button-icon-stateful>
+                    <div class="slds-grid slds-wrap">
+                        <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+                            <div class="slds-grid slds-wrap">
+                                <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search"
+                                    type="search" onchange={handleReset} onkeyup={handleSearch} value={searchKey}>
+                                </lightning-input>
+                                <div style="margin-top: 10px;"></div>
+                                <p class="slds-col slds-size_1-of-1">Filter by:</p>
+                                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List"
+                                    value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
+                                </lightning-combobox>
+                                <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label=""
+                                    required={valueFalse} showpills={valueFalse} role="cm-picklist"
+                                    onselectedvalues={handleActions}></c-custom-multi-pick-list>
+                            </div>
                         </div>
-                    </li>
-                    <template for:each={options} for:item="option">
-                        <template if:true={option.show}>
-                            <li key={option.index} class="slds-listbox__item">
-                                <!-- <div
-                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"> -->
-                                <div class="slds-listbox__option_plain">
-                                    <!-- <span class="slds-media__figure slds-listbox__option-icon"> -->
-                                    <span class={option.class}>
-                                        <input type="checkbox" id={option.label} value={option.label}
-                                            class="custom-checkbox" onchange={onSelect} checked={option.checked} />
-                                        <label for={option.label}>
-                                            <div>
-                                                {option.label}
-                                            </div>
-                                        </label>
-                                        <!-- <template if:true={option.checked}>
-                                            <lightning-input type="checkbox" label={option.label} value={option.label}
-                                                checked onchange={onSelect}></lightning-input>
-                                        </template>
-                                        <template if:false={option.checked}>
-                                            <lightning-input type="checkbox" label={option.label} value={option.label}
-                                                onchange={onSelect}></lightning-input>
-                                        </template> -->
-                                    </span>
-                                    <!-- <span class="slds-media__body">
-                                        <span class="slds-truncate" title={option.label}>{option.label}</span>
-                                    </span> -->
-                                </div>
-                            </li>
-                        </template>
+                    </div>
+                    <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+                        for:each={filteredFieldValues} for:item="filteredFieldValue">
+                        <div class="slds-grid slds-align--spread slds-wrap">
+                            <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                            <lightning-button-icon class="slds-col slds-text-align--right"
+                                icon-name={filteredFieldValue.icon} size="small" variant="bare" onclick={handleActions}
+                                data-action="filterbyexpand" data-index={filteredFieldValue.id}></lightning-button-icon>
+                        </div>
+                        {filteredFieldValue.uniqueKey}
+                        <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-top--medium"
+                            name="filterValue" options={filteredFieldValue.filteredFieldValue}
+                            data-action="selectedfiltervalue" data-index={filteredFieldValue.id}
+                            onchange={handleActions} value={filteredFieldValue.selectedValue}
+                            key={filteredFieldValue.uniqueKey}>
+                        </lightning-checkbox-group>
+                    </div>
+                    <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large">
+                        <div class="slds-col">
+                            <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                                onclick={handleActions}></lightning-button>
+                        </div>
+                        <div class="slds-col slds-var-p-left_small">
+                            <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                                onclick={handleActions}></lightning-button>
+                        </div>
+                    </div>
+                    <template if:true={isLoadingFilter}>
+                        <lightning-spinner alternative-text="Loading"></lightning-spinner>
                     </template>
-                </ul>
-            </div>
+                </lightning-layout-item>
+            </template>
+
+        </lightning-layout>
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
         </template>
-        <template if:true={showPillView}>
-            <div class="slds-m-top_x-small slds-grid">
-                <div class="slds-listbox_selection-group">
-                    <ul class="slds-listbox slds-is-relative slds-listbox_horizontal" role="listbox">
-                        <template for:each={options} for:item="option">
-                            <template if:true={option.checked}>
-                                <li key={option.index} class="slds-listbox-item">
-                                    <lightning-pill label={option.label} name={option.label} onremove={onRemove}
-                                        role="pill"></lightning-pill>
-                                </li>
-                            </template>
-                        </template>
-                    </ul>
-                </div>
-                <div class="slds-align_absolute-center">
-                    <a onclick={showMore} style="text-wrap: nowrap;" class="slds-hide" role="more">..More</a>
-                    <a onclick={showLess} style="text-wrap: nowrap;" class="slds-hide" role="less">..Show Less</a>
-                </div>
-            </div>
-        </template>
-    </div>
+
+        
+        
+    </lightning-card>
+    
+
+    <template if:false={showFilter}>
+        <!-- <div class="filter-container slds-is-fixed"> -->
+        <lightning-button-icon-stateful class="filter-button slds-is-fixed" icon-name="utility:filterList"
+            selected={showFilter} size="medium" onclick={handleActions} variant="border-filled"
+            data-action="showfiltertoggle"></lightning-button-icon-stateful>
+        <!-- </div> -->
+    </template>
+
 </template>
