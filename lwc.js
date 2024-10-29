@@ -1,158 +1,281 @@
-
 /* eslint-disable @lwc/lwc/no-async-operation */
+
 import { LightningElement, api, wire, track } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import fetchFields from '@salesforce/apex/AWP_WaiverHandlerClass.fetchFields';
+import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
 
-export default class CustomMultiPickList extends LightningElement {
+import DFP_Complete from '@salesforce/label/c.DFP_Complete';
+import DFP_Current from '@salesforce/label/c.DFP_Current';
+import DFP_Upcoming from '@salesforce/label/c.DFP_Upcoming';
+import pubsub from 'c/pubsub';
+import { getRecord } from 'lightning/uiRecordApi';
+const FIELDS = ['AWP_Architecture_Waiver_Form__c.Status__c'];
 
-    placeholder = '';
-    showDD = false;
-    init = false;
-    isExpanded = false;
-    isSelectAll = false;
+export default class CustomHighlightPanel extends LightningElement {
 
-    @api options = [];
-    @api label;
-    @api required;
-    @api showpills;
-
-    get showPillView() {
-        if (this.showpills) {
-            let count = this.options ? this.options.filter((element) => element.checked).length : 0;
-            return this.showpills && count > 0;
-        }
-        return false;
+    @api recordId;
+    @api objectApiName;
+    @api fieldSet;
+    @api get recordName() {
+        return this._name;
     }
+    set recordName(value) {
+        if (value) {
+            this._name = value;
+        }
+    }
+    _name = '';
+    fieldList = [];
+    objectLabelName = '';
+    intervalId;
+    showEditRecordModal = false;
 
-    renderedCallback() {
-        if (!this.init) {
-            this.template.querySelector('.cmpl-input').addEventListener('click', (event) => {
-                if (this.showDD) {
-                    this.showDD = !this.showDD;
-                } else {
-                    let opts = this.options ? this.options.filter((element) => element.show).length : 0;
-                    this.showDD = opts > 0;
-                }
-                event.stopPropagation();
-            });
-            this.template.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
-            document.addEventListener('click', () => {
-                if (this.showDD) {
-                    this.dispatchEvent(new CustomEvent('selectedvalues', {
-                        detail: {
-                            action: {
-                                name: 'selectedValues'
-                            },
-                            selectedValues: this.getSelectedList()
-                        }
-                    }));
-                }
-                this.showDD = false;
-            });
-            this.init = true;
+    @wire(getRelatedListRecords, {
+        parentRecordId: '$recordId',
+        relatedListId: 'AWP_Waiver_Relationships__r',
+        fields: ['AWP_Waiver_Relationship__c.Id']
+    })
+    wiredRecords({ error, data }) {
+        if (data) {
+            this.childRecords = data.records;
+        } else if (error) {
+            console.log(error);
         }
     }
 
-    onSearch(event) {
-        this.options.forEach(option => {
-            option.show = option.label.toLowerCase().startsWith(event.detail.value.toLowerCase());
+    connectedCallback() {
+        pubsub.subscribe('navigate', this.handleNavigate.bind(this));
+        console.log('Subscribed to navigate event');
+    }
+
+    handleNavigate(event) {
+        console.log('event fired 77'+JSON.stringify(event));
+        const { recordId, objectApiName, fieldSet} = event;
+        this.recordId = recordId;
+        this.objectApiName = objectApiName;
+        this.fieldSet = fieldSet;
+
+        fetchFields({
+            recordId: this.recordId,
+            objectName: this.objectApiName,
+            fieldSetName: this.fieldSet
+        }).then(result => {
+            if (result) {
+                console.log('result 63'+JSON.stringify(result));
+                if (result.message && this.recordId) {
+                    this.showToast('Error', 'error', result.message);
+                    return;
+                }
+                // this.nameField = result.nameField;
+                this.fieldList = result.fieldsAPI;
+                console.log('this.fieldList 70'+JSON.stringify(this.fieldList));
+                this.objectLabelName = result.objectLabelName;
+                console.log('this.objectLabelName 72'+JSON.stringify(this.objectLabelName));
+            }
+        }).catch(error => {
+            if (error && error.body && error.body.message) {
+                this.showToast('Error', 'error', error.body.message);
+            }
         });
-        let filteredopts = this.options.filter((element) => element.show);
-        this.showDD = false;
-        if (filteredopts.length > 0) {
-            this.showDD = true;
+        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+
+
+        this.progressMeth();
+    }
+
+    disconnectedCallback() {
+        clearInterval(this.intervalId);
+    }
+    removeHorizontalClass() {
+        // this.loading = false;
+        this.template.querySelectorAll('lightning-output-field')?.forEach(x => {
+            x.classList.remove('slds-form-element_horizontal')
+        })
+    }
+
+    showToast(title, variant, message) {
+        const event = new ShowToastEvent({
+            title: title,
+            variant: variant,
+            message: message,
+        });
+        this.dispatchEvent(event);
+    }
+
+    handleActions(event) {
+        const actionName = event.target.dataset.action;
+        switch (actionName) {
+            case 'edit':
+                console.log('edit');
+                this.childRecordId = this.childRecords?.[0].id;
+                this.showEditRecordModal = true;
+                break;
+            default:
+                break;
         }
     }
 
-    onSelect(event) {
-        if (event.target.value === 'SelectAll') {
-            this.options.forEach(option => {
-                option.checked = event.target.checked;
-            });
-        } else {
-            this.options.find(option => option.label === event.target.value).checked = event.target.checked;
+    closeModal() {
+        this.showEditRecordModal = false;
+    }
+
+
+
+
+    @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
+    wiredRecord({ error, data }) {
+        if (data) {
+            console.log('data check 129 '+JSON.stringify(data));
+            console.log('data check 130 '+data.fields.Status__c.value);
+            this.currentStep = data.fields.Status__c.value; 
+            this.progressMeth(); // Call your progress method to update the steps
+        } else if (error) {
+            console.error('Error fetching record:', error);
         }
-        this.postSelect();
     }
 
-    onRemove(event) {
-        this.options.find(option => option.label === event.detail.name).checked = false;
-        this.postSelect();
-    }
+    @track currentTab = 'Due';
+    @track showModal = false;
+    @track modalMessage = '';
+    nextTab = '';
+    pendingTabEvent = null;
 
-    postSelect() {
-        let count = this.options.filter((element) => element.checked).length;
-        this.placeholder = count > 0 ? count + ' Item(s) Selected' : '';
-        this.isSelectAll = (count === this.options.length);
-        if (this.showpills) {
-            let evnt = setInterval(() => {
-                if (count > 1) {
-                    if (this.template.querySelector('[role="listbox"]').getBoundingClientRect().height >
-                        (this.template.querySelectorAll('[role="pill"]')[0].getBoundingClientRect().height + 10)) {
-                        this.template.querySelector('[role="more"]').classList.remove('slds-hide');
-                    } else {
-                        this.template.querySelector('[role="more"]').classList.add('slds-hide');
+    @api indicatorType = 'Path';
+    @api stepList='Due,Pending,Approved';
+    @api currentStep='';
+    @api currentStepPercentage=0;
+    showTypeHorizontal;
+    pathProgress;
+    progressLabel;
+    label = {
+        DFP_Complete,
+        DFP_Current,
+        DFP_Upcoming
+    };
+    showTypeVertical;
+    showTypeVertNav;
+    showTypeHorizontal;
+    showTypePath;
+    showTypeBar;
+    showTypeRing;
+    stepsArray;
+    pathProgress;
+    stepPercent;
+    countTotalSteps;
+    countToCurrent;
+    progressLabel;
+
+
+    progressMeth(){
+        console.log('Running progressMeth with currentStep:', this.currentStep);
+
+        let indicatorDirty = this.indicatorType;
+        let indicatorClean = indicatorDirty.trim().toLowerCase();
+        let considerCurrentStepPercentage = false;
+        switch (indicatorClean) {
+            case 'path':
+                this.showTypePath = true;
+                break;
+            default:
+                this.showTypePath = true;
+                break; 
+        }        
+        // convert stepList from string of comma-separated values to an array
+        const stepListArray = this.stepList.split(',');
+        let countTotalSteps = stepListArray.length;
+        let stepsArrayTemp = [];
+        let afterCurrent = false;
+        let countToCurrent = 0;
+        let currentCount = 0;
+
+
+        if (!this.currentStep) {
+            console.warn('Current step is null or undefined. Marking all steps as Upcoming.');
+            // All steps should be marked as Upcoming
+            for (let i = 0; i < stepListArray.length; i++) {
+                let cleanArrayValue = stepListArray[i].trim();
+                stepsArrayTemp.push({
+                    label: cleanArrayValue,
+                    status: 'Upcoming',
+                    showCurrent: false,
+                    showComplete: false,
+                    showUpcoming: true,
+                });
+            }
+            this.stepsArray = stepsArrayTemp;
+        }
+        else {
+            for (let i = 0; i < stepListArray.length; i++) {
+                currentCount = i + 1;
+                let isFinalStep = false;
+                if (currentCount == countTotalSteps) {
+                    isFinalStep = true;
+                }
+                let cleanArrayValue = stepListArray[i].trim();
+                if (afterCurrent == false) {
+                    // this step might be Completed or Current
+                    if (cleanArrayValue == this.currentStep) {
+                        if (isFinalStep == true) {
+                            switch (indicatorClean) {
+                                default:
+                                    // this is the current step, but since it is the final one, it is marked as Complete instead
+                                    stepsArrayTemp.push({
+                                        'label': cleanArrayValue,
+                                        'status': 'Complete',
+                                        'showCurrent': false,
+                                        'showComplete': true,
+                                        'showFinalComplete': false,
+                                        'showUpcoming': false,
+                                        'finalStep': true
+                                    });
+                                    break;
+                            }
+                            countToCurrent++;
+                        }
+                        else {
+                            // this is the current step, but it is not the final one (or it's the final one for the vertnav indicator type)
+                            stepsArrayTemp.push({
+                                'label': cleanArrayValue,
+                                'status': 'Current',
+                                'showCurrent': true,
+                                'showComplete': false,
+                                'showUpcoming': false,
+                                'finalStep': false
+                            });
+                            // set afterCurrent to true,
+                            // so all subsequent steps
+                            // are marked as future
+                            afterCurrent = 'true';
+                            countToCurrent++;
+                        }
+                    }
+                    else {
+                        // this is a completed step
+                        stepsArrayTemp.push({
+                            'label': cleanArrayValue,
+                            'status': 'Complete',
+                            'showCurrent': false,
+                            'showComplete': true,
+                            'showUpcoming': false,
+                            'finalStep': isFinalStep
+                        });
+                        countToCurrent++;
                     }
                 }
-                clearInterval(evnt);
-            }, 200);
-        }
-        if (this.required) {
-            if (count === 0) {
-                this.template.querySelector('.cmpl-input').setCustomValidity('Please select item(s)');
-            } else {
-                this.template.querySelector('.cmpl-input').setCustomValidity('');
+                else {
+                    // this is an upcoming step
+                    stepsArrayTemp.push({
+                        'label': cleanArrayValue,
+                        'status': 'Upcoming',
+                        'showCurrent': false,
+                        'showComplete': false,
+                        'showUpcoming': true,
+                        'finalStep': false
+                    });
+                }
             }
-            this.template.querySelector('.cmpl-input').reportValidity();
+            this.stepsArray = stepsArrayTemp;
         }
-
     }
-
-    showMore() {
-        this.template.querySelector('.slds-listbox_selection-group').classList.add('slds-listbox_expanded');
-        this.template.querySelector('[role="more"]').classList.add('slds-hide');
-        this.template.querySelector('[role="less"]').classList.remove('slds-hide');
-    }
-
-    showLess() {
-        this.template.querySelector('.slds-listbox_selection-group').classList.remove('slds-listbox_expanded');
-        this.template.querySelector('[role="less"]').classList.add('slds-hide');
-        this.template.querySelector('[role="more"]').classList.remove('slds-hide');
-    }
-
-    @api
-    getSelectedList() {
-        return this.options.filter((element) => element.checked).map((element) => element.value).join(';');
-    }
-
-    @api
-    setSelectedList(selected) {
-        if (selected.length) {
-            selected?.split(';').forEach(name => {
-                this.options.find(option => option.value === name).checked = true;
-            });
-        }
-        this.postSelect();
-    }
-
-    @api
-    setOptions(opts) {
-        // eslint-disable-next-line @lwc/lwc/no-api-reassignments
-        this.options = opts.map((opt, index) => { return { "label": opt.label, "value": opt.value, "show": true, "checked": false, "index": index } });
-    }
-
-    @api
-    isValid() {
-        if (this.required) {
-            let count = this.options ? this.options.filter((element) => element.checked).length : 0;
-            if (count === 0) {
-                this.template.querySelector('.cmpl-input').setCustomValidity('Please select item(s)');
-                this.template.querySelector('.cmpl-input').reportValidity();
-                return false;
-            }
-        }
-        return true;
-    }
-
 }
