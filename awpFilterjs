@@ -1,4 +1,4 @@
-import { LightningElement, track, wire, api } from 'lwc';
+import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import NoHeader from '@salesforce/resourceUrl/NoHeader';
@@ -8,6 +8,48 @@ import getUniqueValues from '@salesforce/apex/AWP_WaiverHandlerClass.getUniqueVa
 
 import pubsub from 'c/pubsub';
 
+const COLUMNS = [
+    {
+        label: 'Name',
+        fieldName: 'Name',
+        sortable: true,
+        type: 'customText',
+        typeAttributes: {
+            // class: 'slds-text-link',
+            recordId: {
+                fieldName: 'Waiver_Id__c'
+            }
+        },
+    },
+    {
+        label: 'Requesting Portfolio',
+        fieldName: 'Requesting_Portfolio__c',
+        sortable: true
+    },
+    {
+        label: 'Affected Standard Portfolio',
+        fieldName: 'Affected_Standard_Portfolio__c',
+        sortable: true
+    },
+    { label: 'Waiver Reason', fieldName: 'Waiver_Reason__c', sortable: true },
+    { label: 'Status', fieldName: 'Status__c', sortable: true },
+    {
+        label: 'Standard Page Title',
+        fieldName: 'Standard_Page_Title__c',
+        sortable: true
+    },
+    // { label: 'Requesting TPM', fieldName: 'Requesting_TPM__c', sortable: true },
+    // { label: 'Application Name', fieldName: 'App_Name__c', sortable: true },
+    // { label: 'Renew Counter', fieldName: 'Renew_Counter__c', sortable: true },
+    // {
+    //     type: 'action',
+    //     typeAttributes: {
+    //         rowActions: [
+    //             { label: 'View', name: 'view' }
+    //         ]
+    //     },
+    // }
+];
 
 const PAGESIZE = [
     { label: '10', value: 10 },
@@ -17,9 +59,8 @@ const PAGESIZE = [
     { label: '50', value: 50 }
 ];
 
-export default class AwpWaiverListView extends NavigationMixin(LightningElement) {
-    //@track records = [];
-    @api records = [];
+export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningElement) {
+    @track records = [];
     columns = COLUMNS;
     isLoading = true;
     currentPage = 1;
@@ -28,9 +69,10 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     sortedBy = 'Waiver_Id__r.Requesting_Portfolio__c';
     sortedDirection = 'asc';
     initialRecords = [];
-    @track selectedWaiver = 'mywaivers';
-    _tableSize = '12';
-    _recordViewSize = '8';
+    selectedWaiver = 'mywaivers';
+    _tableSize = '9';
+    _recordViewSize = '9';
+    _leftNavSize = '2';
     showFilter = true;
     showRecord = false;
     // showFilterToggle = false;
@@ -39,8 +81,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     @track _filterOptions = [];
     selectedFilter;
     filterBy = [];
-    //@track _filteredFieldValues = [];
-    @api _filteredFieldValues = [];
+    @track _filteredFieldValues = [];
     isLoadingFilter = false;
     filters = [];
     valueFalse = false;
@@ -59,6 +100,10 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     lastPageSize = 0;
     currentPageSize = 30;
     // END
+
+    get filterCardClass() {
+        return this.showFilter ? '' : 'hidden';
+    }
 
     get noRecordsFound() {
         return this.records.length === 0;
@@ -92,12 +137,15 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     get selectedWaiverLabel() {
-        console.log('this.selectedWaiver in getter '+this.selectedWaiver);
         return this.selectedWaiver === 'mywaivers' ? 'My Waivers' : 'All Waivers';
     }
 
     get tableSize() {
         return this._tableSize;
+    }
+
+    get leftNavSize() {
+        return this._leftNavSize;
     }
 
     // get tableSizeClass() {
@@ -143,30 +191,9 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     connectedCallback() {
-        pubsub.subscribe('waiverRecordsFetched', this.handleWaiverRecordsFetched.bind(this));
-        //pubsub.subscribe('filterBy', this.handleFilterBy.bind(this));
-        //this.fetchData();
-        //this.fetchFilterDetails();
+        this.fetchData();
+        this.fetchFilterDetails();
         loadStyle(this, NoHeader);
-    }
-
-    handleWaiverRecordsFetched(payload) {
-        console.log('Received payload:', JSON.stringify(payload));
-        this.records = payload.records;
-        this.totalRecords = payload.totalRecords;
-        this.totalPages = payload.totalPages;
-        this.isLoading = payload.isLoading;
-        this.selectedWaiver = payload.selectedWaiver;
-        this.selectedFilter = payload.selectedFilter;
-    }
-
-    handleFilterBy(payload) {
-        console.log('Received payload Filter By:', JSON.stringify(payload));
-        this._filteredFieldValues = payload._filteredFieldValues;
-        this.totalRecords = payload.totalRecords;
-        this.totalPages = payload.totalPages;
-        this.isLoadingFilter = payload.isLoadingFilter;
-        this.selectedWaiver = payload.selectedWaiver;
     }
 
     handleSearch(event) {
@@ -263,6 +290,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
     }
 
     fetchData() {
+        console.log('this.selectedWaiver in fetchData 284 '+this.selectedWaiver);
         getWaiverRecords({
             searchKey: this.searchKey,
             sortBy: this.sortedBy,
@@ -278,23 +306,52 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             allOrMy: this.selectedWaiver,
             filters: JSON.stringify(this.filters)
         }).then((data) => {
+            console.log('this.initialRecords length in fetchData 300 '+this.initialRecords);
             if (this.initialRecords.length === 0) {
                 this.initialRecords = data.waiverRecords;
             }
+            console.log('data in fetchData 304 '+JSON.stringify(data));
+            
+            const filteredRecords = data.waiverRecords.filter((record) => {
+                // Defining the conditions under which records should be included
+                return record.Waiver_Id__r; //&& record.Waiver_Id__r.Name && record.Waiver_Id__r.Status__c;
+            });
+
             const records = data.waiverRecords.map((record) => {
-                return {
+                /*return {
                     ...record,
                     Name: record.Waiver_Id__r.Name,
                     Requesting_Portfolio__c: record.Waiver_Id__r.Requesting_Portfolio__c,
                     Waiver_Reason__c: record.Waiver_Id__r.Waiver_Reason__c,
                     Status__c: record.Waiver_Id__r.Status__c,
                     Standard_Page_Title__c: record.Waiver_Id__r.Standard_Page_Title__c,
+                };*/
+                return {
+                    ...record,
+                    Name: record.Waiver_Id__r?.Name ?? '',
+                    Requesting_Portfolio__c: record.Waiver_Id__r?.Requesting_Portfolio__c ?? '',
+                    Waiver_Reason__c: record.Waiver_Id__r?.Waiver_Reason__c ?? '',
+                    Status__c: record.Waiver_Id__r?.Status__c ?? '',
+                    Standard_Page_Title__c: record.Waiver_Id__r?.Standard_Page_Title__c ?? '',
                 };
             });
             this.records = records;
             this.totalRecords = data.waiverRecordsCount;
             this.totalPages = Math.ceil(data.waiverRecordsCount / this.currentPageSize);
             this.isLoading = false;
+
+            console.log('this.selectedWaiver 317 '+this.selectedWaiver);
+            // Publish the event with the payload
+            const payload = {
+                records: this.records,
+                totalRecords: this.totalRecords,
+                totalPages: this.totalPages,
+                isLoading: this.isLoading,
+                selectedWaiver: this.selectedWaiver,
+                selectedFilter: this.selectedFilter
+            };
+            pubsub.publish('waiverRecordsFetched', payload);
+
         }).catch((error) => {
             console.error(error);
             this.isLoading = false;
@@ -321,14 +378,13 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             console.error(error);
         });
     }
-
     //Action Buttons
     handleActions(event) {
         const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
         if (actionName) {
             switch (actionName) {
                 case 'view':
-                    console.log('record clicked 349');
+                    console.log('record clicked 27');
                     this.handleView(event, actionName);
                     break;
                 case 'close':
@@ -358,20 +414,21 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                     if (this.showFilter) {
                         this.showFilter = true;
                         if (this.showRecord) {
-                            this._recordViewSize = '8';
-                            this._tableSize = '4';
+                            this._recordViewSize = '7';
+                            this._tableSize = '2';
+                            //this._leftNavSize = '2';
                         } else {
-                            this._recordViewSize = '8';
-                            this._tableSize = '12';
+                            this._recordViewSize = '10';
+                            this._tableSize = '10';
                         }
                         this.setOptions();
                     } else {
                         this.showFilter = false;
                         if (this.showRecord) {
-                            this._recordViewSize = '8';
-                            this._tableSize = '4';
+                            this._recordViewSize = '9';
+                            this._tableSize = '2';
                         } else {
-                            this._recordViewSize = '8';
+                            this._recordViewSize = '10';
                             this._tableSize = '12';
                         }
                     }
@@ -390,6 +447,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
         this.searchKey = '';
         this.resetPaginationState();
         this.selectedWaiver = event.detail.value;
+        console.log('this.selectedWaiver 421 '+this.selectedWaiver);
         this.loading = true;
         this.fetchData();
     }
@@ -400,14 +458,14 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             this.showFilter = false;
             // this.showFilterToggle = true;
             // this.showFilterToggleClicked = false;
-            this._tableSize = '4';
+            this._tableSize = '2';
             this.columns = [...COLUMNS.slice(0, 1)];
         } else {
             this.showRecord = false;
             this.showFilter = true;
             // this.showFilterToggle = true;
             // this.showFilterToggleClicked = false;
-            this._tableSize = '12';
+            this._tableSize = '9';
             this.columns = [...COLUMNS];
         }
 
@@ -420,7 +478,8 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             this.recordId = event.detail.row.Id;
             this.selectedRecordName = event.detail.row.Name;
             this.columns = [...COLUMNS.slice(0, 1)];
-            this._tableSize = '4';
+            this._tableSize = '2';
+            this._recordViewSize = '9';
             
 
             /*Event Fire*/
@@ -436,7 +495,7 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
 
         } else {
             this.showFilter = true;
-            this._tableSize = '12';
+            this._tableSize = '9';
             this.columns = [...COLUMNS];
             this.setOptions();
 
@@ -462,7 +521,8 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                 this.handleFilter('apply');
                 this.filters = this._filteredFieldValues.map(x => {
                     return {
-                        [x.filterFieldApiName]: x.selectedValue
+                        [x.filterFieldApiName]: x.selectedValue,
+                        uniqueKey: `${x.id}-${x.selectedValue}`
                     }
                 });
                 this.fetchData();
@@ -483,11 +543,36 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             case 'selectedfiltervalue':
                 console.log('selectedfiltervalue');
                 this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue;
+
+
+                // Publish the event with the payload
+                const payload1 = {
+                    _filteredFieldValues: this._filteredFieldValues,
+                    totalRecords: this.totalRecords,
+                    totalPages: this.totalPages,
+                    isLoadingFilter: this.isLoadingFilter,
+                    selectedWaiver: this.selectedWaiver,
+                    selectedFilter: this.selectedFilter
+                };
+                pubsub.publish('filterBy', payload1);
+
                 break;
             case 'filterbyexpand':
                 console.log('filterbyexpand');
                 this._filteredFieldValues.filter(x => x.id === index)[0].showValues = !this._filteredFieldValues.filter(x => x.id === index)[0].showValues;
                 this._filteredFieldValues.filter(x => x.id === index)[0].icon = (this._filteredFieldValues.filter(x => x.id === index)[0].showValues) ? 'utility:dash' : 'utility:add';
+                
+                // Publish the event with the payload
+                const payload2 = {
+                    _filteredFieldValues: this._filteredFieldValues,
+                    totalRecords: this.totalRecords,
+                    totalPages: this.totalPages,
+                    isLoadingFilter: this.isLoadingFilter,
+                    selectedWaiver: this.selectedWaiver,
+                    selectedFilter: this.selectedFilter
+                };
+                pubsub.publish('filterBy', payload2);
+
                 break;
             case 'selectedValues':
                 filterValue = event.detail.selectedValues;
@@ -518,6 +603,20 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
                         });
                         this._filteredFieldValues = [...filteredFieldValues];
                         this.isLoadingFilter = false;
+
+                        
+                        // Publish the event with the payload
+                        const payload3 = {
+                            _filteredFieldValues: this._filteredFieldValues,
+                            totalRecords: this.totalRecords,
+                            totalPages: this.totalPages,
+                            isLoadingFilter: this.isLoadingFilter,
+                            selectedWaiver: this.selectedWaiver,
+                            selectedFilter: this.selectedFilter
+                        };
+                        console.log('payload check at 584 '+JSON.stringify(payload3));
+                        pubsub.publish('filterBy', payload3);
+
                     }).catch((error) => {
                         console.error(error);
                         this.isLoadingFilter = false;
@@ -556,28 +655,5 @@ export default class AwpWaiverListView extends NavigationMixin(LightningElement)
             );
         }
         return null;
-    }
-
-    closeModal(event) {
-        if (this.showShareLinkModal) {
-            this.showShareLinkModal = false;
-        }
-
-        if (this.showNewRecordModal) {
-            const newRecordId = event?.detail?.recordId;
-            const newRecordName = event?.detail?.recordName;
-            if (newRecordId) {
-                const evt = {
-                    detail: {
-                        row: {
-                            Id: newRecordId,
-                            Name: newRecordName
-                        }
-                    }
-                }
-                this.handleView(evt, 'view');
-            }
-            this.showNewRecordModal = false;
-        }
     }
 }
