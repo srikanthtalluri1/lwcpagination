@@ -69,7 +69,7 @@
             
 
 
-            <lightning-layout-item size={tableSize} class="slds-border_left slds-border_right background-white">
+            <lightning-layout-item size={tableSize} style={tableStyle} class="slds-border_left slds-border_right background-white">
                 <!--min-height-container-->
                 <div>
                     <div class="slds-page-header">
@@ -150,7 +150,7 @@
             </lightning-layout-item>
             
             <template if:true={showRecord}>
-                <lightning-layout-item size={recordViewSize}>
+                <lightning-layout-item size={recordViewSize} style={recordViewStyle}>
                     <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
                       field-set="CompactPanelFieldSet"></c-custom-highlight-panel>
                     <c-waivers-record-page record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
