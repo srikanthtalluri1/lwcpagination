@@ -71,6 +71,8 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
     initialRecords = [];
     selectedWaiver = 'mywaivers';
     _tableSize = '9';
+    tableStyle = 'width:82.8%';
+    recordViewStyle = 'width:66%';
     _recordViewSize = '9';
     _leftNavSize = '2';
     showFilter = true;
@@ -416,10 +418,13 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
                         if (this.showRecord) {
                             this._recordViewSize = '7';
                             this._tableSize = '2';
+                            this.recordViewStyle = 'width: 66%;';
                             //this._leftNavSize = '2';
                         } else {
                             this._recordViewSize = '10';
                             this._tableSize = '10';
+                            this.recordViewStyle = 'width: 82.8%;';
+                            this.tableStyle = 'width: 82.8%;';
                         }
                         this.setOptions();
                     } else {
@@ -427,9 +432,12 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
                         if (this.showRecord) {
                             this._recordViewSize = '9';
                             this._tableSize = '2';
+                            this.tableStyle = '';
+                            this.recordViewStyle = 'width: 82.8%;';
                         } else {
                             this._recordViewSize = '10';
                             this._tableSize = '12';
+                            this.tableStyle = 'width: 100%;';
                         }
                     }
                     break;
@@ -466,6 +474,7 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
             // this.showFilterToggle = true;
             // this.showFilterToggleClicked = false;
             this._tableSize = '9';
+            this.tableStyle = 'width: 82.8%;';
             this.columns = [...COLUMNS];
         }
 
@@ -480,6 +489,8 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
             this.columns = [...COLUMNS.slice(0, 1)];
             this._tableSize = '2';
             this._recordViewSize = '9';
+            this.tableStyle = '';
+            this.recordViewStyle = 'width: 82.8%;';
             
 
             /*Event Fire*/
@@ -496,6 +507,8 @@ export default class AwpWaiverListViewLeftNav extends NavigationMixin(LightningE
         } else {
             this.showFilter = true;
             this._tableSize = '9';
+            this.tableStyle = 'width: 82.8%;';
+            this.recordViewStyle = '';
             this.columns = [...COLUMNS];
             this.setOptions();
 
