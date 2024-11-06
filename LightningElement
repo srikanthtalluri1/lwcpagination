@@ -1,19 +1,20 @@
-Nav html
-154,155
- <template if:true={showRecord}>
-                <lightning-layout-item size={recordViewSize} style={recordViewStyle}>
-                    <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                      field-set="CompactPanelFieldSet" oneditclick={handleEditClick}></c-custom-highlight-panel>
-                    <c-waivers-record-page record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                        record-name={recordName} edit-click={editClick}></c-waivers-record-page>
+// For Dispatching custom event to notify the parent component 3435
+    editClick = false;
 
 
+ //this.showEditRecordModal = true;
 
-  /*Handling Event*/
-    @track editClick = false;
-    handleEditClick(event) {
-        // Capturing the editClick value from the child event
-        this.editClick = event.detail.editClick;
-        console.log('this.editClick in parent '+this.editClick);
-    }
-    /*Handling Event*/
+                // Dispatching custom event to notify the parent component
+                this.editClick = true;
+                const editEvent = new CustomEvent('editclick', {
+                    detail: { editClick: this.editClick }
+                });
+                this.dispatchEvent(editEvent);
+
+
+ // Dispatching custom event to notify the parent component
+                this.editClick = false;
+                const editEvent1 = new CustomEvent('editclick', {
+                    detail: { editClick: this.editClick }
+                });
+                this.dispatchEvent(editEvent1);
