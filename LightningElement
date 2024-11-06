@@ -1,20 +1,3 @@
-// For Dispatching custom event to notify the parent component 3435
-    editClick = false;
-
-
- //this.showEditRecordModal = true;
-
-                // Dispatching custom event to notify the parent component
-                this.editClick = true;
-                const editEvent = new CustomEvent('editclick', {
-                    detail: { editClick: this.editClick }
-                });
-                this.dispatchEvent(editEvent);
-
-
- // Dispatching custom event to notify the parent component
-                this.editClick = false;
-                const editEvent1 = new CustomEvent('editclick', {
-                    detail: { editClick: this.editClick }
-                });
-                this.dispatchEvent(editEvent1);
+ setTimeout(() => {
+            this.isLoading = false;
+        }, 3000); // Delay of 1000 milliseconds (1 second)
