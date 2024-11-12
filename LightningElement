@@ -1,213 +1,140 @@
 <template>
-    <div class="slds-card">
-        <!-- Card Header -->
-        <div class="slds-card__header slds-grid slds-wrap slds-grid_align-spread">
-            <header class="slds-media slds-media_center slds-has-flexi-truncate">
-                <div class="slds-media__body">
-                    <h2 class="slds-text-heading_small slds-truncate" title="Details">Details</h2>
-                </div>
-            </header>
-            <div class="slds-button-group">
-                <lightning-button variant="neutral" label="Edit" onclick={handleActions} data-action="edit"></lightning-button>
-                <lightning-button variant="neutral" label="Submit for Approval" onclick={handleActions} data-action="approval"></lightning-button>
-                <lightning-button variant="neutral" label="Withdraw" onclick={handleActions} data-action="withdraw"></lightning-button>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="lookup">{label}</label>
+        <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left-right">
+            <lightning-icon icon-name={iconName} alternative-text="Search" size="small"
+                class="slds-input__icon slds-input__icon_left"></lightning-icon>
+        
+            <!-- Input Field with pill -->
+            <div class="slds-input__container slds-input__pill-container">
+                <template if:false={displayValue}>
+                    <input type="text" class="slds-input" placeholder="Search..." oninput={handleSearchInput} onclick={toggleDropdown} readonly={isReadOnly}/>
+                </template>
+        
+                <!-- Pill for selected record (only shown when displayValue is set) -->
+                <template if:true={displayValue}>
+                    <div class="slds-pill slds-pill_link slds-pill_inside-input">
+                        <span class="slds-pill__label">{displayValue}</span>
+                        <lightning-icon icon-name="utility:close" alternative-text="Clear" size="small"
+                            class="slds-pill__remove slds-m-left_x-small" onclick={clearSelection}></lightning-icon>
+                    </div>
+                </template>
             </div>
         </div>
 
-        <!-- Card Body -->
-        <div class="slds-card__body slds-card__body_inner slds-var-p-around_large">
-            <lightning-tabset class="slds-tabs_default">
-                <!-- Details Tab -->
-                <lightning-tab label="Details" value="waiver">
-                    
-                    <template if:false={editClick}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title">Waiver Details</h3>
-                            <lightning-record-view-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                                density="comfy">
-                                <div class="slds-grid slds-wrap slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col1} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col2} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
+        <!-- Search Results Dropdown (only shown when showDropdown is true) -->
+        <div if:true={showDropdown} class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5">
+            <ul class="slds-listbox slds-listbox_vertical slds-dropdown_length-5" role="listbox">
+                <template for:each={searchResults} for:item="record">
+                    <li key={record.id} role="presentation" class="slds-listbox__item" onclick={handleSelect} data-id={record.id}>
+                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
+                            <span class="slds-listbox__option-text slds-listbox__option-text_entity">{record.name}</span>
                         </div>
-                    
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title">Requesting Domain and Portfolio</h3>
-                            <lightning-record-view-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                                density="comfy">
-                                <div class="slds-grid slds-wrap slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col3} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col4} for:item="field">
-                                            <lightning-output-field key={field.fieldName} field-name={field.fieldName}>
-                                            </lightning-output-field>
-                                        </template>
-                                    </div>
-                                </div>
-                            </lightning-record-view-form>
+                    </li>
+                </template>
+                <template if:true={noResults}>
+                    <li class="slds-listbox__item" role="presentation">
+                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
+                            <span class="slds-listbox__option-text">No results found</span>
                         </div>
-                    </template>
-
-
-
-
-
-
-
-                    <!--lightning-record-edit-form-->
-                    <template if:true={editClick}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title">Waiver Details</h3>
-                            <lightning-record-edit-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                                density="comfy" onsubmit={handleSubmit} onsuccess={handleSuccess}>
-                                <div class="slds-grid slds-wrap slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col1} for:item="field">
-                                            <lightning-input-field key={field.fieldName} field-name={field.fieldName}
-                                            onchange={handleFieldChange}>
-                                            </lightning-input-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col2} for:item="field">
-                                            <lightning-input-field key={field.fieldName} field-name={field.fieldName}
-                                            onchange={handleFieldChange}>
-                                            </lightning-input-field>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                
-
-                            </lightning-record-edit-form>
-                        </div>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title">Requesting Domain and Portfolio</h3>
-                            <lightning-record-edit-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
-                                density="comfy" onsubmit={handleSubmit} onsuccess={handleSuccess}>
-                                <div class="slds-grid slds-wrap slds-theme_default">
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col3} for:item="field">
-                                            <lightning-input-field key={field.fieldName} field-name={field.fieldName}
-                                            onchange={handleFieldChange}>
-                                            </lightning-input-field>
-                                        </template>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-2">
-                                        <template for:each={waiverFields.col4} for:item="field">
-                                            <lightning-input-field key={field.fieldName} field-name={field.fieldName}
-                                            onchange={handleFieldChange}>
-                                            </lightning-input-field>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div class="slds-var-m-top_medium">
-                                    <lightning-button variant="brand" type="submit" label="Save">
-                                    </lightning-button>
-                                    &nbsp;&nbsp;
-                                    <lightning-button variant="brand" label="Cancel" type="cancel" onclick={handleCancel}>
-                                    </lightning-button> 
-                                </div>
-
-                            </lightning-record-edit-form>
-                        </div>
-                    </template>
-                    <!--lightning-record-edit-form-->
-
-                </lightning-tab>
-
-                <!-- Related Tab -->
-                <!--<lightning-tab label="Related" value="contacts">
-                    <div class="slds-section slds-is-open">
-                        <h3 class="slds-section__title">Contacts</h3>
-                        <lightning-datatable 
-                            data={contacts} 
-                            columns={contactColumns} 
-                            key-field="Id">
-                        </lightning-datatable>
-                    </div>
-
-                    <div class="slds-section slds-is-open slds-m-top_medium">
-                        <h3 class="slds-section__title">Opportunities</h3>
-                        <lightning-datatable 
-                            data={opportunities} 
-                            columns={opportunityColumns} 
-                            key-field="Id">
-                        </lightning-datatable>
-                    </div>
-                </lightning-tab>-->
-
-                <lightning-tab label="Approval" value="approval">
-                </lightning-tab>
-                <lightning-tab label="History" value="history">
-                </lightning-tab>
-                <lightning-tab label="Snapshot" value="snapshot">
-                </lightning-tab>
-
-            </lightning-tabset>
-        </div>
-
-        <!-- Card Footer -->
-        <div class="slds-card__footer">
-            <p class="slds-text-title">Footer content can go here if needed.</p>
+                    </li>
+                </template>
+            </ul>
         </div>
     </div>
 </template>
 
-/ Inline Edit
-    @api editClick;
 
-fieldValues = {};
-    handleFieldChange(event) {
-        const fieldName = event.target.fieldName;
-        console.log('fieldName '+fieldName);
-        const value = event.target.value;
-        console.log('value '+value);
-        this.fieldValues[fieldName] = value; // Store the changed value temporarily
-        console.log('this.fieldValues '+JSON.stringify(this.fieldValues));
-    }
-    handleSubmit(event){
-        event.preventDefault();
-        /*const fields = event.detail.fields;
-        console.log('fields '+JSON.stringify(fields));
-        this.template.querySelector('lightning-record-edit-form').submit(fields);*/
+import { LightningElement, api, track } from 'lwc';
+import getFieldValue from '@salesforce/apex/LookupController.getFieldValue';
+import searchRecords from '@salesforce/apex/LookupController.searchRecords';
 
-        const fields1 = event.detail.fields;
-        Object.assign(fields1, this.fieldValues);
-        console.log('fields1 '+JSON.stringify(fields1));
-        this.template.querySelectorAll('lightning-record-edit-form').forEach(form => {
-            form.submit(fields1);
-        });
-        this.editClick = false;
+export default class LookupComponent extends LightningElement {
+    @api label;
+    @api iconName = 'standard:account';
+    @api relationShipObjectName;
+    @api relationShipFieldName;
+    @api objectName;
+    @api fieldName;
+    @api displayField = 'Name';
+    @api recordId;
+    @track displayValue = '';  // Field to hold the display name
+    @track searchResults = [];
+    @track showDropdown = false;
+    @track noResults = false;
+
+    connectedCallback() {
+        if (this.recordId) {
+            this.fetchCurrentRecord();
+        }
     }
-    handleSuccess(event){
-        console.log('onsuccess event recordEditForm', event.detail.id);
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: "Updated",
-                message: "Saved",
-                variant: "success" 
-            })
-        )
+
+    // Fetch the current value based on recordId, objectName, fieldName, and displayField
+    async fetchCurrentRecord() {
+        try {
+            const result = await getFieldValue({
+                recordId: this.recordId,
+                objectName: this.objectName,
+                fieldName: this.fieldName,
+                displayField: this.displayField
+            });
+            this.displayValue = result ? result : 'No related record';
+        } catch (error) {
+            console.error('Error fetching current record:', error);
+        }
     }
-    handleCancel(event){
-        console.log('oncancel event recordEditForm');
-        this.editClick = false;
+
+    // Handle user input for search
+    handleSearchInput(event) {
+        const searchTerm = event.target.value;
+        if (searchTerm.length >= 2) {
+            this.performSearch(searchTerm);
+        } else {
+            this.searchResults = [];
+            this.noResults = false;
+            this.showDropdown = false;
+        }
     }
+
+    // Perform search using an Apex method
+    async performSearch(searchTerm) {
+        try {
+            const results = await searchRecords({
+                objectName: this.relationShipObjectName,
+                fieldName: this.relationShipFieldName,
+                searchTerm,
+                displayField: this.displayField
+            });
+            this.searchResults = results;
+            //this.noResults = results.length === 0;
+            this.showDropdown = results.length > 0;
+        } catch (error) {
+            console.error('Error searching records:', error);
+        }
+    }
+
+    // Handle selection from dropdown
+    handleSelect(event) {
+        const recordId = event.currentTarget.dataset.id;
+        const selectedRecord = this.searchResults.find(record => record.id === recordId);
+        this.displayValue = selectedRecord.name;
+        this.showDropdown = false;
+
+        // Dispatch event to parent component with selected record id
+        this.dispatchEvent(new CustomEvent('select', { detail: { recordId } }));
+    }
+
+    // Toggle dropdown visibility
+    toggleDropdown() {
+        this.showDropdown = !this.showDropdown;
+    }
+
+    // Clear the selection and reset search
+    clearSelection() {
+        this.displayValue = '';  // Clear the display value
+        this.searchResults = [];  // Clear the search results
+        this.noResults = false;  // Reset the 'No results found' message
+        this.showDropdown = false;  // Close the dropdown
+        this.dispatchEvent(new CustomEvent('clear'));  // Dispatch 'clear' event
+    }
+}
