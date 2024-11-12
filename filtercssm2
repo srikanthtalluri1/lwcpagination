@@ -1,23 +1,62 @@
-.filter-button {
-    top: 15rem;
-    z-index: 1000;
-    left: 0rem;
-    opacity: 60%;
-}
 
-.filter-button:hover {
-    opacity: 100%;
-}
 
-.background-white {
-    background-color: white;
-}
+public with sharing class LookupController {
 
-.min-height-container {
-    min-height: 630px; /* Adjust this height as needed */
-    display: flex;
-    flex-direction: column;
-}
-.hidden {
-    display: none;
+	@AuraEnabled(cacheable=true)
+    public static String getFieldValue(String recordId, String objectName, String fieldName, String displayField) {
+        try {
+            // Dynamically build the relationship field path based on input
+            String relationshipFieldPath = fieldName.replace('__c','__r.') + displayField;
+			System.debug('relationshipFieldPath '+relationshipFieldPath);
+
+            // Create the dynamic SOQL query to fetch the related field
+            String query = 'SELECT ' + fieldName + ',' + relationshipFieldPath + ' FROM ' + objectName + ' WHERE Id = :recordId LIMIT 1';
+
+            // Execute the dynamic query
+            SObject record = Database.query(query);
+            
+            // Get the related record value
+            if (record != null) {
+                // Dynamically access the related field value (e.g., Account.Name)
+                Object relatedFieldValue = record.getSObject(fieldName.replace('__c','__r')).get(displayField);
+                return relatedFieldValue != null ? String.valueOf(relatedFieldValue) : 'No related record';
+            }
+            
+            return 'Record not found';			
+        } catch (Exception e) {
+            System.debug('Error fetching related record: ' + e.getMessage());
+            return null;
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<LookupRecord> searchRecords(String objectName, String fieldName, String searchTerm, String displayField) {
+
+		// Check if searchTerm is not empty and format it for LIKE clause
+    	if (String.isEmpty(searchTerm)) {
+        	return new List<LookupRecord>(); // Return empty if no search term is provided
+    	}
+    	String likeSearchTerm = '%' + searchTerm + '%';
+
+        String query = 'SELECT Id ' + ',' + fieldName + ' FROM ' + objectName + ' WHERE ' + fieldName + ' LIKE :likeSearchTerm LIMIT 10';
+        List<SObject> results = Database.query(query);
+		System.debug('results 49 '+results);
+        List<LookupRecord> lookupResults = new List<LookupRecord>();
+
+        for (SObject record : results) {
+            lookupResults.add(new LookupRecord(record.Id, String.valueOf(record.get('Name'))));
+        }
+		System.debug('lookupResults 55 '+lookupResults);
+        return lookupResults;
+    }
+
+    public class LookupRecord {
+        @AuraEnabled public String id;
+        @AuraEnabled public String name;
+
+        public LookupRecord(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
 }
