@@ -12,7 +12,7 @@
                 <lightning-button variant="neutral" label="Submit for Approval" onclick={handleActions} data-action="approval"></lightning-button>
                 <lightning-button variant="neutral" label="Withdraw" onclick={handleActions} data-action="withdraw"></lightning-button>-->
                 <lightning-button variant="neutral" label="Save" onclick={handleSave} data-action="save" disabled={disablingButton}></lightning-button>
-                <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} data-action="cancel" disabled={disablingButton}></lightning-button>
+                <lightning-button variant="neutral" label="Cancel" onclick={handleCancelWaiver} data-action="cancel" disabled={disablingButton}></lightning-button>
             </div>
         </div>
 
@@ -148,6 +148,7 @@
                                             <!-- Column 1 -->
                                             <div class="slds-col slds-size_1-of-2">
                                                 <lightning-output-field field-name="Name"></lightning-output-field>
+                                                <lightning-output-field field-name="Waiver_Reason__c"></lightning-output-field>
                                                 <lightning-output-field field-name="Rationale_for_Waiver__c"></lightning-output-field>
                                                 <lightning-output-field field-name="Original_Waiver_Submission_Date__c">
                                                 </lightning-output-field>
@@ -155,7 +156,8 @@
                                             </div>
                                             <!-- Column 2 -->
                                             <div class="slds-col slds-size_1-of-2">
-                                                <lightning-output-field field-name="Waiver_Reason__c"></lightning-output-field>
+                                                <lightning-output-field field-name="Status__c"></lightning-output-field>
+                                                <lightning-output-field field-name="Renew_Counter__c"></lightning-output-field>
                                                 <lightning-output-field field-name="Resolution_Plan__c"></lightning-output-field>
                                                 <lightning-output-field field-name="Planned_Date_of_Resolution__c"></lightning-output-field>
                                                 <lightning-output-field field-name="Waiver_Expiration_Date__c"></lightning-output-field>
@@ -184,7 +186,6 @@
                                     </lightning-record-edit-form>-->
 
 
-                                    <template if:true={editClick}>
                                         <div class="slds-grid slds-wrap slds-theme_default slds-gutters">
                                             <!-- Column 1 (Editable) -->
                                             <div class="slds-col slds-size_1-of-2">
@@ -267,7 +268,6 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </template>
                                 </template>
                             
                         </lightning-accordion-section>
