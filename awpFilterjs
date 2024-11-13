@@ -145,8 +145,15 @@ export default class WaiversRecordPage extends LightningElement {
         }
     }
 
+    recordIdOriginal;
+
     connectedCallback() {
         console.log(this.recordId, '====', this.objectApiName);
+        this.recordIdOriginal = this.recordId;
+
+        console.log('this.editClick', '====', this.editClick);
+        pubsub.subscribe('editClick', this.handleEditDisablingButton.bind(this));
+        console.log('Subscribed to saveSuccess event');
 
         // Fetch picklist options for Status
         getStatusPicklistValues()
@@ -175,9 +182,20 @@ export default class WaiversRecordPage extends LightningElement {
 
     }
 
+    handleEditDisablingButton(event) {
+        console.log('event fired 190'+JSON.stringify(event));
+        this.disablingButton = event;
+        if(this.disablingButton){
+            this.editClick = false;
+        }
+        else{
+            this.editClick = true;
+        }
+    }
+
 
     @track waiverData = {};
-    disablingButton = false;
+    disablingButton = true;
     handleInputChangeValid(event) {
         const field = event.target.dataset.field;
         this.waiverData[field] = event.target.value;
@@ -189,6 +207,8 @@ export default class WaiversRecordPage extends LightningElement {
                 this.editClick = false;
                 this.disablingButton = true;
                 pubsub.publish('saveSuccess', false);
+
+                
             })
             .catch((error) => {
                 this.showToast('Error', error.body.message, 'error');
@@ -198,6 +218,12 @@ export default class WaiversRecordPage extends LightningElement {
 
     showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+    handleCancelWaiver(event){
+        console.log('oncancel event recordEditForm');
+        this.editClick = false;
+        this.disablingButton = true;
+        pubsub.publish('saveSuccess', false);
     }
 
 
