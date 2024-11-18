@@ -1,46 +1,48 @@
-public with sharing class WaiverController {
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> fetchWaiverDetails(String recordId) {
-        AWP_Architecture_Waiver_Form__c waiver = [SELECT Id, Name, Status__c, Renew_Counter__c 
-                                   FROM AWP_Architecture_Waiver_Form__c WHERE Id = :recordId LIMIT 1];
-
-        Map<String, Object> fieldData = new Map<String, Object>();
-        fieldData.put('Name', waiver.Name);
-        fieldData.put('Status', waiver.Status__c);
-        //fieldData.put('RationaleForWaiver', waiver.Rationale_for_Waiver__c);
-        fieldData.put('RenewCounter', waiver.Renew_Counter__c);
-        //fieldData.put('OriginalWaiverSubmissionDate', waiver.Original_Waiver_Submission_Date__c);
-
-        return fieldData;
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<String> getStatusPicklistValues() {
-        List<String> picklistValues = new List<String>();
-
-        // Use Schema information to get picklist values from AWP_Architecture_Waiver_Form__c.Status__c
-        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Status__c.getDescribe();
-        List<Schema.PicklistEntry> picklistEntries = fieldResult.getPicklistValues();
-
-        for (Schema.PicklistEntry entry : picklistEntries) {
-            picklistValues.add(entry.getLabel());
-        }
-
-        return picklistValues;
-    }
-    
-    @AuraEnabled
-    public static void saveWaiver(Map<String, Object> waiverData, String recordId) {
-        AWP_Architecture_Waiver_Form__c waiver;        
-        if (recordId != null) {
-            waiver = [SELECT Id FROM AWP_Architecture_Waiver_Form__c WHERE Id = :recordId LIMIT 1];
-        } else {
-            waiver = new AWP_Architecture_Waiver_Form__c();
-        }        
-        // Loop through the map and set values dynamically
-        for (String fieldName : waiverData.keySet()) {
-            waiver.put(fieldName, waiverData.get(fieldName));
-        }        
-        upsert waiver;
-    }
-}
+/*if (
+              filterMap.get(key) instanceof List<Object> &&
+              ((List<Object>) filterMap.get(key)).size() > 0
+            ) {
+                
+              for (Object value : (List<Object>) filterMap.get(key)) {
+                filterValues.add(String.valueOf(value));
+              }
+              filterQuery +=
+                ' ' +
+                fieldList.get(key) +
+                ' IN :filterValues' +
+                ' AND';
+            }*/
+              
+              /*Srikanth Changes*/
+              // Ensuring the key exists and the value is a list
+              if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
+                  List<Object> filterValuesList = (List<Object>) filterMap.get(key);
+                  if (filterValuesList.size() > 0) {
+                      // Separating null and non-null values
+                      Set<String> stringFilterValues = new Set<String>();
+                      Boolean includeNull = false;
+                      
+                      for (Object value : filterValuesList) {
+                          if (String.valueOf(value) == 'nullcheck') {
+                              includeNull = true; // Handling "No Data" Label (null values)
+                          } else {
+                              stringFilterValues.add(String.valueOf(value)); // Adding non-null values
+                          }
+                      }
+                      
+                      // Constructing the filter query for the current field
+                      String fieldApiName = fieldList.get(key);
+                      
+                      if (!stringFilterValues.isEmpty()) {
+                          filterQuery += ' ' + fieldApiName + ' IN :stringFilterValues';
+                      }
+                      
+                      if (includeNull) {
+                          // Adding condition for null values
+                          filterQuery += (!stringFilterValues.isEmpty() ? ' OR ' : '') + fieldApiName + ' = NULL';
+                      }
+                      
+                      filterQuery += ' AND';
+                  }
+              }
+              /*Srikanth Changes*/
