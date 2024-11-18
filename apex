@@ -1,48 +1,87 @@
-/*if (
-              filterMap.get(key) instanceof List<Object> &&
-              ((List<Object>) filterMap.get(key)).size() > 0
-            ) {
-                
-              for (Object value : (List<Object>) filterMap.get(key)) {
-                filterValues.add(String.valueOf(value));
-              }
-              filterQuery +=
-                ' ' +
-                fieldList.get(key) +
-                ' IN :filterValues' +
-                ' AND';
-            }*/
-              
-              /*Srikanth Changes*/
-              // Ensuring the key exists and the value is a list
-              if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
-                  List<Object> filterValuesList = (List<Object>) filterMap.get(key);
-                  if (filterValuesList.size() > 0) {
-                      // Separating null and non-null values
-                      Set<String> stringFilterValues = new Set<String>();
-                      Boolean includeNull = false;
-                      
-                      for (Object value : filterValuesList) {
-                          if (String.valueOf(value) == 'nullcheck') {
-                              includeNull = true; // Handling "No Data" Label (null values)
-                          } else {
-                              stringFilterValues.add(String.valueOf(value)); // Adding non-null values
-                          }
-                      }
-                      
-                      // Constructing the filter query for the current field
-                      String fieldApiName = fieldList.get(key);
-                      
-                      if (!stringFilterValues.isEmpty()) {
-                          filterQuery += ' ' + fieldApiName + ' IN :stringFilterValues';
-                      }
-                      
-                      if (includeNull) {
-                          // Adding condition for null values
-                          filterQuery += (!stringFilterValues.isEmpty() ? ' OR ' : '') + fieldApiName + ' = NULL';
-                      }
-                      
-                      filterQuery += ' AND';
-                  }
-              }
-              /*Srikanth Changes*/
+ @track editStates;
+    handleEditDisableButton(event) {
+        console.log('event fired 60'+JSON.stringify(event));
+        const { recordIdVar, isDisabling } = event;
+        // Ensure edit states are maintained per record
+        if (!this.editStates) {
+            this.editStates = {}; // Initialize if not already done
+        }
+        this.editStates[recordIdVar] = isDisabling;
+        // Update the UI for the specific record
+        this.updateDisableEditStateForRecord(recordIdVar);
+        //this.disableButton = event;
+    }
+
+    updateDisableEditStateForRecord(recordIdVar) {
+        const isDisableEditing = this.editStates[recordIdVar] || false;
+        if (isDisableEditing) {
+            this.disableButton = true;
+        } else {
+            this.disableButton = false;
+        }
+    }
+
+    handleEditEnableButton(event) {
+        console.log('event fired 83 '+JSON.stringify(event));
+        const { recordIdVar, isEnabling } = event;
+        // Ensure edit states are maintained per record
+        if (!this.editStates) {
+            this.editStates = {}; // Initialize if not already done
+        }
+        this.editStates[recordIdVar] = isEnabling;
+        // Update the UI for the specific record
+        this.updateEnableEditStateForRecord(recordIdVar);
+        //this.disableButton = event;
+    }
+
+    updateEnableEditStateForRecord(recordIdVar) {
+        const isEnableEditing = this.editStates[recordIdVar] || false;
+        if (isEnableEditing) {
+            this.disableButton = false;
+        } else {
+            this.disableButton = true;
+        }
+    }
+
+    handleNavigate(event) {
+        console.log('event fired 77'+JSON.stringify(event));
+        const { recordId, objectApiName, fieldSet, editClick} = event;
+        this.recordId = recordId;
+        this.objectApiName = objectApiName;
+        this.fieldSet = fieldSet;
+        this.editClick = editClick;
+
+        console.log('this.editClick 111 '+this.editClick);
+        if (this.editClick) {
+            this.disableButton = true;
+        } else {
+            this.disableButton = false;
+        }
+
+        fetchFields({
+            recordId: this.recordId,
+            objectName: this.objectApiName,
+            fieldSetName: this.fieldSet
+        }).then(result => {
+            if (result) {
+                console.log('result 63'+JSON.stringify(result));
+                if (result.message && this.recordId) {
+                    this.showToast('Error', 'error', result.message);
+                    return;
+                }
+                // this.nameField = result.nameField;
+                this.fieldList = result.fieldsAPI;
+                console.log('this.fieldList 70'+JSON.stringify(this.fieldList));
+                this.objectLabelName = result.objectLabelName;
+                console.log('this.objectLabelName 72'+JSON.stringify(this.objectLabelName));
+            }
+        }).catch(error => {
+            if (error && error.body && error.body.message) {
+                this.showToast('Error', 'error', error.body.message);
+            }
+        });
+        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+
+
+        this.progressMeth();
+    }
