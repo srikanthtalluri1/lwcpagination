@@ -1,87 +1,120 @@
- @track editStates;
-    handleEditDisableButton(event) {
-        console.log('event fired 60'+JSON.stringify(event));
-        const { recordIdVar, isDisabling } = event;
+console.log('this.editClick', '====', this.editClick);
+        pubsub.subscribe('editClick', this.handleEditDisablingButton.bind(this));
+        pubsub.subscribe('editClickViewOnly', this.handleEditDisablingButtonViewOnly.bind(this));
+
+    }
+
+    /*handleEditDisablingButton(event) {
+        console.log('event fired 190'+JSON.stringify(event));
+        this.disablingButton = event;
+        if(this.disablingButton){
+            this.editClick = false;
+        }
+        else{
+            this.editClick = true;
+        }
+    }*/
+
+    @track editStates;
+    handleEditDisablingButton(event) {
+        console.log('Event received: 198 ', JSON.stringify(event));
+        const { recordIdVar, isEditing } = event;
         // Ensure edit states are maintained per record
         if (!this.editStates) {
             this.editStates = {}; // Initialize if not already done
         }
-        this.editStates[recordIdVar] = isDisabling;
+        this.editStates[recordIdVar] = isEditing;
         // Update the UI for the specific record
-        this.updateDisableEditStateForRecord(recordIdVar);
-        //this.disableButton = event;
+        this.updateEditStateForRecord(recordIdVar);
     }
 
-    updateDisableEditStateForRecord(recordIdVar) {
-        const isDisableEditing = this.editStates[recordIdVar] || false;
-        if (isDisableEditing) {
-            this.disableButton = true;
+    updateEditStateForRecord(recordIdVar) {
+        const isEditing = this.editStates[recordIdVar] || false;
+        if (isEditing) {
+            // Enable edit mode for the specific record
+            this.editClick = true; // Specific record being edited
+            this.disablingButton = false;
+
+            // Fetch waiver details
+            fetchWaiverDetails({ recordId: this.recordId })
+                .then(data => {
+                    if (data) {
+                        this.name = data.Name;
+                        this.status = data.Status;
+                        this.waiverReason = data.waiverReason;
+                        //this.rationaleForWaiver = data.RationaleForWaiver;
+                        this.renewCounter = data.RenewCounter;
+                        //this.originalWaiverSubmissionDate = data.OriginalWaiverSubmissionDate;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching waiver details:', error);
+                });
         } else {
-            this.disableButton = false;
+            // Disable edit mode for the specific record
+            this.editClick = false;
+            this.disablingButton = true;
         }
     }
 
-    handleEditEnableButton(event) {
-        console.log('event fired 83 '+JSON.stringify(event));
-        const { recordIdVar, isEnabling } = event;
+    handleEditDisablingButtonViewOnly(event) {
+        console.log('Event received: 223 ', JSON.stringify(event));
+        const { recordIdVar, isEditingViewOnly } = event;
         // Ensure edit states are maintained per record
         if (!this.editStates) {
             this.editStates = {}; // Initialize if not already done
         }
-        this.editStates[recordIdVar] = isEnabling;
+        this.editStates[recordIdVar] = isEditingViewOnly;
         // Update the UI for the specific record
-        this.updateEnableEditStateForRecord(recordIdVar);
-        //this.disableButton = event;
+        this.updateEditStateForRecordViewOnly(recordIdVar);
     }
 
-    updateEnableEditStateForRecord(recordIdVar) {
-        const isEnableEditing = this.editStates[recordIdVar] || false;
-        if (isEnableEditing) {
-            this.disableButton = false;
+    updateEditStateForRecordViewOnly(recordIdVar) {
+        const isEditing = this.editStates[recordIdVar] || false;
+        if (isEditing) {
+            // Enable edit mode for the specific record
+            this.editClick = true; // Specific record being edited
+            this.disablingButton = false;
         } else {
-            this.disableButton = true;
+            // Disable edit mode for the specific record
+            this.editClick = false;
+            this.disablingButton = true;
         }
     }
 
-    handleNavigate(event) {
-        console.log('event fired 77'+JSON.stringify(event));
-        const { recordId, objectApiName, fieldSet, editClick} = event;
-        this.recordId = recordId;
-        this.objectApiName = objectApiName;
-        this.fieldSet = fieldSet;
-        this.editClick = editClick;
 
-        console.log('this.editClick 111 '+this.editClick);
-        if (this.editClick) {
-            this.disableButton = true;
-        } else {
-            this.disableButton = false;
-        }
+    @track waiverData = {};
+    disablingButton = true;
+    handleInputChangeValid(event) {
+        const field = event.target.dataset.field;
+        this.waiverData[field] = event.target.value;
+    }
+    handleSave() {
+        saveWaiver({ waiverData: this.waiverData, recordId: this.recordId })
+            .then(() => {
+                this.showToast('Success', 'Waiver saved successfully.', 'success');
+                this.editClick = false;
+                this.disablingButton = true;
+                //pubsub.publish('saveSuccess', false);
 
-        fetchFields({
-            recordId: this.recordId,
-            objectName: this.objectApiName,
-            fieldSetName: this.fieldSet
-        }).then(result => {
-            if (result) {
-                console.log('result 63'+JSON.stringify(result));
-                if (result.message && this.recordId) {
-                    this.showToast('Error', 'error', result.message);
-                    return;
-                }
-                // this.nameField = result.nameField;
-                this.fieldList = result.fieldsAPI;
-                console.log('this.fieldList 70'+JSON.stringify(this.fieldList));
-                this.objectLabelName = result.objectLabelName;
-                console.log('this.objectLabelName 72'+JSON.stringify(this.objectLabelName));
-            }
-        }).catch(error => {
-            if (error && error.body && error.body.message) {
-                this.showToast('Error', 'error', error.body.message);
-            }
-        });
-        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+                pubsub.publish('saveSuccess', { recordId: this.recordId, isDisabling: false });
 
+                
+            })
+            .catch((error) => {
+                this.showToast('Error', error.body.message, 'error');
+                pubsub.publish('saveSuccess', true);
+            });
+    }
 
-        this.progressMeth();
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+    handleCancelWaiver(event){
+        console.log('oncancel event recordEditForm');
+        this.editClick = false;
+        this.disablingButton = true;
+        //pubsub.publish('saveSuccess', false);
+
+        pubsub.publish('saveSuccess', { recordId: this.recordId, isDisabling: false });
     }
