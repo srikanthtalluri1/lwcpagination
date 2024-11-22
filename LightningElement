@@ -1,20 +1,34 @@
-pubsub.subscribe('saveSuccess', this.handleEditDisableButton.bind(this));  55-62
-        console.log('Subscribed to saveSuccess event');
-    }
+/*let filteredFieldValues = values.map((x, ind) => {
+                            return {
+                                id: ind,
+                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
+                                filterFieldApiName: Object.keys(x)[0],
+                                filteredFieldValue: Object.values(x)[0].sort((a, b) => (a.value || '').localeCompare(b.value || '')),
+                                showValues: false,
+                                selectedValue: [],
+                                icon: 'utility:add'
+                            }
+                        });*/
 
-    handleEditDisableButton(event) {
-        console.log('event fired 60'+JSON.stringify(event));
-        this.disableButton = event;
-    }
-
-
-onclick={handleActions} disabled={disableButton}></lightning-button> 22 edit button
-
- disableButton = false;- 153
-
- pubsub.publish('editClick', false);  169-172
-
-                console.log('this.disableButton 161 '+this.disableButton);
-                this.disableButton = true;
-
- pubsub.publish('editClick', true);- 182
+                        /*Srikanth Changes*/
+                        console.log('Processed Values:', values);
+                        let filteredFieldValues = values.map((x, ind) => {
+                            return {
+                                id: ind,
+                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
+                                filterFieldApiName: Object.keys(x)[0],
+                                filteredFieldValue: Object.values(x)[0]
+                                    .sort((a, b) => {
+                                        const valueA = (a.value || '').trim().toLowerCase();
+                                        const valueB = (b.value || '').trim().toLowerCase();
+                                        if (valueA === 'nullcheck') return -1;
+                                        if (valueB === 'nullcheck') return 1;
+                                        return valueA.localeCompare(valueB); // Alphabetical for others
+                                    }),
+                                showValues: false,
+                                selectedValue: [],
+                                icon: 'utility:add'
+                            };
+                        });
+                        console.log('Filtered Field Values (sorted by value):', JSON.stringify(filteredFieldValues));
+                        /*Srikanth Changes*/
