@@ -1,34 +1,23 @@
-/*let filteredFieldValues = values.map((x, ind) => {
-                            return {
-                                id: ind,
-                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
-                                filterFieldApiName: Object.keys(x)[0],
-                                filteredFieldValue: Object.values(x)[0].sort((a, b) => (a.value || '').localeCompare(b.value || '')),
-                                showValues: false,
-                                selectedValue: [],
-                                icon: 'utility:add'
-                            }
-                        });*/
+/*handleSort(event) {
+        const { fieldName: sortedBy, sortDirection: sortedDirection } = event.detail;
+        console.log('sortedDirection==', sortedDirection);
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.sortedDirection = sortedDirection;
+        this.sortedBy = sortedBy;
+        this.currentPage = 1;
+        this.fetchData();
+    }*/
 
-                        /*Srikanth Changes*/
-                        console.log('Processed Values:', values);
-                        let filteredFieldValues = values.map((x, ind) => {
-                            return {
-                                id: ind,
-                                filterField: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label),
-                                filterFieldApiName: Object.keys(x)[0],
-                                filteredFieldValue: Object.values(x)[0]
-                                    .sort((a, b) => {
-                                        const valueA = (a.value || '').trim().toLowerCase();
-                                        const valueB = (b.value || '').trim().toLowerCase();
-                                        if (valueA === 'nullcheck') return -1;
-                                        if (valueB === 'nullcheck') return 1;
-                                        return valueA.localeCompare(valueB); // Alphabetical for others
-                                    }),
-                                showValues: false,
-                                selectedValue: [],
-                                icon: 'utility:add'
-                            };
-                        });
-                        console.log('Filtered Field Values (sorted by value):', JSON.stringify(filteredFieldValues));
-                        /*Srikanth Changes*/
+
+    handleSort(event) {
+        const { fieldName: sortedBy, sortDirection: sortedDirection } = event.detail;
+        console.log('sortedDirection==', sortedDirection);
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.sortedDirection = sortedDirection;
+        this.sortedBy = sortedBy;
+        this.currentPage = 1;
+        
+        this.fetchDataAsync();
+    }
