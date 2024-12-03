@@ -1,86 +1,19 @@
 /*Srikanth Changes*/
-    portfolioDomains;
-    fetchRelatedDomains(portfolioValueSelected) {
-        const rece = portfolioValueSelected;
-        // Fetch related domains for all selected portfolios
-        getFilterDetailsSelected({ portfolio: portfolioValueSelected })
-            .then((result) => {
-                console.log('Domains for portfolios: ', result);
-                const portfolioDomainMap = result.PortfolioDomains;
-                /*if (portfolioDomainMap) {
-                    const picklist = this.template.querySelector('[role="cm-picklist"]');
-                    if (picklist) {
-                        //console.log('this.portfolioDomains: ', JSON.stringify(this.portfolioDomains));
-                        //console.log('portfolioValueSelected ', JSON.stringify(portfolioValueSelected));
-                        portfolioValueSelected.forEach((selectedPortfolioValue) => {
-                            const matchingPortfolio = this.portfolioDomains.find(
-                                (portfolio) => portfolio.portfolioId === selectedPortfolioValue
-                            );
-                            if (matchingPortfolio) {
-                                const subOptions = matchingPortfolio.domains.map((domain) => ({
-                                    id: domain.id,
-                                    label: domain.name,
-                                }));
-                                // Update the child component with sub-options for the current portfolio
-                                picklist.updateSubOptions('Affected Standard Portfolio', selectedPortfolioValue, subOptions);
-                            } else {
-                                console.warn(
-                                    `No matching portfolio found for value: ${selectedPortfolioValue}`
-                                );
-                            }
-                        });
-                    }
+                console.log('selectedfiltervalue 740 ' + filterValue);
+                const selectedFilter = this._filteredFieldValues.filter(x => x.id === index)[0];
+                selectedFilter.selectedValue = Array.isArray(filterValue) ? filterValue : [filterValue];
+                console.log('Selected Values:', JSON.stringify(selectedFilter.selectedValue));
+                const normalizedFilterValues = selectedFilter.selectedValue.map(value => value?.trim()?.toLowerCase());
+                console.log('Normalized Filter Values:', JSON.stringify(normalizedFilterValues));
+                const selectedFilterIds = selectedFilter.filteredFieldValue
+                    .filter(item => normalizedFilterValues.includes(item.value?.trim()?.toLowerCase()))
+                    .map(item => item.id);
+                console.log('Selected Filter IDs:', JSON.stringify(selectedFilterIds));
+                // If the selected filter value is Affected Standard Portfolio
+                /*if (filterValue) {
+                    this.fetchRelatedDomains(filterValue);
                 }*/
-
-                console.log('portfolioDomainMap: ', JSON.stringify(portfolioDomainMap));
-                if (portfolioDomainMap) {
-                    portfolioValueSelected.forEach((selectedPortfolioValue) => {
-                        const matchingPortfolio = this._filteredFieldValues.find(
-                            (field) => field.filterField === 'Affected Standard Portfolio'
-                        );
-
-                        if (matchingPortfolio) {
-                            console.log('inside matchingPortfolio : ');
-                            const subOptions = portfolioDomainMap[selectedPortfolioValue]?.map((domain) => ({
-                                id: domain.id,
-                                label: domain.name,
-                            })) || [];
-
-                            console.log('subOptions : '+JSON.stringify(subOptions));
-
-                            // Update the filteredFieldValue with subOptions
-                            matchingPortfolio.filteredFieldValue = matchingPortfolio.filteredFieldValue.map((option) => {
-                                console.log('selectedPortfolioValue check '+selectedPortfolioValue);
-                                console.log('option.id check '+option.id);
-                                console.log('option.value check '+option.value);
-                                if (option.id === selectedPortfolioValue) {
-                                    return {
-                                        ...option,
-                                        subOptions: subOptions.map(subOption => ({
-                                            label: subOption.label,
-                                            value: subOption.id,
-                                            checked: false,
-                                        }))
-                                    };
-                                }
-                                return option;
-                            });
-                            console.log('matchingPortfolio.filteredFieldValue after update: ' + JSON.stringify(matchingPortfolio.filteredFieldValue));
-                            // Trigger reactivity by assigning a new array to _filteredFieldValues
-                            this._filteredFieldValues = [...this._filteredFieldValues];
-                            console.log('this._filteredFieldValues after: ' + JSON.stringify(this._filteredFieldValues));
-
-                        } else {
-                            console.warn(
-                                `No matching filter field found for portfolio: ${selectedPortfolioValue}`
-                            );
-                        }
-                    });
+                if (selectedFilterIds) {
+                    this.fetchRelatedDomains(selectedFilterIds);
                 }
-
-            })
-            .catch((error) => {
-                console.error('Error fetching sub-options:', error);
-            });
-    }
-    /*Srikanth Changes*/
+                /*Srikanth Changes*/
