@@ -1,10 +1,21 @@
-<!--Srikanth Change-->
-                                <!--<p class="slds-col slds-size_1-of-1">Filter by:</p>
-                                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List"
-                                    value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
-                                </lightning-combobox>-->
-
-                                <lightning-combobox label="Filter by:" class="slds-col slds-size_1-of-1" title="Waivers List"
-                                    value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
-                                </lightning-combobox>
-                                <!--Srikanth Change-->
+ <!-- Render Sub-options -->
+                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="option">
+                            <div key={option.value}>
+                                <template if:true={option.subOptions}>
+                                    <ul><!--class="slds-list_dotted"-->
+                                        <template for:each={option.subOptions} for:item="subOption">
+                                            <li key={subOption.value} class="sub-option">
+                                                <label class="slds-checkbox">
+                                                    <input type="checkbox"
+                                                        value={subOption.value}
+                                                        checked={subOption.checked}
+                                                        onchange={handleSubOptionChange} />
+                                                    <span class="slds-checkbox_faux"></span>
+                                                    <span class="slds-form-element__label">&nbsp;&nbsp;{subOption.label}</span>
+                                                </label>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                            </div>
+                        </template>
