@@ -1,263 +1,86 @@
-/*@AuraEnabled(cacheable=true)
-    public static Map<String, Object> getFilterDetails() {
-        Map<String, Object> result = new Map<String, Object>();
-        List<Object> filterOptions = new List<Object>();
-        
-        // Add generic filters for all fields except 'Affected_Standard_Portfolio__c'
-        for (String s : fieldList.keySet()) {
-            if (s != 'Affected Standard Portfolio') {
-                filterOptions.add(
-                    new Map<String, Object>{
-                        'label' => s,
-                            'value' => s,
-                            'selected' => false
+/*Srikanth Changes*/
+    portfolioDomains;
+    fetchRelatedDomains(portfolioValueSelected) {
+        const rece = portfolioValueSelected;
+        // Fetch related domains for all selected portfolios
+        getFilterDetailsSelected({ portfolio: portfolioValueSelected })
+            .then((result) => {
+                console.log('Domains for portfolios: ', result);
+                const portfolioDomainMap = result.PortfolioDomains;
+                /*if (portfolioDomainMap) {
+                    const picklist = this.template.querySelector('[role="cm-picklist"]');
+                    if (picklist) {
+                        //console.log('this.portfolioDomains: ', JSON.stringify(this.portfolioDomains));
+                        //console.log('portfolioValueSelected ', JSON.stringify(portfolioValueSelected));
+                        portfolioValueSelected.forEach((selectedPortfolioValue) => {
+                            const matchingPortfolio = this.portfolioDomains.find(
+                                (portfolio) => portfolio.portfolioId === selectedPortfolioValue
+                            );
+                            if (matchingPortfolio) {
+                                const subOptions = matchingPortfolio.domains.map((domain) => ({
+                                    id: domain.id,
+                                    label: domain.name,
+                                }));
+                                // Update the child component with sub-options for the current portfolio
+                                picklist.updateSubOptions('Affected Standard Portfolio', selectedPortfolioValue, subOptions);
+                            } else {
+                                console.warn(
+                                    `No matching portfolio found for value: ${selectedPortfolioValue}`
+                                );
                             }
-                );
-            }
-        }
-        
-        // Add specific logic for Affected Standard Portfolio
-        List<AggregateResult> portfolioResults = [
-            SELECT Affected_Standard_Portfolio__c, COUNT(Id)
-            FROM AWP_Waiver_Relationship__c
-            WHERE Affected_Standard_Portfolio__c != NULL
-            GROUP BY Affected_Standard_Portfolio__c
-        ];
-        
-        // Extract portfolio names from AggregateResult
-        Set<String> portfolioNames = new Set<String>();
-        for (AggregateResult ar : portfolioResults) {
-            portfolioNames.add((String) ar.get('Affected_Standard_Portfolio__c'));
-        }
-        
-        Map<String, String> portfolioIdToNameMap = new Map<String, String>();
-        
-        // Fetch the portfolio names and IDs from the Portfolio object
-        List<TPM_Port__c> portfolios = [
-            SELECT Id, Name
-            FROM TPM_Port__c
-            WHERE Name IN :portfolioNames
-        ];
-        
-        for (TPM_Port__c portfolio : portfolios) {
-            portfolioIdToNameMap.put(portfolio.Name, portfolio.Id);
-        }
-        
-        // Add Portfolio filter options and merge into filterOptions
-        for (AggregateResult ar : portfolioResults) {
-            String portfolioName = (String) ar.get('Affected_Standard_Portfolio__c');
-            Integer count = (Integer) ar.get('expr0');
-            if (portfolioIdToNameMap.containsKey(portfolioName)) {
-                filterOptions.add(
-                    new Map<String, Object>{
-                        'label' => portfolioName,
-                            'value' => portfolioIdToNameMap.get(portfolioName),
-                            'selected' => false,
-                            'count' => count
-                            }
-                );
-            }
-        }
-        
-        result.put('filterOptions', filterOptions); // Single combined list for LWC
-        return result;
-    }*/
+                        });
+                    }
+                }*/
 
-    
-    
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getFilterDetailsSelected(List<String> portfolio) {
-        try {
-            Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-            
-            // Fetch domains related to the selected portfolio value
-            Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-            List<TPM_Domain__c> domains = [
-                SELECT Id, Port__c, Name, Port__r.Name
-                FROM TPM_Domain__c
-                WHERE Port__c IN :portfolio //Port__r.Name = :portfolio
-            ];
-            
-            for (TPM_Domain__c domain : domains) {
-                if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                    portfolioDomainMap.put(domain.Port__c, new List<Object>());
+                console.log('portfolioDomainMap: ', JSON.stringify(portfolioDomainMap));
+                if (portfolioDomainMap) {
+                    portfolioValueSelected.forEach((selectedPortfolioValue) => {
+                        const matchingPortfolio = this._filteredFieldValues.find(
+                            (field) => field.filterField === 'Affected Standard Portfolio'
+                        );
+
+                        if (matchingPortfolio) {
+                            console.log('inside matchingPortfolio : ');
+                            const subOptions = portfolioDomainMap[selectedPortfolioValue]?.map((domain) => ({
+                                id: domain.id,
+                                label: domain.name,
+                            })) || [];
+
+                            console.log('subOptions : '+JSON.stringify(subOptions));
+
+                            // Update the filteredFieldValue with subOptions
+                            matchingPortfolio.filteredFieldValue = matchingPortfolio.filteredFieldValue.map((option) => {
+                                console.log('selectedPortfolioValue check '+selectedPortfolioValue);
+                                console.log('option.id check '+option.id);
+                                console.log('option.value check '+option.value);
+                                if (option.id === selectedPortfolioValue) {
+                                    return {
+                                        ...option,
+                                        subOptions: subOptions.map(subOption => ({
+                                            label: subOption.label,
+                                            value: subOption.id,
+                                            checked: false,
+                                        }))
+                                    };
+                                }
+                                return option;
+                            });
+                            console.log('matchingPortfolio.filteredFieldValue after update: ' + JSON.stringify(matchingPortfolio.filteredFieldValue));
+                            // Trigger reactivity by assigning a new array to _filteredFieldValues
+                            this._filteredFieldValues = [...this._filteredFieldValues];
+                            console.log('this._filteredFieldValues after: ' + JSON.stringify(this._filteredFieldValues));
+
+                        } else {
+                            console.warn(
+                                `No matching filter field found for portfolio: ${selectedPortfolioValue}`
+                            );
+                        }
+                    });
                 }
-                Map<String, Object> domainData = new Map<String, Object>();
-                domainData.put('id', domain.Id);
-                domainData.put('name', domain.Name);
-                portfolioDomainMap.get(domain.Port__c).add(domainData);
-            }
-            
-            fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-            return fieldUniqueMap;
-            
-        } catch (Exception e) {
-            System.debug('Error: ' + e.getMessage());
-            throw new AuraHandledException(e.getMessage());
-        }
+
+            })
+            .catch((error) => {
+                console.error('Error fetching sub-options:', error);
+            });
     }
-
-
-  @AuraEnabled(cacheable=true)//Map<String, List<Object>>
-  public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy
-  ) {
-    try {
-      Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-      //Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
-      Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-      String condition = '';
-      if (allOrMy == 'mywaivers') {
-        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
-      }
-
-      List<String> tempFieldList = new List<String>{
-        'BARR Risk Level',
-        'Waiver Reason',
-        'Status'
-      };
-
-      for (String field : fieldApiName) {
-        /*String query =
-          'SELECT ' +
-          fieldList.get(field) +
-          ',COUNT(Id) FROM AWP_Waiver_Relationship__c' +
-          condition +
-          ' GROUP BY ' +
-          fieldList.get(field);
-        results.put(field, Database.query(query));*/
-          
-        //}
-        // else if (
-        //   field == 'Affected Standard Portfolio' ||
-        //   field == 'Requesting Application'
-        // ) {
-        //   String query =
-        //     'SELECT ' +
-        //     fieldList.get(field) +
-        //     ',COUNT(Id) FROM AWP_Waiver_Relationship__c' +
-        //     condition +
-        //     ' GROUP BY ' +
-        //     fieldList.get(field);
-        //   results.put(field, Database.query(query));
-        // }
-        
-          
-          String query = '';
-          // Process 'Affected Standard Portfolio' data
-          if (fieldList.get(field) == 'Affected_Standard_Portfolio__c') {
-              query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                  'FROM AWP_Waiver_Relationship__c ' + condition +
-                  ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
-          }
-          else {
-              query = 'SELECT ' +
-                  fieldList.get(field) +
-                  ',COUNT(Id) FROM AWP_Waiver_Relationship__c' +
-                  condition +
-                  ' GROUP BY ' +
-                  fieldList.get(field);
-            }
-          results.put(field, Database.query(query));
-      }
-        
-        // After aggregation, fetch the portfolio names using a second query
-        Set<Id> portfolioIds = new Set<Id>();
-        for (String field : results.keySet()) {
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    portfolioIds.add((Id) ar.get('Affected_Standard_Portfolio1__c'));
-                }
-            }
-        }
-        System.debug('portfolioIds '+portfolioIds);
-        
-        // Fetch the related names for the portfolio IDs
-        Map<Id, String> portfolioNameMap = new Map<Id, String>();
-        if (!portfolioIds.isEmpty()) {
-            List<TPM_Port__c> portfolios = [SELECT Id, Name FROM TPM_Port__c WHERE Id IN :portfolioIds];
-            for (TPM_Port__c portfolio : portfolios) {
-                portfolioNameMap.put(portfolio.Id, portfolio.Name);
-            }
-        }
-        System.debug('portfolioNameMap '+portfolioNameMap);
-        
-      for (String field : results.keySet()) {
-        List<Object> uniqueValues = new List<Object>();
-          if (fieldList.get(field) != 'Affected_Standard_Portfolio__c') {
-              for (AggregateResult ar : results.get(field)) {
-                  Map<String, Object> uni = new Map<String, Object>();
-                  uni.put(
-                      'value',
-                      (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0'));
-                  
-                  uniqueValues.add((Object) uni);
-                  // }
-                  // else if (
-                  //   field == 'Affected Standard Portfolio' ||
-                  //   field == 'Requesting Application'
-                  // ) {
-                  //   uni.put('value', (String) ar.get('Name'));
-                  //   uni.put('count', (Integer) ar.get('expr0'));
-                  //   uniqueValues.add((Object) uni);
-                  // }
-                  
-                  System.debug('uniqueValues '+uniqueValues);
-              }
-          }
-          
-          
-          // Now, process the aggregate results and include the names and IDs
-          if (fieldList.get(field) == 'Affected_Standard_Portfolio__c') {
-              for (AggregateResult ar : results.get(field)) {
-                  //String portfolioName = (String) ar.get('Affected_Standard_Portfolio1__r.Name');
-                  Id portfolioId = (Id) ar.get('Affected_Standard_Portfolio1__c');
-                  Map<String, Object> uni = new Map<String, Object>();
-                  String portfolioName = portfolioNameMap.get(portfolioId);
-                  uni.put('value', portfolioName);  // Portfolio Name as label
-                  uni.put('id', portfolioId);  // Portfolio Id
-                  uni.put('count', (Integer) ar.get('expr0'));  // The count of related records
-                  uniqueValues.add((Object) uni);
-                  
-              }
-          }
-          
-          
-        fieldUniqueMap.put(field, uniqueValues);
-      }
-        
-
-        // Process new functionality: Portfolios and related Domains
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-        List<TPM_Domain__c> domains = [
-            SELECT Id, Port__c, Name
-            FROM TPM_Domain__c
-            WHERE Port__c IN (
-                SELECT Affected_Standard_Portfolio1__c
-                FROM AWP_Waiver_Relationship__c
-                WHERE Affected_Standard_Portfolio1__c != NULL
-            )
-        ];
-        
-        for (TPM_Domain__c domain : domains) {
-            if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                portfolioDomainMap.put(domain.Port__c, new List<Object>());
-            }
-            Map<String, Object> domainData = new Map<String, Object>();
-            domainData.put('id', domain.Id);
-            domainData.put('name', domain.Name);
-            portfolioDomainMap.get(domain.Port__c).add(domainData);
-        }
-        
-        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-        
-      return fieldUniqueMap;
-    } catch (Exception e) {
-      System.debug('message' + e.getMessage());
-      System.debug('stack' + e.getStackTraceString());
-      throw new AuraHandledException(e.getMessage());
-    }
-  }
+    /*Srikanth Changes*/
