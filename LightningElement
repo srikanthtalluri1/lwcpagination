@@ -1,10 +1,34 @@
-<lightning-card title="Waiver History">
-                        <template if:true={historyRecords}>
-                            <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column>
-                            </lightning-datatable>
-                        </template>
-                        <template if:true={isLoading}>
-                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-                        </template>
-                    </lightning-card>
-                    <!--Srikanth Changes-->
+import getHistoryRecords from '@salesforce/apex/WaiverController.getHistoryRecords';
+
+/*Srikanth Changes*/
+    @track historyRecords = [];
+    @track isLoading = false;
+    @track error;
+
+    handleTabChange(event) {
+        console.log('event.target.value '+event.target.value);
+        if (event.target.value === 'history' && this.historyRecords.length === 0) {
+            console.log('before calling fetchHistoryRecords');
+            this.fetchHistoryRecords();
+        }
+    }
+
+    fetchHistoryRecords() {
+        this.isLoading = true;
+        console.log('entered fetchHistoryRecords');
+        getHistoryRecords({ waiverId: this.recordId })
+            .then((data) => {
+                console.log('data check '+JSON.stringify(data));
+                this.historyRecords = data;
+                console.log('this.historyRecords '+this.historyRecords);
+                this.error = undefined;
+            })
+            .catch((error) => {
+                this.error = error;
+                this.historyRecords = [];
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+    /*Srikanth Changes*/
