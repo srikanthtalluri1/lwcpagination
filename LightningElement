@@ -1,8 +1,10 @@
-/* Add padding to create space for sub-checkboxes */
-.sub-option {
-    padding-left: 20px; /* Adjust the value as needed */
-}
-
-.sub-option .slds-checkbox {
-    margin-left: 5px; /* Optional: You can tweak this to match your design */
-}
+<lightning-card title="Waiver History">
+                        <template if:true={historyRecords}>
+                            <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column>
+                            </lightning-datatable>
+                        </template>
+                        <template if:true={isLoading}>
+                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                        </template>
+                    </lightning-card>
+                    <!--Srikanth Changes-->
