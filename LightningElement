@@ -1,93 +1,13 @@
-@AuraEnabled(cacheable=true)
-    public static List<WrapperClass> getHistoryRecords(Id waiverId) {
-        List<WrapperClass> historyRecords = new List<WrapperClass>();
-        
-        // Map field API names to field labels for AWP_Architecture_Waiver_Form__c
-        Map<String, String> formFieldLabels = getFieldLabels('AWP_Architecture_Waiver_Form__c');
-        System.debug('formFieldLabels '+formFieldLabels);
-        
-        // Map field API names to field labels for AWP_Waiver_Relationship__c
-        Map<String, String> relationshipFieldLabels = getFieldLabels('AWP_Waiver_Relationship__c');
-        
-        // Query AWP_Architecture_Waiver_Form__History
-        for (AWP_Architecture_Waiver_Form__History formHistory : [
-            SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name
-            FROM AWP_Architecture_Waiver_Form__History
-            WHERE ParentId = :waiverId
-        ]) {
-            String fieldApiName = String.valueOf(formHistory.Field).toLowerCase();
-            String fieldLabel = formFieldLabels.get(fieldApiName) != null ? formFieldLabels.get(fieldApiName) : formHistory.Field;
-            historyRecords.add(new WrapperClass(
-                fieldLabel, 
-                String.valueOf(formHistory.OldValue), 
-                String.valueOf(formHistory.NewValue), 
-                formHistory.CreatedDate, 
-                formHistory.CreatedBy.Name, 
-                'AWP Architecture Waiver Form'
-            ));
-        }
-        
-        // Get the related Waiver Relationship IDs
-        List<Id> relatedWaiverIds = new List<Id>();
-        for (AWP_Waiver_Relationship__c waiverRel : [
-            SELECT Id 
-            FROM AWP_Waiver_Relationship__c 
-            WHERE Waiver_Id__c = :waiverId
-        ]) {
-            relatedWaiverIds.add(waiverRel.Id);
-        }
-        
-        // Query AWP_Waiver_Relationship__History
-        if (!relatedWaiverIds.isEmpty()) {
-            for (AWP_Waiver_Relationship__History relationshipHistory : [
-                SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name
-                FROM AWP_Waiver_Relationship__History
-                WHERE ParentId IN :relatedWaiverIds
-            ]) {
-                String fieldApiName = String.valueOf(relationshipHistory.Field).toLowerCase();
-                String fieldLabel = relationshipFieldLabels.get(fieldApiName) != null ? relationshipFieldLabels.get(fieldApiName) : relationshipHistory.Field;                
-                
-                historyRecords.add(new WrapperClass(
-                    fieldLabel, 
-                    String.valueOf(relationshipHistory.OldValue), 
-                    String.valueOf(relationshipHistory.NewValue), 
-                    relationshipHistory.CreatedDate, 
-                    relationshipHistory.CreatedBy.Name, 
-                    'AWP Waiver Relationship'
-                ));
-            }
-        }
-        
-        return historyRecords;
-    }
-    
-    private static Map<String, String> getFieldLabels(String objectName) {
-        Map<String, String> fieldLabels = new Map<String, String>();
-        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get(objectName).getDescribe().fields.getMap();
-        
-        for (String fieldName : fields.keySet()) {
-            fieldLabels.put(fieldName.toLowerCase(), fields.get(fieldName).getDescribe().getLabel());
-        }
-        return fieldLabels;
-    }
+/*Srikanth Changes*/
+const COLUMNS = [
+    { label: 'Field Name', fieldName: 'fieldName', type: 'text' },
+    { label: 'Old Value', fieldName: 'oldValue', type: 'text' },
+    { label: 'New Value', fieldName: 'newValue', type: 'text' },
+    { label: 'Created Date', fieldName: 'createdDate', type: 'date' },
+    { label: 'Created By', fieldName: 'createdBy', type: 'text' },
+    { label: 'Source', fieldName: 'source', type: 'text' }
+];
+/*Srikanth Changes*/
 
 
-    
-    public class WrapperClass {
-        @AuraEnabled public String fieldName;
-        @AuraEnabled public String oldValue;
-        @AuraEnabled public String newValue;
-        @AuraEnabled public Datetime createdDate;
-        @AuraEnabled public String createdBy;
-        @AuraEnabled public String source;
-        
-        public WrapperClass(String fieldName, String oldValue, String newValue, Datetime createdDate, String createdBy, String source) {
-            this.fieldName = fieldName;
-            this.oldValue = oldValue;
-            this.newValue = newValue;
-            this.createdDate = createdDate;
-            this.createdBy = createdBy;
-            this.source = source;
-        }
-    }
-    /*Srikanth Changes*/
+columns = COLUMNS;
