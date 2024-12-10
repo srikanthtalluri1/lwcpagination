@@ -1,13 +1,90 @@
-/*Srikanth Changes*/
-const COLUMNS = [
-    { label: 'Field Name', fieldName: 'fieldName', type: 'text' },
-    { label: 'Old Value', fieldName: 'oldValue', type: 'text' },
-    { label: 'New Value', fieldName: 'newValue', type: 'text' },
-    { label: 'Created Date', fieldName: 'createdDate', type: 'date' },
-    { label: 'Created By', fieldName: 'createdBy', type: 'text' },
-    { label: 'Source', fieldName: 'source', type: 'text' }
-];
-/*Srikanth Changes*/
+ /*handleFirst() {
+        this.currentPage = 1;
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.fetchData();
+    }
 
+    handleLast() {
+        this.currentPage = this.totalPages;
+        this.resetPaginationState();
+        this.searchKey = '';
+        this.first = false;
+        this.last = true;
+        this.lastPageSize = this.totalRecords % this.currentPageSize;
+        this.fetchData();
+    }
 
-columns = COLUMNS;
+    handleNext() {
+        this.currentPage++;
+        const lastRecord = this.records[this.records.length - 1];
+        this.after = lastRecord[this.sortedBy] || 'NULL';
+        this.before = '';
+        this.lastId = lastRecord.Id;
+        this.firstId = '';
+        this.first = false;
+        this.last = (this.currentPage === this.totalPages);
+        this.fetchData();
+    }
+
+    handlePrevious() {
+        this.currentPage--;
+        const firstRecord = this.records[0];
+        this.before = firstRecord[this.sortedBy] || 'NULL';
+        this.after = '';
+        this.firstId = firstRecord.Id;
+        this.lastId = '';
+        this.first = (this.currentPage === 1);
+        this.last = false;
+        this.fetchData();
+    }*/
+
+    resetPaginationState() {
+        this.isLoading = true;
+        this.before = '';
+        this.firstId = '';
+        this.after = '';
+        this.lastId = '';
+        this.first = true;
+        this.last = false;
+        this.lastPageSize = 0;
+        this.sortedBy = 'Waiver_Id__r.Requesting_Portfolio__c';
+        this.sortedDirection = 'asc';
+    }
+
+    /*Srikanth Pagination Logic*/
+    allRecords = [];
+    handleFirst() {
+        this.currentPage = 1;
+        this.updateVisibleRecords();
+    }
+
+    handleLast() {
+        this.currentPage = this.totalPages;
+        this.updateVisibleRecords();
+    }
+
+    handleNext() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.updateVisibleRecords();
+        }
+    }
+
+    handlePrevious() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.updateVisibleRecords();
+        }
+    }
+
+    updateVisibleRecords() {
+        // Calculate start and end indices
+        const startIndex = (this.currentPage - 1) * this.currentPageSize;
+        const endIndex = startIndex + this.currentPageSize;
+        // Slice records for the current page
+        this.records = this.allRecords.slice(startIndex, endIndex);
+        this.isLoading = false;
+        console.log(`Displaying records for page ${this.currentPage}:`, this.records);
+    }
+    /*Srikanth Pagination Logic*/
