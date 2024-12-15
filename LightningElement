@@ -1,21 +1,10 @@
- /*this.records = records;
-            this.totalRecords = data.waiverRecordsCount;
-            this.totalPages = Math.ceil(data.waiverRecordsCount / this.currentPageSize);
-            this.isLoading = false;*/
-
-            /*Srikanth Pagination Logic*/
-            // Handling records regardless of Apex behavior
-            if (this.currentPage === 1) {
-                // Save all records on the first fetch
-                this.allRecords = records;//data.waiverRecords;
-                this.totalRecords = data.waiverRecordsCount;
-                this.totalPages = Math.ceil(this.totalRecords / this.currentPageSize);
-            }
-            // Updating visible records for the current page
-            this.updateVisibleRecords();
-            // If there's no data for the current page, reset the page and fetch again
-            if (this.records.length === 0 && this.currentPage > 1) {
-                this.currentPage--;
-                this.fetchData();
-            }
-            /*Srikanth Pagination Logic*/
+/*Srikanth Tab POC Changes*/
+      if (tab == 'ABC' && allOrMy == 'allwaivers') {
+          query += (!query.contains('WHERE')
+                    ? ' WHERE Waiver_Id__r.Status__c = \'Pending\' '
+                    : ' AND Waiver_Id__r.Status__c = \'Pending\' ');
+          countQuery += (!countQuery.contains('WHERE')
+                         ? ' WHERE Waiver_Id__r.Status__c = \'Pending\' '
+                         : ' Waiver_Id__r.Status__c = \'Pending\' ');
+      }
+    /*Srikanth Tab POC Changes*/
