@@ -3,3 +3,9 @@
             const newUrl = `${baseUrl}/${this.recordId}`;
             window.history.pushState({}, '', newUrl);
             /*Srikanth Open Url Changes*/
+
+
+ /*Srikanth Open Url Changes*/
+            const url = this.windowUrl;
+            window.history.pushState({}, '', url.toString());
+            /*Srikanth Open Url Changes*/
