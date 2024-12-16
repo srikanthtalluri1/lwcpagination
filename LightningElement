@@ -1,30 +1,5 @@
  /*Srikanth Open Url Changes*/
-    @track windowUrl;
-    /*Srikanth Open Url Changes*/
-    connectedCallback() {
-        /*Srikanth Open Url Changes*/
-        this.windowUrl = new URL(window.location.href);
-        this.setSelectedWaiverFromURL();
-        /*Srikanth Open Url Changes*/
-        this.fetchData();
-        this.fetchFilterDetails();
-        loadStyle(this, NoHeader);
-    }
-
-    /*Srikanth Tab Changes*/
-    @track tab;
-    setSelectedWaiverFromURL() {
-        if (window.location.href.includes('All_Waivers')) {
-            this.selectedWaiver = 'allwaivers';
-            this.tab = 'All_Waivers';
-        }
-        else if (window.location.href.includes('ABC')) {
-            this.selectedWaiver = 'allwaivers';
-            this.tab = 'ABC';
-        } 
-        else {
-            this.selectedWaiver = 'mywaivers';
-            this.tab = '';
-        }
-    }
-    /*Srikanth Tab Changes*/
+            const baseUrl = window.location.origin;
+            const newUrl = `${baseUrl}/${this.recordId}`;
+            window.history.pushState({}, '', newUrl);
+            /*Srikanth Open Url Changes*/
