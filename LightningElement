@@ -1,15 +1,68 @@
-.slds-path__item .slds-path__stage {
-    display: none;
+<template>
+    <div class="tab-container">
+        <template for:each={tabs} for:item="tab">
+            <div
+                key={tab.id}
+                class="tab"
+                data-id={tab.id}
+                onclick={handleTabClick}
+            >
+                {tab.label}
+            </div>
+        </template>
+    </div>
+</template>
+
+import { LightningElement } from 'lwc';
+import pubsub from 'c/pubsub';
+export default class AwpTabComponent extends LightningElement {
+    tabs = [
+        { id: 'business', label: 'Business' },
+        { id: 'data', label: 'Data' },
+        { id: 'application', label: 'Application' },
+        { id: 'technology', label: 'Technology' },
+        { id: 'operation', label: 'Operation' },
+        { id: 'security', label: 'Security' },
+        { id: 'accessibility', label: 'Accessibility' },
+        { id: 'communication', label: 'Communication' },
+        { id: 'design', label: 'Design' }
+    ];
+
+    handleTabClick(event) {
+        const clickedTabId = event.target.dataset.id;
+        pubsub.publish('clickedTab', clickedTabId);
+    }
 }
 
-.slds-path__item .slds-path__title {
-    font-weight: bold;
+<?xml version="1.0"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>62.0</apiVersion>
+	<isExposed>true</isExposed>
+	<targets>
+		<target>lightning__AppPage</target>
+		<target>lightning__HomePage</target>
+		<target>lightning__RecordPage</target>
+	</targets>
+</LightningComponentBundle>
+
+.tab-container {
+    display: flex;
+    justify-content: normal;/*space-around;*/
+    background-color: white;
+    padding: 8px;
 }
-span.progress-style {
-  --pathValue: var(--value);
-  width: calc(var(--pathValue) * 1%);
+
+.tab {
+    padding: 5px 10px;
+    cursor: pointer;
+    text-align: center;
+    background: #fff;
+    /*border: 1px solid #ccc;
+    border-radius: 5px;*/
+    transition: all 0.3s ease;
 }
-.icon-success-green {
-    fill: #28a745 !important; 
-    color: #28a745 !important;
+
+.tab:hover {
+    background-color: #e3e7ea;
+    border-color: #0070d2;
 }
