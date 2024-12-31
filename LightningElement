@@ -1,68 +1,61 @@
-<template>
-    <div class="tab-container">
-        <template for:each={tabs} for:item="tab">
-            <div
-                key={tab.id}
-                class="tab"
-                data-id={tab.id}
-                onclick={handleTabClick}
-            >
-                {tab.label}
-            </div>
-        </template>
-    </div>
-</template>
 
-import { LightningElement } from 'lwc';
-import pubsub from 'c/pubsub';
-export default class AwpTabComponent extends LightningElement {
-    tabs = [
-        { id: 'business', label: 'Business' },
-        { id: 'data', label: 'Data' },
-        { id: 'application', label: 'Application' },
-        { id: 'technology', label: 'Technology' },
-        { id: 'operation', label: 'Operation' },
-        { id: 'security', label: 'Security' },
-        { id: 'accessibility', label: 'Accessibility' },
-        { id: 'communication', label: 'Communication' },
-        { id: 'design', label: 'Design' }
-    ];
+ /*Srikanth Sub-Tab Changes*/
+        pubsub.subscribe('clickedTab', this.handleNavigate.bind(this));
+        /*Srikanth Sub-Tab Changes*/
 
-    handleTabClick(event) {
-        const clickedTabId = event.target.dataset.id;
-        pubsub.publish('clickedTab', clickedTabId);
+/*Srikanth Sub-Tab Changes*/
+    @track clickedTabId;
+    handleNavigate(event) {
+        console.log('clickedTab event fired 26'+JSON.stringify(event));
+        const clickedTabId = event;
+        this.clickedTabId = clickedTabId.toLowerCase();
+        console.log('this.clickedTabId 232 '+this.clickedTabId);
+
+        if (this.clickedTabId.includes('business')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Business';
+        }
+        else if (this.clickedTabId.includes('data')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Data';
+        }
+        else if (this.clickedTabId.includes('application')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Application';
+        }
+        else if (this.clickedTabId.includes('technology')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Technology';
+        }
+        else if (this.clickedTabId.includes('operation')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Operation';
+        }
+        else if (this.clickedTabId.includes('security')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Security';
+        }
+        else if (this.clickedTabId.includes('accessibility')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Accessibility';
+        }
+        else if (this.clickedTabId.includes('communication')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Communication';
+        }
+        else if (this.clickedTabId.includes('design')) {
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'Design';
+        }
+        else if(this.clickedTabId.includes('allwaivers')){
+            this.selectedWaiver = 'allwaivers';
+            this.tab = 'All_Waivers';
+        }
+        else {
+            this.selectedWaiver = 'mywaivers';
+            this.tab = '';
+        }
+        this.fetchData();
+        this.fetchFilterDetails();
     }
-}
-
-<?xml version="1.0"?>
-<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-	<apiVersion>62.0</apiVersion>
-	<isExposed>true</isExposed>
-	<targets>
-		<target>lightning__AppPage</target>
-		<target>lightning__HomePage</target>
-		<target>lightning__RecordPage</target>
-	</targets>
-</LightningComponentBundle>
-
-.tab-container {
-    display: flex;
-    justify-content: normal;/*space-around;*/
-    background-color: white;
-    padding: 8px;
-}
-
-.tab {
-    padding: 5px 10px;
-    cursor: pointer;
-    text-align: center;
-    background: #fff;
-    /*border: 1px solid #ccc;
-    border-radius: 5px;*/
-    transition: all 0.3s ease;
-}
-
-.tab:hover {
-    background-color: #e3e7ea;
-    border-color: #0070d2;
-}
+    /*Srikanth Sub-Tab Changes*/
