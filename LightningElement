@@ -1,153 +1,31 @@
-@AuraEnabled(cacheable=true)
-    public static List<WrapperClass> getHistoryRecords(Id waiverId) {
-        List<WrapperClass> historyRecords = new List<WrapperClass>();
-        
-        // Map field API names to field labels for AWP_Architecture_Waiver_Form__c
-        Map<String, String> formFieldLabels = getFieldLabels('AWP_Architecture_Waiver_Form__c');
-        System.debug('formFieldLabels '+formFieldLabels);
-        
-        // Map field API names to field labels for AWP_Waiver_Relationship__c
-        Map<String, String> relationshipFieldLabels = getFieldLabels('AWP_Waiver_Relationship__c');
-        
-        // Query AWP_Architecture_Waiver_Form__History
-        Map<Datetime, WrapperClass> historyMap = new Map<Datetime, WrapperClass>();
-        
-        // Query AWP_Architecture_Waiver_Form__History
-        for (AWP_Architecture_Waiver_Form__History formHistory : [
-            SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name
-            FROM AWP_Architecture_Waiver_Form__History
-            WHERE ParentId = :waiverId
-        ]) {
-            String fieldApiName = String.valueOf(formHistory.Field).toLowerCase();
-            String fieldLabel = formFieldLabels.get(fieldApiName) != null ? formFieldLabels.get(fieldApiName) : formHistory.Field;
-            historyRecords.add(new WrapperClass(
-                fieldLabel, 
-                String.valueOf(formHistory.OldValue), 
-                String.valueOf(formHistory.NewValue), 
-                formHistory.CreatedDate, 
-                formHistory.CreatedBy.Name, 
-                formHistory.CreatedById,
-                'AWP Architecture Waiver Form'
-            ));
-            
-            
-            historyMap.put(
-                formHistory.CreatedDate,
-                new WrapperClass(
-                    fieldLabel, 
-                    String.valueOf(formHistory.OldValue), 
-                    String.valueOf(formHistory.NewValue), 
-                    formHistory.CreatedDate, 
-                    formHistory.CreatedBy.Name, 
-                    formHistory.CreatedById,
-                    'AWP Architecture Waiver Form'
-                )
-            );
-            
-        }
-        
-        // Get the related Waiver Relationship IDs
-        List<Id> relatedWaiverIds = new List<Id>();
-        for (AWP_Waiver_Relationship__c waiverRel : [
-            SELECT Id 
-            FROM AWP_Waiver_Relationship__c 
-            WHERE Waiver_Id__c = :waiverId
-        ]) {
-            relatedWaiverIds.add(waiverRel.Id);
-        }
-        
-        // Query AWP_Waiver_Relationship__History
-        if (!relatedWaiverIds.isEmpty()) {
-            for (AWP_Waiver_Relationship__History relationshipHistory : [
-                SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name
-                FROM AWP_Waiver_Relationship__History
-                WHERE ParentId IN :relatedWaiverIds
-            ]) {
-                String fieldApiName = String.valueOf(relationshipHistory.Field).toLowerCase();
-                String fieldLabel = relationshipFieldLabels.get(fieldApiName) != null ? relationshipFieldLabels.get(fieldApiName) : relationshipHistory.Field;                
-                
-                historyRecords.add(new WrapperClass(
-                    fieldLabel, 
-                    String.valueOf(relationshipHistory.OldValue), 
-                    String.valueOf(relationshipHistory.NewValue), 
-                    relationshipHistory.CreatedDate, 
-                    relationshipHistory.CreatedBy.Name, 
-                    relationshipHistory.CreatedById,
-                    'AWP Waiver Relationship'
-                ));
-                
-                
-                // Only adding if there isn't already an AWP_Architecture_Waiver_Form__c record for this CreatedDate
-                if (!historyMap.containsKey(relationshipHistory.CreatedDate)) {
-                    historyMap.put(
-                        relationshipHistory.CreatedDate,
-                        new WrapperClass(
-                            fieldLabel, 
-                            String.valueOf(relationshipHistory.OldValue), 
-                            String.valueOf(relationshipHistory.NewValue), 
-                            relationshipHistory.CreatedDate, 
-                            relationshipHistory.CreatedBy.Name, 
-                            relationshipHistory.CreatedById,
-                            'AWP Waiver Relationship'
-                        )
-                    );
-                }
-                
-            }
-        }
-        
-        
-        // Sort records by CreatedDate in descending order
-        //historyRecords = new List<WrapperClass>(historyMap.values());
-        historyRecords.sort(new WrapperComparator());
-        
-        return historyRecords;
-    }
-    
-    // Helper class for sorting by CreatedDate in descending order
-    public class WrapperComparator implements Comparator<WrapperClass> {
-        public Integer compare(WrapperClass a, WrapperClass b) {
-            // Custom comparison logic for Datetime
-            if (a.createdDate > b.createdDate) {
-                return -1; // a comes before b
-            } else if (a.createdDate < b.createdDate) {
-                return 1; // b comes before a
-            } else {
-                return 0; // a and b are equal
-            }
-        }
-    }
-
-    
-    private static Map<String, String> getFieldLabels(String objectName) {
-        Map<String, String> fieldLabels = new Map<String, String>();
-        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get(objectName).getDescribe().fields.getMap();
-        
-        for (String fieldName : fields.keySet()) {
-            fieldLabels.put(fieldName.toLowerCase(), fields.get(fieldName).getDescribe().getLabel());
-        }
-        return fieldLabels;
-    }
+ getHistoryRecords({ waiverId: this.recordIdVar })
+            .then((data) => {
+                this.historyRecords = data;
+                this.historyRecordsLength = this.historyRecords.length;
+                console.log('this.historyRecords ' + this.historyRecords);
+                this.error = undefined;
+            })
+            .catch((error) => {
+                this.error = error;
+                this.historyRecords = [];
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
 
 
-    
-    public class WrapperClass {
-        @AuraEnabled public String fieldName;
-        @AuraEnabled public String oldValue;
-        @AuraEnabled public String newValue;
-        @AuraEnabled public Datetime createdDate;
-        @AuraEnabled public String createdBy;
-        @AuraEnabled public String createdById;
-        @AuraEnabled public String source;
-        
-        public WrapperClass(String fieldName, String oldValue, String newValue, Datetime createdDate, String createdBy, String createdById, String source) {
-            this.fieldName = fieldName;
-            this.oldValue = oldValue;
-            this.newValue = newValue;
-            this.createdDate = createdDate;
-            this.createdBy = createdBy;
-            this.createdById = createdById;
-            this.source = source;
-        }
-    }
-    /*Srikanth Changes*/
+getHistoryRecords({ waiverId: this.recordIdVar })
+            .then((data) => {
+                console.log('data check 236 ' + JSON.stringify(data));
+                this.historyRecords = data;
+                this.historyRecordsLength = this.historyRecords.length;
+                console.log('this.historyRecords ' + this.historyRecords);
+                this.error = undefined;
+            })
+            .catch((error) => {
+                this.error = error;
+                this.historyRecords = [];
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
