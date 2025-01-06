@@ -1,31 +1,6 @@
- getHistoryRecords({ waiverId: this.recordIdVar })
-            .then((data) => {
-                this.historyRecords = data;
-                this.historyRecordsLength = this.historyRecords.length;
-                console.log('this.historyRecords ' + this.historyRecords);
-                this.error = undefined;
-            })
-            .catch((error) => {
-                this.error = error;
-                this.historyRecords = [];
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
-
-
-getHistoryRecords({ waiverId: this.recordIdVar })
-            .then((data) => {
-                console.log('data check 236 ' + JSON.stringify(data));
-                this.historyRecords = data;
-                this.historyRecordsLength = this.historyRecords.length;
-                console.log('this.historyRecords ' + this.historyRecords);
-                this.error = undefined;
-            })
-            .catch((error) => {
-                this.error = error;
-                this.historyRecords = [];
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
+@track editStates;
+    @track recordIdVar;
+    handleEditDisablingButton(event) {
+        console.log('Event received: 198 ', JSON.stringify(event));
+        const { recordIdVar, isEditing } = event;
+        this.recordIdVar = event.recordId;
