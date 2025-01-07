@@ -1,1 +1,27 @@
-pubsub.subscribe('closeSuccess', this.handleCloseNavigate.bind(this));
+handleCloseNavigate(event){
+        console.log('clickedCloseButton event fired 1004'+JSON.stringify(event));
+        this.showFilter = true;
+        this._tableSize = '9';
+        this.tableStyle = 'width: 82.8%;';
+        this.recordViewStyle = '';
+        this.columns = [...COLUMNS];
+        this.setOptions();
+
+        this.editClick = false;
+
+        /*Srikanth Open Url Changes*/
+        const url = this.windowUrl;
+        window.history.pushState({}, '', url.toString());
+        /*Srikanth Open Url Changes*/
+
+        /*Event Fire*/
+        console.log('record clicked 464');
+        const payload = {
+            recordId: '',
+            objectApiName: 'AWP_Architecture_Waiver_Form__c',
+            fieldSet: 'CompactPanelFieldSet',
+            editClick: this.editClick
+        };
+        pubsub.publish('navigate', payload);
+        console.log('Event published with payload close:', JSON.stringify(payload));
+    }
