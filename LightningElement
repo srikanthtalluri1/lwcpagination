@@ -18,3 +18,14 @@
         </lightning-button>
     </div>
     </lightning-modal-footer>
+
+
+<div class="slds-button-group">
+                <!--<lightning-button variant="neutral" label="Save" onclick={handleSave} data-action="save" disabled={disablingButton}></lightning-button>
+                <lightning-button variant="neutral" label="Cancel" onclick={handleCancelWaiver} data-action="cancel" disabled={disablingButton}></lightning-button>-->
+
+                <!--<div class="slds-p-left_small slds-m-top_x-large">-->
+                    <lightning-button variant="brand" label="Close" data-action="close" onclick={handleClose}>
+                    </lightning-button>
+                <!--</div>-->
+            </div>
