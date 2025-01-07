@@ -1,6 +1,20 @@
-@track editStates;
-    @track recordIdVar;
-    handleEditDisablingButton(event) {
-        console.log('Event received: 198 ', JSON.stringify(event));
-        const { recordIdVar, isEditing } = event;
-        this.recordIdVar = event.recordId;
+ <!-- Card Footer -->
+        <div class="slds-card__footer">
+            <!--<p class="slds-text-title">Footer content can go here if needed.</p>-->
+        </div>
+
+    </div>
+
+    <div>
+        <br/>
+    </div>
+
+    <lightning-modal-footer>
+    <div class="slds-button-group slds-grid slds-grid_align-center">
+        <lightning-button variant="brand" label="Save" onclick={handleSave} data-action="save" disabled={disablingButton}>
+        </lightning-button>
+        <lightning-button variant="neutral" label="Cancel" onclick={handleCancelWaiver} data-action="cancel"
+            disabled={disablingButton} ><!--class="slds-m-left_small"-->
+        </lightning-button>
+    </div>
+    </lightning-modal-footer>
