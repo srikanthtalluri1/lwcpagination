@@ -1,3 +1,1 @@
-handleClose(){
-        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
-    }
+pubsub.subscribe('closeSuccess', this.handleCloseNavigate.bind(this));
