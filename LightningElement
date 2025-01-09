@@ -1,3 +1,9 @@
  <lightning-button variant="brand" label="Back To List View" data-action="close" onclick={handleClose}
                                     class="slds-m-left_small">
                                 </lightning-button>
+
+/*Back To List View Changes*/
+    handleClose(){
+        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
+    }
+    /*Back To List View Changes*/
