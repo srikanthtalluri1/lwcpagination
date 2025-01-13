@@ -1,13 +1,4 @@
- @track stepList = '';
-    @wire(getObjectInfo, { objectApiName: AWP_OBJECT })
-    objectInfo;
-    @wire(getPicklistValues, { recordTypeId: '$objectInfo.data.defaultRecordTypeId', fieldApiName: STATUS_FIELD })
-    picklistValues({ error, data }) {
-        if (data) {
-            this.stepList = data.values.map(item => item.label).join(',');
-            this.progressMeth();
-            console.log('data check 284 '+JSON.stringify(this.stepList));
-        } else if (error) {
-            console.error('Error fetching picklist values: ', error);
-        }
-    }
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import { getPicklistValues } from 'lightning/uiObjectInfoApi';
+import AWP_OBJECT from '@salesforce/schema/AWP_Architecture_Waiver_Form__c';
+import STATUS_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Status__c';
