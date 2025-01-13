@@ -1,26 +1,85 @@
-/*.left-align {
-    text-align: left;
-}
+<!-- ##### Horizontal ##### -->
+        <template if:true={showTypeHorizontal}>
+            <div class="slds-progress slds-var-m-top_small slds-var-m-bottom_small">
+                <ol class="slds-progress__list">
+        
+                    <div class="slds-progress-bar slds-progress-bar_x-small" aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow={pathProgress} aria-label={progressLabel} role="progressbar">
+                        <span class="slds-progress-bar__value progress-style">
+                                        <span class="slds-assistive-text">{progressLabel}</span>
+                        </span>
+                    </div>
+        
+                    <template for:each={stepsArray} for:item="step">
+        
+        
+                        <!-- if Complete -->
+                        <template if:true={step.showComplete}>
+                            <li key={step.label} class="slds-progress__item slds-is-completed">
+                                <span class="slds-icon_container slds-icon-utility-success slds-progress__marker slds-progress__marker_icon" title={label.DFP_Complete}>
+                                                <div class="slds-icon slds-icon_xx-small" aria-hidden="true">
+                                                    <lightning-icon icon-name="utility:success" variant="success" size="xx-small" class="slds-icon slds-icon_xx-small icon-success-green"></lightning-icon>
+                                                </div>
+                                                <span class="slds-assistive-text">{label.DFP_Complete}</span>
+                                <!--<span class="slds-path__title slds-m-top_xx-small">{step.label}</span>-->
+                                </span>
 
-.left-align .slds-path__title {
-    display: block; 
-    text-align: left;
-}*/
+                                <div ><!--class="left-align"-->
+                                    <br/>
+                                    <br/>
+                                    <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
+                                </div>
 
-.slds-progress-bar_x-small {
-    height: 0.425rem;
-}
+                            </li>
 
-.slds-progress__item.slds-is-active {
-    display: inline-flex;
-    align-self: center;
-    flex-wrap: wrap;
-    align-items: center;
-}
+                        </template>
+        
+        
+                        <!-- if Current -->
+                        <template if:true={step.showCurrent}>
+                            <li key={step.label} class="slds-progress__item slds-is-active">
+                                <div class="slds-button slds-progress__marker">
+                                    <span class="slds-assistive-text">{label.DFP_Current}</span>
+                                </div>
+                                <span>
+                                                <br/>
+                                            </span>
+                                <!--<span class="slds-path__title slds-m-top_xx-small">{step.label}</span>-->
 
-.slds-progress__item.slds-is-active > div:nth-of-type(2) {
-    padding-top: 1.5rem;
-}
-.slds-progress__item.slds-is-completed > div:nth-of-type(1) {
-    padding-top: 1.5rem;
-}
+                                <div ><!--class="left-align"-->
+                                    <br/>
+                                    <br/>
+                                    <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
+                                </div>
+
+                            </li>
+                        </template>
+        
+        
+                        <!-- if Upcoming -->
+                        <template if:true={step.showUpcoming}>
+                            <li key={step.label} class="slds-button slds-progress__item">
+                                <div class="slds-progress__marker">
+                                    <span class="slds-assistive-text">{label.DFP_Upcoming}</span>
+                                </div>
+                                <span>
+                                                <br/>
+                                            </span>
+                                <!--<span class="slds-path__title slds-m-top_xx-small">{step.label}</span>-->
+
+                                <div ><!--class="left-align"-->
+                                    <br/>
+                                    <br/>
+                                    <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
+                                </div>
+
+                            </li>
+
+                        </template>
+        
+        
+                    </template>
+                </ol>
+            </div>
+        </template>
+        <!-- ##### END: Horizontal ##### -->
