@@ -1,85 +1,13 @@
- <!-- ##### Horizontal ##### -->
-        <template if:true={showTypeHorizontal}>
-            <div class="slds-progress slds-var-m-top_small slds-var-m-bottom_small">
-                <ol class="slds-progress__list">
-        
-                    <div class="slds-progress-bar slds-progress-bar_x-small" aria-valuemin="0" aria-valuemax="100"
-                        aria-valuenow={pathProgress} aria-label={progressLabel} role="progressbar">
-                        <span class="slds-progress-bar__value progress-style">
-                                        <span class="slds-assistive-text">{progressLabel}</span>
-                        </span>
-                    </div>
-        
-                    <template for:each={stepsArray} for:item="step">
-        
-        
-                        <!-- if Complete -->
-                        <template if:true={step.showComplete}>
-                            <li key={step.label} class="slds-progress__item slds-is-completed">
-                                <span class="slds-icon_container slds-icon-utility-success slds-progress__marker slds-progress__marker_icon" title={label.DFP_Complete}>
-                                                <div class="slds-icon slds-icon_xx-small" aria-hidden="true">
-                                                    <lightning-icon icon-name="utility:success" variant="success" size="xx-small" class="slds-icon slds-icon_xx-small icon-success-green"></lightning-icon>
-                                                </div>
-                                                <span class="slds-assistive-text">{label.DFP_Complete}</span>
-                                <!--<span class="slds-path__title slds-m-top_xx-small">{step.label}</span>-->
-                                </span>
-
-                                <div ><!--class="left-align"-->
-                                    <br/>
-                                    <br/>
-                                    <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
-                                </div>
-
-                            </li>
-
-                            <!--<div key={step.label} style="padding-right: 20rem;">
-                                <br/>
-                                <br/>
-                                <span class="slds-path__title slds-m-top_xx-small">{step.label}</span>
-                            </div>-->
-
-                        </template>
-
-                        <!--<template if:true={step.showComplete}>
-                            <div key={step.label} class="left-align">
-                                <br/>
-                                <br/>
-                                <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
-                            </div>
-                        </template>-->
-        
-        
-                        <!-- if Current -->
-                        <template if:true={step.showCurrent}>
-                            <li key={step.label} class="slds-progress__item slds-is-active">
-                                <div class="slds-button slds-progress__marker">
-                                    <span class="slds-assistive-text">{label.DFP_Current}</span>
-                                </div>
-                                <span>
-                                                <br/>
-                                            </span>
-                                <!--<span class="slds-path__title slds-m-top_xx-small">{step.label}</span>-->
-
-                                <div ><!--class="left-align"-->
-                                    <br/>
-                                    <br/>
-                                    <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
-                                </div>
-
-                            </li>
-
-                            <!--<div key={step.label} style="padding-right: 20rem;">
-                                <br/>
-                                <br/>
-                                <span class="slds-path__title slds-m-top_xx-small">{step.label}</span>
-                            </div>-->
-
-                        </template>
-
-                        <!--<template if:true={step.showCurrent}>
-                            <div key={step.label}>
-                                <br/>
-                                <br/>
-                                <p><span class="slds-path__title slds-m-top_xx-small">{step.label}</span></p>
-                            </div>
-                        </template>-->
+ @track stepList = '';
+    @wire(getObjectInfo, { objectApiName: AWP_OBJECT })
+    objectInfo;
+    @wire(getPicklistValues, { recordTypeId: '$objectInfo.data.defaultRecordTypeId', fieldApiName: STATUS_FIELD })
+    picklistValues({ error, data }) {
+        if (data) {
+            this.stepList = data.values.map(item => item.label).join(',');
+            this.progressMeth();
+            console.log('data check 284 '+JSON.stringify(this.stepList));
+        } else if (error) {
+            console.error('Error fetching picklist values: ', error);
+        }
+    }
