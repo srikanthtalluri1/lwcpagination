@@ -1,14 +1,10 @@
-.slds-table_bordered {
-    overflow-y: auto; /* Allow vertical scrolling */
-    display: block;
+.no-hover {
+    pointer-events: none;
+    background-color:#FFFFFF;
 }
 
-.slds-table thead th {
-    position: sticky;
-    top: 0; /* Keeps header at the top */
-    z-index: 2;
-    background: #f4f6f9; /* Lightning Design System background color */
-    border-bottom: 2px solid #d8dde6; /* Optional: Add a border for clarity */
+.no-cursor {
+    cursor:default;
 }
 
 .slds-path__nav .slds-is-complete .slds-path__title {
