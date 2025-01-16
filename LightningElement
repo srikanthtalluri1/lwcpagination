@@ -10,3 +10,9 @@
     background: #f4f6f9; /* Lightning Design System background color */
     border-bottom: 2px solid #d8dde6; /* Optional: Add a border for clarity */
 }
+
+.slds-path__nav .slds-is-complete .slds-path__title {
+    transform: rotateX(0deg) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
