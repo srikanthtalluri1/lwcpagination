@@ -1,224 +1,55 @@
-import { LightningElement, api, wire, track } from 'lwc';
-import DFP_Complete from '@salesforce/label/c.DFP_Complete';
-import DFP_Current from '@salesforce/label/c.DFP_Current';
-import DFP_Upcoming from '@salesforce/label/c.DFP_Upcoming';
-import pubsub from 'c/pubsub';
-import { getObjectInfo } from 'lightning/uiObjectInfoApi';
-import { getPicklistValues } from 'lightning/uiObjectInfoApi';
-import AWP_OBJECT from '@salesforce/schema/AWP_Architecture_Waiver_Form__c';
-import STATUS_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Status__c';
-import { getRecord } from 'lightning/uiRecordApi';
-const FIELDS = ['AWP_Architecture_Waiver_Form__c.Status__c'];
-export default class AwpCustomPath extends LightningElement {
-    
-    @api recordId;
-    @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
-    wiredRecord({ error, data }) {
-        if (data) {
-            console.log('data check 129 AwpCustomPath '+JSON.stringify(data));
-            console.log('data check 130 AwpCustomPath '+data.fields.Status__c.value);
-            this.currentStep = data.fields.Status__c.value; 
-            this.progressMeth(); // Call your progress method to update the steps
-        } else if (error) {
-            console.error('Error fetching record:', error);
-        }
-    }
+.slds-path__item .slds-path__stage {
+    display: none;
+}
 
-    @track stepList = '';
-    @wire(getObjectInfo, { objectApiName: AWP_OBJECT })
-    objectInfo;
-    @wire(getPicklistValues, { recordTypeId: '$objectInfo.data.defaultRecordTypeId', fieldApiName: STATUS_FIELD })
-    picklistValues({ error, data }) {
-        if (data) {
-            this.stepList = data.values.map(item => item.label).join(',');
-            this.progressMeth();
-            console.log('data check 284 AwpCustomPath '+JSON.stringify(this.stepList));
-        } else if (error) {
-            console.error('Error fetching picklist values: ', error);
-        }
-    }
+.slds-path__item .slds-path__title {
+    font-weight: bold;
+}
+span.progress-style {
+  --pathValue: var(--value);
+  width: calc(var(--pathValue) * 1%);
+}
+.icon-success-green {
+    fill: #28a745 !important; 
+    color: #28a745 !important;
+}
+/*.left-align {
+    text-align: left;
+}
 
-    @track currentTab = 'Due';
-    @track showModal = false;
-    @track modalMessage = '';
-    nextTab = '';
-    pendingTabEvent = null;
+.left-align .slds-path__title {
+    display: block; 
+    text-align: left;
+}*/
 
-    @api indicatorType = 'Path';
-    //@api indicatorType = 'horizontal';
-    //@api stepList=this.stepList1;//'Due,Pending,Approved,Saved';
-    @api currentStep='';
-    @api currentStepPercentage=0;
-    showTypeHorizontal;
-    pathProgress;
-    progressLabel;
-    label = {
-        DFP_Complete,
-        DFP_Current,
-        DFP_Upcoming
-    };
-    showTypeVertical;
-    showTypeVertNav;
-    showTypeHorizontal;
-    showTypePath;
-    showTypeBar;
-    showTypeRing;
-    stepsArray;
-    pathProgress;
-    stepPercent;
-    countTotalSteps;
-    countToCurrent;
-    progressLabel;
+.slds-progress-bar_x-small {
+    height: 0.425rem;
+}
 
+.slds-progress__item.slds-is-active {
+    display: inline-flex;
+    align-self: center;
+    flex-wrap: wrap;
+    align-items: center;
+}
 
-    progressMeth(){
-        console.log('Running progressMeth with currentStep: AwpCustomPath ', this.currentStep);
+.slds-progress__item.slds-is-active > div:nth-of-type(2) {
+    padding-top: 1.5rem;
+}
+.slds-progress__item.slds-is-completed > div:nth-of-type(1) {
+    padding-top: 1.5rem;
+}
+.no-hover {
+    pointer-events: none;
+    background-color:#FFFFFF;
+}
 
-        let indicatorDirty = this.indicatorType;
-        let indicatorClean = indicatorDirty.trim().toLowerCase();
-        let considerCurrentStepPercentage = false;
-        switch (indicatorClean) {
-            case 'path':
-                this.showTypePath = true;
-                break;
-            case 'horizontal':
-                this.showTypeHorizontal = true;
-                break;
-            default:
-                this.showTypePath = true;
-                this.showTypeHorizontal = true;
-                break; 
-        }        
-        // convert stepList from string of comma-separated values to an array
-        console.log('stepList check api AwpCustomPath '+JSON.stringify(this.stepList));
-        const stepListArray = this.stepList.split(',');
-        let countTotalSteps = stepListArray.length;
-        let stepsArrayTemp = [];
-        let afterCurrent = false;
-        let countToCurrent = 0;
-        let currentCount = 0;
+.no-cursor {
+    cursor:default;
+}
 
-
-        if (!this.currentStep) {
-            console.warn('Current step is null or undefined. Marking all steps as Upcoming.');
-            // All steps should be marked as Upcoming
-            for (let i = 0; i < stepListArray.length; i++) {
-                let cleanArrayValue = stepListArray[i].trim();
-                stepsArrayTemp.push({
-                    label: cleanArrayValue,
-                    status: 'Upcoming',
-                    showCurrent: false,
-                    showComplete: false,
-                    showUpcoming: true,
-                });
-            }
-            this.stepsArray = stepsArrayTemp;
-        }
-        else {
-            for (let i = 0; i < stepListArray.length; i++) {
-                currentCount = i + 1;
-                let isFinalStep = false;
-                if (currentCount == countTotalSteps) {
-                    isFinalStep = true;
-                }
-                let cleanArrayValue = stepListArray[i].trim();
-                if (afterCurrent == false) {
-                    // this step might be Completed or Current
-                    if (cleanArrayValue == this.currentStep) {
-                        if (isFinalStep == true) {
-                            switch (indicatorClean) {
-                                default:
-                                    // this is the current step, but since it is the final one, it is marked as Complete instead
-                                    stepsArrayTemp.push({
-                                        'label': cleanArrayValue,
-                                        'status': 'Complete',
-                                        'showCurrent': false,
-                                        'showComplete': true,
-                                        'showFinalComplete': false,
-                                        'showUpcoming': false,
-                                        'finalStep': true
-                                    });
-                                    break;
-                            }
-                            countToCurrent++;
-                        }
-                        else {
-                            // this is the current step, but it is not the final one (or it's the final one for the vertnav indicator type)
-                            stepsArrayTemp.push({
-                                'label': cleanArrayValue,
-                                'status': 'Current',
-                                'showCurrent': true,
-                                'showComplete': false,
-                                'showUpcoming': false,
-                                'finalStep': false
-                            });
-                            // set afterCurrent to true,
-                            // so all subsequent steps
-                            // are marked as future
-                            afterCurrent = 'true';
-                            countToCurrent++;
-                        }
-                    }
-                    else {
-                        // this is a completed step
-                        stepsArrayTemp.push({
-                            'label': cleanArrayValue,
-                            'status': 'Complete',
-                            'showCurrent': false,
-                            'showComplete': true,
-                            'showUpcoming': false,
-                            'finalStep': isFinalStep
-                        });
-                        countToCurrent++;
-                    }
-                }
-                else {
-                    // this is an upcoming step
-                    stepsArrayTemp.push({
-                        'label': cleanArrayValue,
-                        'status': 'Upcoming',
-                        'showCurrent': false,
-                        'showComplete': false,
-                        'showUpcoming': true,
-                        'finalStep': false
-                    });
-                }
-            }
-
-
-
-            // set pathProgress to number of steps unless currentStepPercentage is set
-            if (considerCurrentStepPercentage == true) {
-                let percentProperty = this.currentStepPercentage;
-                if (percentProperty > 0) {
-                    this.pathProgress = percentProperty;
-                    this.stepPercent = percentProperty;
-                    let testPercent = percentProperty;
-                    // need a label property for the Bar indicator type that shows completion like "45% Complete"
-                    this.progressLabel = `${percentProperty}% ${this.label.DFP_Complete}`;
-                    // setting dynamic css width value for the Bar and Ring indicator types
-                    document.documentElement.style.setProperty('--value', percentProperty);
-                }
-                else {
-                    this.pathProgress = (((countToCurrent - 1) / (countTotalSteps - 1) * 100));
-                    // need a label property for the Bar indicator type that shows completion like "45% Complete"
-                    this.progressLabel = `${this.pathProgress}% ${this.label.DFP_Complete}`;
-                    // setting dynamic css width value for the Bar and Ring indicator types
-                    document.documentElement.style.setProperty('--value', this.pathProgress);
-                }
-            }
-            // indicator type is not a bar or ring
-            else {
-                this.pathProgress = (((countToCurrent - 1) / (countTotalSteps - 1) * 100));
-                // need a label property for the Horizontal indicator type that shows completion like "45% Complete"
-                this.progressLabel = `${this.pathProgress}% ${this.label.DFP_Complete}`;
-                // setting dynamic css width value for the Horizontal indicator type
-                document.documentElement.style.setProperty('--value', this.pathProgress);
-            }
-
-
-
-            this.stepsArray = stepsArrayTemp;
-        }
-    }
+.slds-path__nav .slds-is-complete .slds-path__title {
+    transform: rotateX(0deg) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
