@@ -1,55 +1,8 @@
-.slds-path__item .slds-path__stage {
-    display: none;
-}
+ <div style="padding:1.2%; background-color: #b0c4de;">
+        </div>
 
-.slds-path__item .slds-path__title {
-    font-weight: bold;
-}
-span.progress-style {
-  --pathValue: var(--value);
-  width: calc(var(--pathValue) * 1%);
-}
-.icon-success-green {
-    fill: #28a745 !important; 
-    color: #28a745 !important;
-}
-/*.left-align {
-    text-align: left;
-}
 
-.left-align .slds-path__title {
-    display: block; 
-    text-align: left;
-}*/
+        <c-awp-custom-path record-id={recordId}></c-awp-custom-path>
 
-.slds-progress-bar_x-small {
-    height: 0.425rem;
-}
-
-.slds-progress__item.slds-is-active {
-    display: inline-flex;
-    align-self: center;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.slds-progress__item.slds-is-active > div:nth-of-type(2) {
-    padding-top: 1.5rem;
-}
-.slds-progress__item.slds-is-completed > div:nth-of-type(1) {
-    padding-top: 1.5rem;
-}
-.no-hover {
-    pointer-events: none;
-    background-color:#FFFFFF;
-}
-
-.no-cursor {
-    cursor:default;
-}
-
-.slds-path__nav .slds-is-complete .slds-path__title {
-    transform: rotateX(0deg) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
+        <div style="padding:1%; background-color: #b0c4de;">
+        </div>
