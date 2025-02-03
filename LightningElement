@@ -1,1 +1,3 @@
- limitSize: this.rowLimit , offset : this.rowOffSet
+ query = beforeOrderBy + 'ORDER BY ' + modifiedOrderByClause + ' LIMIT :limitSize OFFSET :offset';
+
+Integer limitSize, Integer offset
