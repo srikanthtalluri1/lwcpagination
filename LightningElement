@@ -1,4 +1,8 @@
  /*Lazy Loading*/
-            this.rowOffSet = 0;
-            this.records = [];
+            if (!data.waiverRecords || data.waiverRecords.length === 0) {
+                console.log('No more records to load. 520');
+                this.hasMoreData = false;  // Mark that no more records exist
+                this.isLoading = false;
+                //return;
+            }
             /*Lazy Loading*/
