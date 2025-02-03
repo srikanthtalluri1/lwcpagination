@@ -1,3 +1,6 @@
- query = beforeOrderBy + 'ORDER BY ' + modifiedOrderByClause + ' LIMIT :limitSize OFFSET :offset';
-
-Integer limitSize, Integer offset
+.sub-options-list {
+    margin-left: 2rem; /* Adjust as needed for proper spacing */
+}
+.sub-option {
+    padding-left: 1rem; /* Additional space between sub-options */
+}
