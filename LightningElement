@@ -1,6 +1,4 @@
-
-    /*Lazy Loading*/
-    rowLimit =5;
-    rowOffSet=0;
-    hasMoreData;
-    /*Lazy Loading*/
+ /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
