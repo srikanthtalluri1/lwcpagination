@@ -1,8 +1,15 @@
  /*Lazy Loading*/
-            if (!data.waiverRecords || data.waiverRecords.length === 0) {
-                console.log('No more records to load. 520');
-                this.hasMoreData = false;  // Mark that no more records exist
+            //this.updateVisibleRecords();
+            //this.isLoading = false;
+            let updatedRecords = [...this.records, ...records];
+            this.records = updatedRecords;
+            console.log('this.records lazy loading 650 ' + this.records);
+            this.totalRecords = data.waiverRecordsCount;
+            this.hasMoreData = this.records.length < this.totalRecords;
+            //if (!this.hasMoreData) {
                 this.isLoading = false;
-                //return;
-            }
+                this.isLoadingMore = false;
+            //}
+            console.log('this.hasMoreData 669 ' + this.hasMoreData);
+            console.log('this.isLoading 669 ' + this.isLoading);
             /*Lazy Loading*/
