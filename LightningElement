@@ -1,7 +1,17 @@
- <div class="slds-scrollable_y slds-border_top" style="display: block;height: 300px;overflow-y: auto;min-height: 400px;" ><!--onscroll={handleScroll} height: calc(110vh - 0px);-->
+  <div class="slds-scrollable_y slds-border_top" style="display: block;height: 300px;overflow-y: auto;min-height: 400px;" ><!--onscroll={handleScroll} height: calc(110vh - 0px);-->
                         <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={records}
                             columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortedBy}
                             sorted-direction={sortedDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
                             onrowaction={handleActions} oncustomtext={handleActions} 
                             onloadmore={loadMoreData1} enable-infinite-loading><!--key-field="Id"-->
                         </c-custom-datatable-data-type-provider>
+
+                    <template if:true={isLoadingMore}>
+                        <div class="slds-text-align_center">
+                            <lightning-spinner alternative-text="Loading more records"></lightning-spinner>
+                        </div>
+                    </template>
+
+                        <template if:true={noRecordsFound}> No records to display </template>
+                    </div>
+                </div>
