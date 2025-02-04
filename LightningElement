@@ -1,47 +1,96 @@
-<template>
-    <div class="slds-form-element">
-        <label class="slds-form-element__label" for="lookup">{label}</label>
-        <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left-right">
-            <lightning-icon icon-name={iconName} alternative-text="Search" size="small"
-                class="slds-input__icon slds-input__icon_left"></lightning-icon>
-        
-            <!-- Input Field with pill -->
-            <div class="slds-input__container slds-input__pill-container">
-                <template if:false={displayValue}>
-                    <input type="text" class="slds-input" placeholder="Search..." oninput={handleSearchInput} onclick={toggleDropdown} readonly={isReadOnly}/>
-                </template>
-        
-                <!-- Pill for selected record (only shown when displayValue is set) -->
-                <template if:true={displayValue}>
-                    <div class="slds-pill slds-pill_link slds-pill_inside-input">
-                        <span class="slds-pill__label">{displayValue}</span>
-                        <template if:false={readOnly}>
-                            <lightning-icon icon-name="utility:close" alternative-text="Clear" size="small"
-                                class="slds-pill__remove slds-m-left_x-small" onclick={clearSelection}></lightning-icon>
-                        </template>
-                    </div>
-                </template>
-            </div>
-        </div>
+import { LightningElement, api, track } from 'lwc';
+import getFieldValue from '@salesforce/apex/LookupController.getFieldValue';
+import searchRecords from '@salesforce/apex/LookupController.searchRecords';
 
-        <!-- Search Results Dropdown (only shown when showDropdown is true) -->
-        <div if:true={showDropdown} class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5">
-            <ul class="slds-listbox slds-listbox_vertical slds-dropdown_length-5" role="listbox">
-                <template for:each={searchResults} for:item="record">
-                    <li key={record.id} role="presentation" class="slds-listbox__item" onclick={handleSelect} data-id={record.id}>
-                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
-                            <span class="slds-listbox__option-text slds-listbox__option-text_entity">{record.name}</span>
-                        </div>
-                    </li>
-                </template>
-                <template if:true={noResults}>
-                    <li class="slds-listbox__item" role="presentation">
-                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
-                            <span class="slds-listbox__option-text">No results found</span>
-                        </div>
-                    </li>
-                </template>
-            </ul>
-        </div>
-    </div>
-</template>
+export default class LookupComponent extends LightningElement {
+
+    @api readOnly;
+
+    @api label;
+    @api iconName = 'standard:account';
+    @api relationShipObjectName;
+    @api relationShipFieldName;
+    @api objectName;
+    @api fieldName;
+    @api displayField = 'Name';
+    @api recordId;
+    @track displayValue = '';  // Field to hold the display name
+    @track searchResults = [];
+    @track showDropdown = false;
+    @track noResults = false;
+
+    connectedCallback() {
+        if (this.recordId) {
+            this.fetchCurrentRecord();
+        }
+    }
+
+    // Fetch the current value based on recordId, objectName, fieldName, and displayField
+    async fetchCurrentRecord() {
+        try {
+            const result = await getFieldValue({
+                recordId: this.recordId,
+                objectName: this.objectName,
+                fieldName: this.fieldName,
+                displayField: this.displayField
+            });
+            this.displayValue = result ? result : 'No related record';
+        } catch (error) {
+            console.error('Error fetching current record:', error);
+        }
+    }
+
+    // Handle user input for search
+    handleSearchInput(event) {
+        const searchTerm = event.target.value;
+        if (searchTerm.length >= 2) {
+            this.performSearch(searchTerm);
+        } else {
+            this.searchResults = [];
+            this.noResults = false;
+            this.showDropdown = false;
+        }
+    }
+
+    // Perform search using an Apex method
+    async performSearch(searchTerm) {
+        try {
+            const results = await searchRecords({
+                objectName: this.relationShipObjectName,
+                fieldName: this.relationShipFieldName,
+                searchTerm,
+                displayField: this.displayField
+            });
+            this.searchResults = results;
+            //this.noResults = results.length === 0;
+            this.showDropdown = results.length > 0;
+        } catch (error) {
+            console.error('Error searching records:', error);
+        }
+    }
+
+    // Handle selection from dropdown
+    handleSelect(event) {
+        const recordId = event.currentTarget.dataset.id;
+        const selectedRecord = this.searchResults.find(record => record.id === recordId);
+        this.displayValue = selectedRecord.name;
+        this.showDropdown = false;
+
+        // Dispatch event to parent component with selected record id
+        this.dispatchEvent(new CustomEvent('select', { detail: { recordId } }));
+    }
+
+    // Toggle dropdown visibility
+    toggleDropdown() {
+        this.showDropdown = !this.showDropdown;
+    }
+
+    // Clear the selection and reset search
+    clearSelection() {
+        this.displayValue = '';  // Clear the display value
+        this.searchResults = [];  // Clear the search results
+        this.noResults = false;  // Reset the 'No results found' message
+        this.showDropdown = false;  // Close the dropdown
+        this.dispatchEvent(new CustomEvent('clear'));  // Dispatch 'clear' event
+    }
+}
