@@ -1,57 +1,47 @@
-@AuraEnabled(cacheable=true)
-    public static String getFieldValue(String recordId, String objectName, String fieldName, String displayField) {
-        try {
-            // Dynamically build the relationship field path based on input
-            String relationshipFieldPath = fieldName.replace('__c','__r.') + displayField;
-			System.debug('relationshipFieldPath '+relationshipFieldPath);
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="lookup">{label}</label>
+        <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left-right">
+            <lightning-icon icon-name={iconName} alternative-text="Search" size="small"
+                class="slds-input__icon slds-input__icon_left"></lightning-icon>
+        
+            <!-- Input Field with pill -->
+            <div class="slds-input__container slds-input__pill-container">
+                <template if:false={displayValue}>
+                    <input type="text" class="slds-input" placeholder="Search..." oninput={handleSearchInput} onclick={toggleDropdown} readonly={isReadOnly}/>
+                </template>
+        
+                <!-- Pill for selected record (only shown when displayValue is set) -->
+                <template if:true={displayValue}>
+                    <div class="slds-pill slds-pill_link slds-pill_inside-input">
+                        <span class="slds-pill__label">{displayValue}</span>
+                        <template if:false={readOnly}>
+                            <lightning-icon icon-name="utility:close" alternative-text="Clear" size="small"
+                                class="slds-pill__remove slds-m-left_x-small" onclick={clearSelection}></lightning-icon>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
 
-            // Create the dynamic SOQL query to fetch the related field
-            String query = 'SELECT ' + fieldName + ',' + relationshipFieldPath + ' FROM ' + objectName + ' WHERE Id = :recordId LIMIT 1';
-
-            // Execute the dynamic query
-            SObject record = Database.query(query);
-            
-            // Get the related record value
-            if (record != null) {
-                // Dynamically access the related field value (e.g., Account.Name)
-                Object relatedFieldValue = record.getSObject(fieldName.replace('__c','__r')).get(displayField);
-                return relatedFieldValue != null ? String.valueOf(relatedFieldValue) : 'No related record';
-            }
-            
-            return 'Record not found';			
-        } catch (Exception e) {
-            System.debug('Error fetching related record: ' + e.getMessage());
-            return null;
-        }
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<LookupRecord> searchRecords(String objectName, String fieldName, String searchTerm, String displayField) {
-
-		// Check if searchTerm is not empty and format it for LIKE clause
-    	if (String.isEmpty(searchTerm)) {
-        	return new List<LookupRecord>(); // Return empty if no search term is provided
-    	}
-    	String likeSearchTerm = '%' + searchTerm + '%';
-
-        String query = 'SELECT Id ' + ',' + fieldName + ' FROM ' + objectName + ' WHERE ' + fieldName + ' LIKE :likeSearchTerm LIMIT 10';
-        List<SObject> results = Database.query(query);
-		System.debug('results 49 '+results);
-        List<LookupRecord> lookupResults = new List<LookupRecord>();
-
-        for (SObject record : results) {
-            lookupResults.add(new LookupRecord(record.Id, String.valueOf(record.get('Name'))));
-        }
-		System.debug('lookupResults 55 '+lookupResults);
-        return lookupResults;
-    }
-
-    public class LookupRecord {
-        @AuraEnabled public String id;
-        @AuraEnabled public String name;
-
-        public LookupRecord(String id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-    }
+        <!-- Search Results Dropdown (only shown when showDropdown is true) -->
+        <div if:true={showDropdown} class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5">
+            <ul class="slds-listbox slds-listbox_vertical slds-dropdown_length-5" role="listbox">
+                <template for:each={searchResults} for:item="record">
+                    <li key={record.id} role="presentation" class="slds-listbox__item" onclick={handleSelect} data-id={record.id}>
+                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
+                            <span class="slds-listbox__option-text slds-listbox__option-text_entity">{record.name}</span>
+                        </div>
+                    </li>
+                </template>
+                <template if:true={noResults}>
+                    <li class="slds-listbox__item" role="presentation">
+                        <div class="slds-listbox__option slds-listbox__option_plain" role="option">
+                            <span class="slds-listbox__option-text">No results found</span>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+</template>
