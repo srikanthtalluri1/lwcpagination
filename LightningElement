@@ -1,17 +1,57 @@
-  <div class="slds-scrollable_y slds-border_top" style="display: block;height: 300px;overflow-y: auto;min-height: 400px;" ><!--onscroll={handleScroll} height: calc(110vh - 0px);-->
-                        <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={records}
-                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortedBy}
-                            sorted-direction={sortedDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
-                            onrowaction={handleActions} oncustomtext={handleActions} 
-                            onloadmore={loadMoreData1} enable-infinite-loading><!--key-field="Id"-->
-                        </c-custom-datatable-data-type-provider>
+@AuraEnabled(cacheable=true)
+    public static String getFieldValue(String recordId, String objectName, String fieldName, String displayField) {
+        try {
+            // Dynamically build the relationship field path based on input
+            String relationshipFieldPath = fieldName.replace('__c','__r.') + displayField;
+			System.debug('relationshipFieldPath '+relationshipFieldPath);
 
-                    <template if:true={isLoadingMore}>
-                        <div class="slds-text-align_center">
-                            <lightning-spinner alternative-text="Loading more records"></lightning-spinner>
-                        </div>
-                    </template>
+            // Create the dynamic SOQL query to fetch the related field
+            String query = 'SELECT ' + fieldName + ',' + relationshipFieldPath + ' FROM ' + objectName + ' WHERE Id = :recordId LIMIT 1';
 
-                        <template if:true={noRecordsFound}> No records to display </template>
-                    </div>
-                </div>
+            // Execute the dynamic query
+            SObject record = Database.query(query);
+            
+            // Get the related record value
+            if (record != null) {
+                // Dynamically access the related field value (e.g., Account.Name)
+                Object relatedFieldValue = record.getSObject(fieldName.replace('__c','__r')).get(displayField);
+                return relatedFieldValue != null ? String.valueOf(relatedFieldValue) : 'No related record';
+            }
+            
+            return 'Record not found';			
+        } catch (Exception e) {
+            System.debug('Error fetching related record: ' + e.getMessage());
+            return null;
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<LookupRecord> searchRecords(String objectName, String fieldName, String searchTerm, String displayField) {
+
+		// Check if searchTerm is not empty and format it for LIKE clause
+    	if (String.isEmpty(searchTerm)) {
+        	return new List<LookupRecord>(); // Return empty if no search term is provided
+    	}
+    	String likeSearchTerm = '%' + searchTerm + '%';
+
+        String query = 'SELECT Id ' + ',' + fieldName + ' FROM ' + objectName + ' WHERE ' + fieldName + ' LIKE :likeSearchTerm LIMIT 10';
+        List<SObject> results = Database.query(query);
+		System.debug('results 49 '+results);
+        List<LookupRecord> lookupResults = new List<LookupRecord>();
+
+        for (SObject record : results) {
+            lookupResults.add(new LookupRecord(record.Id, String.valueOf(record.get('Name'))));
+        }
+		System.debug('lookupResults 55 '+lookupResults);
+        return lookupResults;
+    }
+
+    public class LookupRecord {
+        @AuraEnabled public String id;
+        @AuraEnabled public String name;
+
+        public LookupRecord(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
