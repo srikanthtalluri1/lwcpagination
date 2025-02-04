@@ -1,96 +1,30 @@
-import { LightningElement, api, track } from 'lwc';
-import getFieldValue from '@salesforce/apex/LookupController.getFieldValue';
-import searchRecords from '@salesforce/apex/LookupController.searchRecords';
+.slds-input__pill-container {
+    position: relative;
+    display: flex;
+    align-items: center; /* Align items vertically */
+    width: 100%;
+}
 
-export default class LookupComponent extends LightningElement {
+.slds-pill_inside-input {
+    display: flex;
+    align-items: center; /* Align pill content vertically */
+    padding-left: 2.5rem; /* Add space between the icon and pill */
+    padding-right: 2rem; /* Make space for the close icon */
+    flex-grow: 1; /* Allow pill to grow and take available space */
+    min-width: 0; /* Prevent pill from overflowing */
+}
 
-    @api readOnly;
+.slds-pill__label {
+    flex-grow: 1; /* Allow the label to take up available space */
+    white-space: nowrap; /* Prevent the label from wrapping */
+    overflow: hidden; /* Prevent overflow */
+    text-overflow: ellipsis; /* Show ellipsis if the text is too long */
+}
 
-    @api label;
-    @api iconName = 'standard:account';
-    @api relationShipObjectName;
-    @api relationShipFieldName;
-    @api objectName;
-    @api fieldName;
-    @api displayField = 'Name';
-    @api recordId;
-    @track displayValue = '';  // Field to hold the display name
-    @track searchResults = [];
-    @track showDropdown = false;
-    @track noResults = false;
-
-    connectedCallback() {
-        if (this.recordId) {
-            this.fetchCurrentRecord();
-        }
-    }
-
-    // Fetch the current value based on recordId, objectName, fieldName, and displayField
-    async fetchCurrentRecord() {
-        try {
-            const result = await getFieldValue({
-                recordId: this.recordId,
-                objectName: this.objectName,
-                fieldName: this.fieldName,
-                displayField: this.displayField
-            });
-            this.displayValue = result ? result : 'No related record';
-        } catch (error) {
-            console.error('Error fetching current record:', error);
-        }
-    }
-
-    // Handle user input for search
-    handleSearchInput(event) {
-        const searchTerm = event.target.value;
-        if (searchTerm.length >= 2) {
-            this.performSearch(searchTerm);
-        } else {
-            this.searchResults = [];
-            this.noResults = false;
-            this.showDropdown = false;
-        }
-    }
-
-    // Perform search using an Apex method
-    async performSearch(searchTerm) {
-        try {
-            const results = await searchRecords({
-                objectName: this.relationShipObjectName,
-                fieldName: this.relationShipFieldName,
-                searchTerm,
-                displayField: this.displayField
-            });
-            this.searchResults = results;
-            //this.noResults = results.length === 0;
-            this.showDropdown = results.length > 0;
-        } catch (error) {
-            console.error('Error searching records:', error);
-        }
-    }
-
-    // Handle selection from dropdown
-    handleSelect(event) {
-        const recordId = event.currentTarget.dataset.id;
-        const selectedRecord = this.searchResults.find(record => record.id === recordId);
-        this.displayValue = selectedRecord.name;
-        this.showDropdown = false;
-
-        // Dispatch event to parent component with selected record id
-        this.dispatchEvent(new CustomEvent('select', { detail: { recordId } }));
-    }
-
-    // Toggle dropdown visibility
-    toggleDropdown() {
-        this.showDropdown = !this.showDropdown;
-    }
-
-    // Clear the selection and reset search
-    clearSelection() {
-        this.displayValue = '';  // Clear the display value
-        this.searchResults = [];  // Clear the search results
-        this.noResults = false;  // Reset the 'No results found' message
-        this.showDropdown = false;  // Close the dropdown
-        this.dispatchEvent(new CustomEvent('clear'));  // Dispatch 'clear' event
-    }
+.slds-pill__remove {
+    cursor: pointer;
+    position: absolute;
+    right: 0; /* Position the close icon to the right of the pill */
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center the close icon within the pill */
 }
