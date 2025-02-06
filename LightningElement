@@ -1,2 +1,2 @@
- <div style="width:0.5%;padding-block: 68vh; background-color: #b0c4de;">
-                </div>
+recordViewStyle = 'width:65%';
+    blueStyle = 'width:0.5%;padding-block: 40vh; background-color: #b0c4de';
