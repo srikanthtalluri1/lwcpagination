@@ -1,2 +1,4 @@
- this.recordViewStyle = 'width: 65%;';
-                            this.blueStyle = 'width:0.5%;padding-block: 68vh; background-color: #b0c4de';
+this.records = [];
+        this.rowOffSet = 0;
+        this.fetchData();
+        this.fetchFilterDetails();
