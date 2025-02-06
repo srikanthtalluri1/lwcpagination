@@ -1,6 +1,2 @@
- <div style={blueStyle}>
-
-                <!--<lightning-layout-item padding="around-small" size="1"
-                style="padding-block: 68vh; background-color: yellow;">width:2%;-->
-                <!--</lightning-layout-item>-->
+ <div style="width:0.5%;padding-block: 68vh; background-color: #b0c4de;">
                 </div>
