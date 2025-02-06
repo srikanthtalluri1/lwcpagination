@@ -1,30 +1,6 @@
-.slds-input__pill-container {
-    position: relative;
-    display: flex;
-    align-items: center; /* Align items vertically */
-    width: 100%;
-}
+ <div style={blueStyle}>
 
-.slds-pill_inside-input {
-    display: flex;
-    align-items: center; /* Align pill content vertically */
-    padding-left: 2.5rem; /* Add space between the icon and pill */
-    padding-right: 2rem; /* Make space for the close icon */
-    flex-grow: 1; /* Allow pill to grow and take available space */
-    min-width: 0; /* Prevent pill from overflowing */
-}
-
-.slds-pill__label {
-    flex-grow: 1; /* Allow the label to take up available space */
-    white-space: nowrap; /* Prevent the label from wrapping */
-    overflow: hidden; /* Prevent overflow */
-    text-overflow: ellipsis; /* Show ellipsis if the text is too long */
-}
-
-.slds-pill__remove {
-    cursor: pointer;
-    position: absolute;
-    right: 0; /* Position the close icon to the right of the pill */
-    top: 50%;
-    transform: translateY(-50%); /* Vertically center the close icon within the pill */
-}
+                <!--<lightning-layout-item padding="around-small" size="1"
+                style="padding-block: 68vh; background-color: yellow;">width:2%;-->
+                <!--</lightning-layout-item>-->
+                </div>
