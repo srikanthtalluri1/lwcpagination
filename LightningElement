@@ -1,30 +1,21 @@
-awpWaiverListViewLeftNav - Parent LWC
-customDatatableDataTypeProvider - child lwc in awpWaiverListViewLeftNav  - For lightning-datatable used customDatatableDataTypeProvider lwc by importing LightningDatatable from 'lightning/datatable'; with custom-text implementation
-customhighlightpanel - child lwc in awpWaiverListViewLeftNav  - For Custom Highlights Panel with Fields and buttons like Edit and Back to List View
-waiversrecordpage - child lwc in awpWaiverListViewLeftNav - For Detailed view of the record clicked on the data table along with the multiple tabs
-waiverscreaterecordpage - child lwc in awpWaiverListViewLeftNav  - For Creating New Records 
-awpCustomPath - child lwc in customHighlightPanel - Custom Path to show Status Values in Chevrons
+handleActions(event) {
+        const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
+        
+        /*Srikanth Changes*/
+        console.log('event 606 '+JSON.stringify(event))
+        const actionName1 = event.target.dataset.action || (event.detail?.action?.name || '');
+        console.log('Action Name:', actionName1);
 
+        const filterValue = event.target.value; // Value of the checkbox
+        const isChecked = event.target.checked; // Checked state of the checkbox
+        // Extract index (ensure it's treated as a string if needed)
+        const index = event.target.dataset.index;
+        console.log('Filter Value:', filterValue);
+        console.log('Is Checked:', isChecked);
+        console.log('Index:', index);
+        /*Srikanth Changes*/
 
-Parent to Child Event communication in LWC
-we are passing the details from parent to child using below two ways
-Public Method
-Public properties. 
-
-we are using @api decorator to make the children properties / method publicly available to parent.
-
-Custom event communication in Lightning Web Component (Child to Parent)
-Create and Dispatch an Event
-Create Event : We are using the customEvent() constructor to create an event. In constructor we are passing custom event name and detail of the event. new customEvent(eventName, props);
-Dispatch Event : We are dispatching an event at with EventTarget.dispatchEvent() method.  this.dispatchEvent(new customEvent(eventName, props);
-Handle an Event : There are two ways to listen to an event
-Declarative via html markup : We need to add “on” prefix in the event name in Parent Component during calling of Child Component for Declaratively event listener. ParentComponent    <template>
-          <c-child-component oneventName={listenerHandler}></c-child-component >
-     </template>
-JavaScript using addEventListener method : We can explicitly attach a listener by using the addEventListner method in the parent component like below : ChildComponent this.template.addEventListener('eventName', this.handleNotification.bind(this));
-
-Publish Subscriber model in Lightning Web Component.
-We are using an library called pubsub to achieve the communication between two components which doesn’t have a direct relation to each other. For Example when Edit button is clicked on customhighlightpanel we are publishing/registering an event which is being subscribed/listened in waiversrecordpage so that fields are in edit mode. 
-
-
-
+        this.rowOffSet = 0;
+        console.log('this.records 650 ' + this.records);
+        console.log('this.recordsConnected 650 ' + this.recordsConnected);
+        this.records = this.recordsConnected;
