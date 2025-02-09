@@ -1,4 +1,5 @@
  /*Lazy Loading*/
-                    this.rowOffSet = 0;
-                    this.records = [];
-                    /*Lazy Loading*/
+        this.rowOffSet = 0;
+        this.records = [];            
+        this.fetchDataAsync();
+        /*Lazy Loading*/
