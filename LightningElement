@@ -1,4 +1,9 @@
-this.records = [];
-        this.rowOffSet = 0;
-        this.fetchData();
-        this.fetchFilterDetails();
+  let updatedRecords = [...this.records, ...records];
+
+            // Use a Set to remove duplicates based on the "Id" field
+            let uniqueRecords = Array.from(new Set(updatedRecords.map(record => record.Id)))
+                .map(id => updatedRecords.find(record => record.Id === id));
+
+            this.records = uniqueRecords;
+
+            //this.records = updatedRecords;
