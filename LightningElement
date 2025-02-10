@@ -1,7 +1,4 @@
-handleActions(event) {
-        const actionName = event.target.dataset.action ? event.target.dataset.action : (event.detail.action.name ? event.detail.action.name : '');
-        
-        /*Srikanth Changes*/
+/*Srikanth Changes*/
         console.log('event 606 '+JSON.stringify(event))
         const actionName1 = event.target.dataset.action || (event.detail?.action?.name || '');
         console.log('Action Name:', actionName1);
@@ -14,8 +11,3 @@ handleActions(event) {
         console.log('Is Checked:', isChecked);
         console.log('Index:', index);
         /*Srikanth Changes*/
-
-        this.rowOffSet = 0;
-        console.log('this.records 650 ' + this.records);
-        console.log('this.recordsConnected 650 ' + this.recordsConnected);
-        this.records = this.recordsConnected;
