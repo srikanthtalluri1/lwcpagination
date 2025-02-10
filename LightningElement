@@ -11,3 +11,17 @@
         console.log('Is Checked:', isChecked);
         console.log('Index:', index);
         /*Srikanth Changes*/
+
+
+/*Srikanth Changes*/
+                    console.log('selectedfiltervalue 625'+actionName);
+                    const selectedValue = event.target.value;
+                    console.log('selectedValue 627'+selectedValue);
+                    console.log('event 627'+JSON.stringify(event));
+                    /*Srikanth Changes*/
+
+                    //this.handleFilterBy(actionName, event);
+                    
+                    /*Srikanth Changes*/
+                    this.handleFilterBy(actionName, event, filterValue, isChecked, index);
+                    /*Srikanth Changes*/
