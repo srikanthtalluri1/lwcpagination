@@ -1,61 +1,15 @@
- handleFilterBy(actionName, event, filterValue1, isChecked, index1) {
-
- /*Srikanth Changes*/
-        let filterValue11 = filterValue1;
-        console.log('filterValue11 '+JSON.stringify(filterValue11));
-        const index11 = index1;
-        console.log('index11 '+index11);
-        console.log('isChecked '+isChecked);
-        /*Srikanth Changes*/
-
- this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue11;//filterValue;
-
-
-                /*Srikanth Changes*/
-                console.log('selectedfiltervalue 740 ' + filterValue);
-                const selectedFilter = this._filteredFieldValues.filter(x => x.id === index)[0];
-                selectedFilter.selectedValue = Array.isArray(filterValue) ? filterValue : [filterValue];
-                console.log('Selected Values:', JSON.stringify(selectedFilter.selectedValue));
-                const normalizedFilterValues = selectedFilter.selectedValue.map(value => value?.trim()?.toLowerCase());
-                console.log('Normalized Filter Values:', JSON.stringify(normalizedFilterValues));
-                const selectedFilterIds = selectedFilter.filteredFieldValue
-                    .filter(item => normalizedFilterValues.includes(item.value?.trim()?.toLowerCase()))
-                    .map(item => item.id);
-                console.log('Selected Filter IDs:', JSON.stringify(selectedFilterIds));
-                // If the selected filter value is Affected Standard Portfolio
-                /*if (filterValue) {
-                    this.fetchRelatedDomains(filterValue);
-                }*/
-                //if (selectedFilterIds) {
-                if (selectedFilterIds && Array.isArray(selectedFilterIds) && this.selectedFilter && this.selectedFilter.includes('Affected Standard Portfolio')) {
-                    //this.fetchRelatedDomains(selectedFilterIds);
-                }
-                else{
-                    //this._filteredFieldValues.filter(x => x.id === index)[0].selectedValue = filterValue11;//filterValue;
-                    const filterField = this._filteredFieldValues.filter(x => x.id === index)[0];
-                    if (!filterField) {
-                        console.error(`No filter field found for index: ${index11}`);
-                        //return;
-                    }
-                    // Update the selected values array
-                    if (isChecked) {
-                        // Add the value to the selected values array if it's not already present
-                        const targetFilter = this._filteredFieldValues.filter(x => x.id === index)[0];
-                        console.log('targetFilter906 ', JSON.stringify(targetFilter));
-                        if (targetFilter) {
-                            targetFilter.selectedValue.push(filterValue1);
-                        }
-                        console.log('Updated selected values:906 ', JSON.stringify(targetFilter.selectedValue));
-                    } else {
-                        // Remove the value from the selected values array
-                        const targetFilter = this._filteredFieldValues.filter(x => x.id === index)[0];
-                        if (targetFilter) {
-                            targetFilter.selectedValue = targetFilter.selectedValue.filter(
-                                (selectedValue) => selectedValue !== filterValue1
-                            );
-                        }
-                    }
-                    console.log('Updated selected values:', filterField.selectedValues);
-                    console.log('this._filteredFieldValues 880 ', JSON.stringify(this._filteredFieldValues));
-                }
-                /*Srikanth Changes*/
+AWP Waiver List View Left Navigation Documentation
+HTML
+• Icon Name: `Utility:filterlist` – Displays the icon name.
+• Selected: `{showFilter}` – Property in JavaScript.
+• handleActions: Calls this method in JavaScript.
+JavaScript
+• Default Behavior:
+  - `showFilter` is `true` by default.
+  - When `showFilter` is clicked, it will toggle to `false`.
+  - The table is updated based on the `showFilter` value.
+Filter - Multi-picklist Selection Functionality
+• We are calling the `customMultipicklist` component from `awpWaiverListViewLeftNav`.
+Custom Multi-picklist
+• onSelect Method:
+  - This method checks the selected options.
