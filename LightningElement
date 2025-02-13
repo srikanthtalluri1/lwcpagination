@@ -1,15 +1,25 @@
-AWP Waiver List View Left Navigation Documentation
-HTML
-• Icon Name: `Utility:filterlist` – Displays the icon name.
-• Selected: `{showFilter}` – Property in JavaScript.
-• handleActions: Calls this method in JavaScript.
-JavaScript
-• Default Behavior:
-  - `showFilter` is `true` by default.
-  - When `showFilter` is clicked, it will toggle to `false`.
-  - The table is updated based on the `showFilter` value.
-Filter - Multi-picklist Selection Functionality
-• We are calling the `customMultipicklist` component from `awpWaiverListViewLeftNav`.
-Custom Multi-picklist
-• onSelect Method:
-  - This method checks the selected options.
+<div class="underline">
+                                                    <!--<lightning-output-field field-name="Rationale_for_Waiver__c"></lightning-output-field>-->
+                                                    
+                                                    <div class="slds-form-element slds-m-bottom_medium">
+                                                        <div class="slds-grid slds-grid_align-top">
+                                                            <label class="slds-form-element__label slds-size_2-of-4" for="affectedStandardPortfolio">Affected Standard Portfolio</label>
+                                                            <div class="slds-form-element__control slds-size_2-of-4">
+                                                                <lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c"
+                                                                    density="comfy">
+                                                                    <lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
+                                                                        data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden"
+                                                                        id="affectedStandardPortfolio">
+                                                                    </lightning-input>
+                                                                </lightning-record-view-form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!--<lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c" density="comfy">
+                                                            <lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
+                                                                data-field="Affected_Standard_Portfolio1__c" read-only>
+                                                            </lightning-input>
+                                                    </lightning-record-view-form>-->
+
+                                                </div>
