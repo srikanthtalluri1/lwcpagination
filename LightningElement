@@ -1,32 +1,29 @@
-import { LightningElement, track } from 'lwc';
-import pubsub from 'c/pubsub';
-export default class AwpTabComponent extends LightningElement {
-    @track selectedTabId='allwaivers';
-    tabs = [
-        { id: 'business', label: 'Business' },
-        { id: 'data', label: 'Data' },
-        { id: 'application', label: 'Application' },
-        { id: 'technology', label: 'Technology' },
-        { id: 'operation', label: 'Operation' },
-        { id: 'security', label: 'Security' },
-        { id: 'accessibility', label: 'Accessibility' },
-        { id: 'communication', label: 'Communication' },
-        { id: 'design', label: 'Design' },
-        { id: 'allwaivers', label: 'All Waivers' }
-    ].map(tab => ({
-        ...tab,
-        className: tab.id === 'allwaivers' ? 'tab selected' : 'tab' // Set default tab
-    }));
+.tab-container {
+    display: flex;
+    justify-content: normal;/*space-around;*/
+    background-color: white;
+    padding: 8px;
+}
 
-    handleTabClick(event) {
-        const clickedTabId = event.target.dataset.id;
-        this.selectedTabId = clickedTabId;
-        pubsub.publish('clickedTab', clickedTabId);
+.tab {
+    padding: 5px 10px;
+    cursor: pointer;
+    text-align: center;
+    background: #fff;
+    /*border: 1px solid #ccc;
+    border-radius: 5px;*/
+    background-color: #fff;
+    transition: background-color 0.3s ease;
+    /*transition: all 0.3s ease;*/
+}
 
-        // Update the class for tabs
-        this.tabs = this.tabs.map(tab => ({
-            ...tab,
-            className: tab.id === clickedTabId ? 'tab selected' : 'tab'
-        }));
-    }
+.tab:hover {
+    background-color: #e3e7ea;
+    border-color: #0070d2;
+}
+
+.tab.selected {
+    background-color: #0070d2; /* Salesforce blue */
+    color: #fff;
+    border-color: #0070d2;
 }
