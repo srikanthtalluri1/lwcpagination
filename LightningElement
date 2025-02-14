@@ -1,25 +1,32 @@
-<div class="underline">
-                                                    <!--<lightning-output-field field-name="Rationale_for_Waiver__c"></lightning-output-field>-->
-                                                    
-                                                    <div class="slds-form-element slds-m-bottom_medium">
-                                                        <div class="slds-grid slds-grid_align-top">
-                                                            <label class="slds-form-element__label slds-size_2-of-4" for="affectedStandardPortfolio">Affected Standard Portfolio</label>
-                                                            <div class="slds-form-element__control slds-size_2-of-4">
-                                                                <lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c"
-                                                                    density="comfy">
-                                                                    <lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
-                                                                        data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden"
-                                                                        id="affectedStandardPortfolio">
-                                                                    </lightning-input>
-                                                                </lightning-record-view-form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+import { LightningElement, track } from 'lwc';
+import pubsub from 'c/pubsub';
+export default class AwpTabComponent extends LightningElement {
+    @track selectedTabId='allwaivers';
+    tabs = [
+        { id: 'business', label: 'Business' },
+        { id: 'data', label: 'Data' },
+        { id: 'application', label: 'Application' },
+        { id: 'technology', label: 'Technology' },
+        { id: 'operation', label: 'Operation' },
+        { id: 'security', label: 'Security' },
+        { id: 'accessibility', label: 'Accessibility' },
+        { id: 'communication', label: 'Communication' },
+        { id: 'design', label: 'Design' },
+        { id: 'allwaivers', label: 'All Waivers' }
+    ].map(tab => ({
+        ...tab,
+        className: tab.id === 'allwaivers' ? 'tab selected' : 'tab' // Set default tab
+    }));
 
-                                                    <!--<lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c" density="comfy">
-                                                            <lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
-                                                                data-field="Affected_Standard_Portfolio1__c" read-only>
-                                                            </lightning-input>
-                                                    </lightning-record-view-form>-->
+    handleTabClick(event) {
+        const clickedTabId = event.target.dataset.id;
+        this.selectedTabId = clickedTabId;
+        pubsub.publish('clickedTab', clickedTabId);
 
-                                                </div>
+        // Update the class for tabs
+        this.tabs = this.tabs.map(tab => ({
+            ...tab,
+            className: tab.id === clickedTabId ? 'tab selected' : 'tab'
+        }));
+    }
+}
