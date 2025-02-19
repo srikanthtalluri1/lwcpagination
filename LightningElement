@@ -1,29 +1,8 @@
-.tab-container {
-    display: flex;
-    justify-content: normal;/*space-around;*/
-    background-color: white;
-    padding: 8px;
-}
+ <!--<lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
+                                                                        data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden"
+                                                                        id="affectedStandardPortfolio">
+                                                                    </lightning-input>-->
 
-.tab {
-    padding: 5px 10px;
-    cursor: pointer;
-    text-align: center;
-    background: #fff;
-    /*border: 1px solid #ccc;
-    border-radius: 5px;*/
-    background-color: #fff;
-    transition: background-color 0.3s ease;
-    /*transition: all 0.3s ease;*/
-}
-
-.tab:hover {
-    background-color: #e3e7ea;
-    border-color: #0070d2;
-}
-
-.tab.selected {
-    background-color: #0070d2; /* Salesforce blue */
-    color: #fff;
-    border-color: #0070d2;
-}
+                                                                    <lightning-formatted-url label={AffectedStandardPortfolio1Name} value={AffectedStandardPortfolio1recordLink} target="_blank"
+                                                                        id="affectedStandardPortfolio" data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden">
+                                                                    </lightning-formatted-url>
