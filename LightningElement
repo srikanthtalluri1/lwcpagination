@@ -1,12 +1,1 @@
-private static String buildLink(String linkId) {
-        String formattedURL = 'N/A';
-        
-        if (String.isBlank(linkId)) {
-            return ''; // Return an empty string if linkId is null or blank
-        }
-        
-        String baseUrl = System.Url.getOrgDomainUrl().toExternalForm(); // Use new method
-        formattedURL = baseUrl + '/' + linkId;
-        
-        return formattedURL;
-    }
+ fieldData.put('AffectedStandardPortfolio1recordLink', buildLink(rel.Affected_Standard_Portfolio1__c));
