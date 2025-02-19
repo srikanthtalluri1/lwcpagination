@@ -1,8 +1,12 @@
- <!--<lightning-input label="Affected Standard Portfolio" type="text" value={AffectedStandardPortfolio1Name}
-                                                                        data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden"
-                                                                        id="affectedStandardPortfolio">
-                                                                    </lightning-input>-->
-
-                                                                    <lightning-formatted-url label={AffectedStandardPortfolio1Name} value={AffectedStandardPortfolio1recordLink} target="_blank"
-                                                                        id="affectedStandardPortfolio" data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden">
-                                                                    </lightning-formatted-url>
+private static String buildLink(String linkId) {
+        String formattedURL = 'N/A';
+        
+        if (String.isBlank(linkId)) {
+            return ''; // Return an empty string if linkId is null or blank
+        }
+        
+        String baseUrl = System.Url.getOrgDomainUrl().toExternalForm(); // Use new method
+        formattedURL = baseUrl + '/' + linkId;
+        
+        return formattedURL;
+    }
