@@ -1,1 +1,97 @@
- fieldData.put('AffectedStandardPortfolio1recordLink', buildLink(rel.Affected_Standard_Portfolio1__c));
+@AuraEnabled(cacheable=true)
+    public static List<WrapperClass> getHistoryRecords(Id waiverId) {
+        List<WrapperClass> historyRecords = new List<WrapperClass>();
+
+        AWP_Architecture_Waiver_Form__c waiver = [
+            SELECT CreatedDate, CreatedBy.Name, CreatedById 
+            FROM AWP_Architecture_Waiver_Form__c 
+            WHERE Id = :waiverId 
+            LIMIT 1
+        ];
+        Datetime waiverCreatedDate = waiver.CreatedDate;
+
+        historyRecords.add(new WrapperClass(
+            'Record Created', '', 'Waiver Created', waiver.CreatedDate, waiver.CreatedBy.Name, waiver.CreatedById, 'AWP Architecture Waiver Form'
+        ));
+
+        AWP_Waiver_Relationship__c rel;
+        try {
+            rel = [
+                SELECT Id, CreatedDate, CreatedBy.Name, CreatedById 
+                FROM AWP_Waiver_Relationship__c 
+                WHERE Waiver_Id__c = :waiverId
+                LIMIT 1
+            ];
+        } catch (Exception e) {
+            rel = null;
+        }
+
+        if (rel != null) {
+            historyRecords.add(new WrapperClass(
+                'Relationship Created', '', 'Waiver Relationship Created', rel.CreatedDate, rel.CreatedBy.Name, rel.CreatedById, 'AWP Waiver Relationship'
+            ));
+        }
+
+        for (AWP_Architecture_Waiver_Form__History formHistory : [
+            SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name, CreatedById
+            FROM AWP_Architecture_Waiver_Form__History
+            WHERE ParentId = :waiverId
+            AND CreatedDate > :waiverCreatedDate
+        ]) {
+            historyRecords.add(new WrapperClass(
+                formHistory.Field, String.valueOf(formHistory.OldValue), String.valueOf(formHistory.NewValue), 
+                formHistory.CreatedDate, formHistory.CreatedBy.Name, formHistory.CreatedById, 'AWP Architecture Waiver Form'
+            ));
+        }
+
+        if (rel != null) {
+            for (AWP_Waiver_Relationship__History relationshipHistory : [
+                SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name, CreatedById
+                FROM AWP_Waiver_Relationship__History
+                WHERE ParentId = :rel.Id
+                AND CreatedDate > :rel.CreatedDate
+            ]) {
+                historyRecords.add(new WrapperClass(
+                    relationshipHistory.Field, String.valueOf(relationshipHistory.OldValue), String.valueOf(relationshipHistory.NewValue), 
+                    relationshipHistory.CreatedDate, relationshipHistory.CreatedBy.Name, relationshipHistory.CreatedById, 'AWP Waiver Relationship'
+                ));
+            }
+        }
+
+        historyRecords.sort(new WrapperComparator());
+        return historyRecords;
+    }
+
+    public class WrapperComparator implements Comparator<WrapperClass> {
+        public Integer compare(WrapperClass a, WrapperClass b) {
+           if (b.createdDate > a.createdDate) {
+    return 1;  // Sort in descending order
+} else if (b.createdDate < a.createdDate) {
+    return -1;
+} else {
+    return 0;  // Same date
+}
+
+        }
+    }
+
+    public class WrapperClass {
+        @AuraEnabled public String fieldName;
+        @AuraEnabled public String oldValue;
+        @AuraEnabled public String newValue;
+        @AuraEnabled public Datetime createdDate;
+        @AuraEnabled public String createdBy;
+        @AuraEnabled public String createdById;
+        @AuraEnabled public String source;
+        
+        public WrapperClass(String fieldName, String oldValue, String newValue, Datetime createdDate, String createdBy, String createdById, String source) {
+            this.fieldName = fieldName;
+            this.oldValue = oldValue;
+            this.newValue = newValue;
+            this.createdDate = createdDate;
+            this.createdBy = createdBy;
+            this.createdById = createdById;
+            this.source = source;
+        }
+    }
+}
