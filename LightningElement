@@ -1,1 +1,4 @@
-tableStyle = 'width:82.8%;flex-grow: 1;display: flex;flex-direction: column;padding-left: 10px;overflow-y: auto;background-color: #b0c4de;';
+renderedCallback(){
+        super.renderedCallback();
+        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
+    }
