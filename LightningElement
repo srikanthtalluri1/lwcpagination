@@ -1,4 +1,71 @@
-renderedCallback(){
-        super.renderedCallback();
-        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
-    }
+.container {
+    position: absolute; /* position absolute and negative margin allows us to position our component */
+    background-color: white;
+}
+
+.filter-button {
+    top: 15rem;
+    z-index: 1000;
+    left: 0rem;
+    opacity: 60%;
+}
+
+.filter-button:hover {
+    opacity: 100%;
+}
+
+.background-white {
+    background-color: white;
+}
+
+.min-height-container {
+    min-height: 630px; /* Adjust this height as needed */
+    display: flex;
+    flex-direction: column;
+}
+.hidden {
+    display: none;
+}
+
+/* Add padding to create space for sub-checkboxes */
+.sub-option {
+    padding-left: 20px; /* Adjust the value as needed */
+}
+
+.sub-option .slds-checkbox {
+    margin-left: 5px; /* Optional: You can tweak this to match your design */
+}
+
+
+.sub-options-list {
+    margin-left: 2rem; /* Adjust as needed for proper spacing */
+}
+.sub-option {
+    padding-left: 1rem; /* Additional space between sub-options */
+}
+
+.slds-card {
+    padding-top: 0px;
+    /* padding-right: var(--slds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline, 0))); */
+    /* padding-bottom: var(--slds-c-card-spacing-block-end, var(--sds-c-card-spacing-block-end, var(--sds-c-card-spacing-block, 0))); */
+    /* padding-left: var(--slds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline, 0))); */
+    /* background: var(--slds-c-card-color-background, var(--sds-c-card-color-background, var(--slds-g-color-neutral-base-100, var(--lwc-cardColorBackground, rgb(255, 255, 255))))); */
+    border-width: 0px;
+    /* border-style: solid; */
+    /* border-color: var(--slds-c-card-color-border, var(--sds-c-card-color-border, var(--slds-g-color-border-base-1, var(--lwc-cardColorBorder, rgb(201, 201, 201))))); */
+    /* border-radius: var(--slds-c-card-radius-border, var(--sds-c-card-radius-border, var(--lwc-borderRadiusMedium, 0.25rem))); */
+    /* background-clip: padding-box; */
+    /* box-shadow: var(--slds-c-card-shadow, var(--sds-c-card-shadow, var(--lwc-cardShadow, 0 2px 2px 0 rgba(0, 0, 0, 0.10)))); */
+    /* color: var(--slds-c-card-text-color, var(--sds-c-card-text-color)); */
+}
+
+.slds-card__header {
+    padding-top: 0px;
+}
+
+.tab-container {
+   height: calc(100vh - 100px); /* Adjust based on your header size */
+   max-height: 100%;
+   overflow-y: auto;
+   border: 1px solid #d1d1d1;
+}
