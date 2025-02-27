@@ -1,1 +1,5 @@
- <lightning-tabset active-tab-value={activeTabValue} class="slds-tabs_default" style="font-size: 1rem;font-weight: 700;background-color: white;">
+
+
+<lightning-tabset active-tab-value={activeTabValue} class="slds-tabs_default" style="font-size: 1rem;font-weight: 700;background-color: white;">
+ @track activeTabValue = 'waiver';
+ this.template.querySelector('lightning-tabset').activeTabValue = 'waiver';
