@@ -1,1 +1,1 @@
-this.tableStyle = 'width: 82.8%;padding-left: 10px;background-color: #b0c4de;overflow-y: auto;';
+this.recordViewStyle = 'width: 62.5%;background-color: white;';
