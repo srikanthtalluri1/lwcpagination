@@ -1,14 +1,5 @@
-/*Stage Labels*/
-    stageLabelMap = {};
-    @wire(getStagePicklistValues)
-    wiredPicklistValues({ data, error }) {
-        if (data) {
-            this.stageLabelMap = data;
-            
-            console.log('Stage Label Map:', this.stageLabelMap);
-            this.fetchData1('connectedCall');
-        } else if (error) {
-            console.error('Error fetching picklist values:', error);
-        }
-    }
-    /*Stage Labels*/
+ Stage__c: stageLabel,//record.Waiver_Id__r?.Stage__c ?? '',
+                    statusStage: {
+                        status: record.Waiver_Id__r?.Status__c ?? '',
+                        stage: stageLabel
+                    }
