@@ -1,12 +1,22 @@
-.slds-grid.slds-grid_align-spread {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* Adjust the gap between status and badge */
-}
+import LightningDatatable from 'lightning/datatable';
+import customTextTemplate from './customTextTemplate.html';
+import customStatusStageTemplate from './customStatusStageTemplate.html';
+import customStatusStageTemplateCSS from './customStatusStageTemplateCss.css';
 
-.slds-truncate {
-    /*flex: 1;*/ /* Ensures the status text takes up available space */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+export default class CustomDatatableDataTypeProvider extends LightningDatatable {
+    static customTypes = {
+        customText: {
+            template: customTextTemplate,
+            typeAttributes: ['recordId'],
+        },
+        customStatusStage: {
+            template: customStatusStageTemplate,
+            standardCellLayout: true,
+            typeAttributes: [],
+        }
+    };
+    renderedCallback(){
+        super.renderedCallback();
+        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
+    }
 }
