@@ -1,12 +1,14 @@
-import getStagePicklistValues from '@salesforce/apex/AWP_WaiverHandlerClass.getStagePicklistValues';
-
- {
-        label: 'Status & Stage',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
+/*Stage Labels*/
+    stageLabelMap = {};
+    @wire(getStagePicklistValues)
+    wiredPicklistValues({ data, error }) {
+        if (data) {
+            this.stageLabelMap = data;
+            
+            console.log('Stage Label Map:', this.stageLabelMap);
+            this.fetchData1('connectedCall');
+        } else if (error) {
+            console.error('Error fetching picklist values:', error);
         }
-    },
+    }
+    /*Stage Labels*/
