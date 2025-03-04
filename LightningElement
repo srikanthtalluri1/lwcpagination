@@ -1,5 +1,3 @@
- Stage__c: stageLabel,//record.Waiver_Id__r?.Stage__c ?? '',
-                    statusStage: {
-                        status: record.Waiver_Id__r?.Status__c ?? '',
-                        stage: stageLabel
-                    }
+console.log('this.stageLabelMap 561 '+JSON.stringify(this.stageLabelMap));
+                const stageLabel = this.stageLabelMap[record.Waiver_Id__r?.Stage__c] || record.Waiver_Id__r?.Stage__c;
+                console.log('stageLabel '+stageLabel);
