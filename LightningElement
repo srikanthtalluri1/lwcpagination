@@ -1,1 +1,11 @@
- recordViewStyle = 'width:65%;background-color: white;';
+@AuraEnabled(cacheable=true)
+    public static Map<String, String> getStagePicklistValues() {
+        Map<String, String> stageLabelMap = new Map<String, String>();
+        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Stage__c.getDescribe();
+        List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
+        
+        for (Schema.PicklistEntry entry : picklistValues) {
+            stageLabelMap.put(entry.getValue(), entry.getLabel());
+        }
+        return stageLabelMap;
+    }
