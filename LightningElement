@@ -1,11 +1,12 @@
-@AuraEnabled(cacheable=true)
-    public static Map<String, String> getStagePicklistValues() {
-        Map<String, String> stageLabelMap = new Map<String, String>();
-        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Stage__c.getDescribe();
-        List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
-        
-        for (Schema.PicklistEntry entry : picklistValues) {
-            stageLabelMap.put(entry.getValue(), entry.getLabel());
+import getStagePicklistValues from '@salesforce/apex/AWP_WaiverHandlerClass.getStagePicklistValues';
+
+ {
+        label: 'Status & Stage',
+        fieldName: 'statusStage',
+        sortable: true,
+        type: 'customStatusStage',
+        typeAttributes: {},
+        cellAttributes: {
+            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
         }
-        return stageLabelMap;
-    }
+    },
