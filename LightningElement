@@ -1,10 +1,12 @@
-<template>
-	<div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-		<template if:true={value.status}>
-			<div class="slds-truncate">{value.status}</div>
-		</template>
-		<template if:true={value.stage}>
-			<lightning-badge label={value.stage} class="slds-m-left_xx-small"></lightning-badge>
-		</template>
-	</div>
-</template>
+.slds-grid.slds-grid_align-spread {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Adjust the gap between status and badge */
+}
+
+.slds-truncate {
+    /*flex: 1;*/ /* Ensures the status text takes up available space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
