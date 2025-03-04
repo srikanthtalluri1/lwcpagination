@@ -1,3 +1,10 @@
-console.log('this.stageLabelMap 561 '+JSON.stringify(this.stageLabelMap));
-                const stageLabel = this.stageLabelMap[record.Waiver_Id__r?.Stage__c] || record.Waiver_Id__r?.Stage__c;
-                console.log('stageLabel '+stageLabel);
+<template>
+	<div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+		<template if:true={value.status}>
+			<div class="slds-truncate">{value.status}</div>
+		</template>
+		<template if:true={value.stage}>
+			<lightning-badge label={value.stage} class="slds-m-left_xx-small"></lightning-badge>
+		</template>
+	</div>
+</template>
