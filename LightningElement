@@ -1,3 +1,5 @@
-<span class="slds-path__title" title={step.stageAndStatus}>{step.stageAndStatus}</span>
+const FIELDS = ['AWP_Architecture_Waiver_Form__c.Status__c', 'AWP_Architecture_Waiver_Form__c.Stage__c'];
 
-  <p><span class="slds-path__title slds-m-top_xx-small" title={step.stageAndStatus}>{step.stageAndStatus}</span></p>
+ @api record;
+    @api stageValue='';
+this.stageValue = data.fields.Stage__c.value;
