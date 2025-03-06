@@ -1,10 +1,2 @@
- let stageAndStatus;
-                if (!cleanArrayValue && !this.stageValue) {
-                    stageAndStatus = ''; // Both are null or empty
-                } else if (!cleanArrayValue) {
-                    stageAndStatus = this.stageValue; // Only cleanArrayValue is null or empty
-                } else if (!this.stageValue) {
-                    stageAndStatus = cleanArrayValue; // Only this.stageValue is null or empty
-                } else {
-                    stageAndStatus = cleanArrayValue + ' - ' + this.stageValue; // Both have values
-                }
+stage: this.stageValue, 
+                    stageAndStatus: stageAndStatus,
