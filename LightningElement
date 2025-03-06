@@ -1,10 +1,10 @@
-<span class="slds-path__title" title={step.stageAndStatus}>{step.stageAndStatus}</span>
-
- <p><span class="slds-path__title slds-m-top_xx-small" title={step.stageAndStatus}>{step.stageAndStatus}</span></p>
-
-
-const FIELDS = ['AWP_Architecture_Waiver_Form__c.Status__c', 'AWP_Architecture_Waiver_Form__c.Stage__c'];
-
- @api record;
-    @api stageValue='';
-this.stageValue = data.fields.Stage__c.value;
+ let stageAndStatus;
+                if (!cleanArrayValue && !this.stageValue) {
+                    stageAndStatus = ''; // Both are null or empty
+                } else if (!cleanArrayValue) {
+                    stageAndStatus = this.stageValue; // Only cleanArrayValue is null or empty
+                } else if (!this.stageValue) {
+                    stageAndStatus = cleanArrayValue; // Only this.stageValue is null or empty
+                } else {
+                    stageAndStatus = cleanArrayValue + ' - ' + this.stageValue; // Both have values
+                }
