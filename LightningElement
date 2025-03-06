@@ -1,3 +1,8 @@
+<span class="slds-path__title" title={step.stageAndStatus}>{step.stageAndStatus}</span>
+
+ <p><span class="slds-path__title slds-m-top_xx-small" title={step.stageAndStatus}>{step.stageAndStatus}</span></p>
+
+
 const FIELDS = ['AWP_Architecture_Waiver_Form__c.Status__c', 'AWP_Architecture_Waiver_Form__c.Stage__c'];
 
  @api record;
