@@ -1,25 +1,39 @@
-import LightningDatatable from 'lightning/datatable';
-import customTextTemplate from './customTextTemplate.html';
-import customStatusStageTemplate from './customStatusStageTemplate.html';
-import customStatusStageTemplateCSS from './customStatusStageTemplateCss.css';
+.slds-grid.slds-grid_align-spread {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Adjust the gap between status and badge */
+}
 
-export default class CustomDatatableDataTypeProvider extends LightningDatatable {
-    static customTypes = {
-        customText: {
-            template: customTextTemplate,
-            typeAttributes: ['recordId'],
-        },
-        customStatusStage: {
-            template: customStatusStageTemplate,
-            standardCellLayout: true,
-            typeAttributes: [],
-            cellAttributes: {
-                class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
-            }
-        }
-    };
-    renderedCallback(){
-        super.renderedCallback();
-        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
-    }
+.slds-truncate {
+    flex: 1; /* Ensures the status text takes up available space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.truncate-badge-wrapper {
+    max-width: 120px;  /* Adjust as needed */
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.truncate-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Custom badge styling */
+.custom-badge {
+    background-color: #e3e5ed; /* Light gray background */
+    color: #080707; /* Dark text color */
+    padding: 0.25rem 0.5rem; /* Adjust padding as needed */
+    border-radius: 0.75rem; /* Rounded corners */
+    font-size: 0.75rem; /* Adjust font size as needed */
+    font-weight: bold; /* Bold text */
 }
