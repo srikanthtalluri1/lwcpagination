@@ -1,1 +1,3 @@
 <span class="slds-path__title" title={step.stageAndStatus}>{step.stageAndStatus}</span>
+
+  <p><span class="slds-path__title slds-m-top_xx-small" title={step.stageAndStatus}>{step.stageAndStatus}</span></p>
