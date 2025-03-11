@@ -1,3 +1,4 @@
-  @track showSpinner = false;
-
- this.showSpinner = true;
+ setTimeout(() => {
+            // Hiding the spinner after the operation is complete
+            this.showSpinner = false;
+        }, 2000);
