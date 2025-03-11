@@ -1,8 +1,1 @@
-const today = new Date().toISOString().split('T')[0];
-        const expirationDate = new Date();
-        expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-
-       // expirationDate.setDate(expirationDate.getDate() + 1);
-        const expirationDateFormatted = expirationDate.toISOString().split('T')[0];
-        fields.Waiver_Submission_Date__c = today;
-        fields.Waiver_Expiration_Date__c = expirationDateFormatted;
+<lightning-spinner if:true={showSpinner} alternative-text="Loading" size="medium"></lightning-spinner>
