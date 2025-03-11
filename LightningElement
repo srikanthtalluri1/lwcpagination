@@ -1,4 +1,8 @@
-import WAIVER_TYPE_FIELD from '@salesforce/schema/AWP_Architecture_Waiver_Form__c.Type__c';
+const today = new Date().toISOString().split('T')[0];
+        const expirationDate = new Date();
+        expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-,
-                { index: 8, fieldName: WAIVER_TYPE_FIELD, required: true }
+       // expirationDate.setDate(expirationDate.getDate() + 1);
+        const expirationDateFormatted = expirationDate.toISOString().split('T')[0];
+        fields.Waiver_Submission_Date__c = today;
+        fields.Waiver_Expiration_Date__c = expirationDateFormatted;
