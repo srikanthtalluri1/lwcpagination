@@ -1,1 +1,3 @@
-<lightning-spinner if:true={showSpinner} alternative-text="Loading" size="medium"></lightning-spinner>
+  @track showSpinner = false;
+
+ this.showSpinner = true;
