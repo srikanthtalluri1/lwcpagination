@@ -1,13 +1,24 @@
-<template>
-    <div class="custom-align" style="display: flex;align-items: center;justify-content: center;gap: 0.5rem;">
-        <span>{value.Renew_Counter__c}</span>
-        <lightning-icon
-            if:true={value.iconName}
-            icon-name={value.iconName}
-            alternative-text={value.helpText}
-            title={value.helpText}
-            class={value.iconClass}
-            size="x-small">
-        </lightning-icon>
-    </div>
-</template>
+{
+        label: 'Waiver Expiration Date',
+        fieldName: 'waiverExpirationDate',
+        sortable: true,
+        type: 'customWaiverExpiration',
+        typeAttributes: {
+            Waiver_Expiration_Date__c: { fieldName: 'Waiver_Expiration_Date__c' }, // Pass the field value
+            expirationIconName: { fieldName: 'expirationIconName' },
+            expirationHelpText: { fieldName: 'expirationHelpText' },
+            expirationIconClass: { fieldName: 'expirationIconClass' }
+        }
+    },
+    {
+        label: 'Renew Counter',
+        fieldName: 'renewCounter',
+        sortable: true,
+        type: 'customRenewCounter',
+        typeAttributes: {
+            Renew_Counter__c: { fieldName: 'Renew_Counter__c' }, // Pass the field value
+            iconName: { fieldName: 'iconName' },
+            helpText: { fieldName: 'helpText' },
+            iconClass: { fieldName: 'iconClass' }
+        }
+    },
