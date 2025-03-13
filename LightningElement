@@ -1,12 +1,36 @@
-waiverExpirationDate: {
-                        Waiver_Expiration_Date__c: record.Waiver_Id__r?.Waiver_Expiration_Date__c ?? '',
-                        expirationIconName: expirationIconName,
-                        expirationHelpText: expirationHelpText,
-                        expirationIconClass: expirationIconClass
-                    },
-                    renewCounter: {
-                        Renew_Counter__c: record.Waiver_Id__r?.Renew_Counter__c ?? '',
-                        iconName: iconName,
-                        helpText: helpText,
-                        iconClass: iconClass
-                    },
+// Determining iconName, helpText, and iconClass based on Renew_Counter__c
+                let iconName = '';
+                let helpText = '';
+                let iconClass = '';
+                const threshold = record.Waiver_Id__r?.Renew_Counter__c;
+
+                if (record.Waiver_Id__r?.Renew_Counter__c == 2) {
+                    iconName = 'utility:warning';
+                    helpText = `Renew counter is ${threshold}`;
+                    iconClass = 'slds-icon-text-warning';
+                } else if (record.Waiver_Id__r?.Renew_Counter__c >= 3) {
+                    iconName = 'utility:alert';
+                    helpText = `Renew counter is ${threshold} or more`;
+                    iconClass = 'slds-icon-text-error';
+                }
+
+                let expirationIconName = '';
+                let expirationHelpText = '';
+                let expirationIconClass = '';
+
+                const expirationDate = new Date(record.Waiver_Id__r?.Waiver_Expiration_Date__c);
+                console.log('expirationDate 1026 '+expirationDate);
+                const today = new Date();
+                const timeDifference = expirationDate - today;
+                const daysDifference = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+                console.log('daysDifference 1030 '+daysDifference);
+
+                if (daysDifference <= 30 && daysDifference > 0) {
+                    expirationIconName = 'utility:alert';
+                    expirationHelpText = `Expires in ${daysDifference} days`;
+                    expirationIconClass = 'slds-icon-text-warning';
+                } else if (daysDifference <= 0) {
+                    expirationIconName = 'utility:warning';
+                    expirationHelpText = `Expired ${Math.abs(daysDifference)} days ago`;
+                    expirationIconClass = 'slds-icon-text-error';
+                }
