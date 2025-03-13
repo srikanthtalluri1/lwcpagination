@@ -1,4 +1,35 @@
- setTimeout(() => {
-            // Hiding the spinner after the operation is complete
-            this.showSpinner = false;
-        }, 2000);
+import LightningDatatable from 'lightning/datatable';
+import customTextTemplate from './customTextTemplate.html';
+import customStatusStageTemplate from './customStatusStageTemplate.html';
+import customRenewCounterTemplate from './customRenewCounterTemplate.html';
+import customWaiverExpirationTemplate from './customWaiverExpirationTemplate.html';
+import customStatusStageTemplateCSS from './customStatusStageTemplateCss.css';
+
+export default class CustomDatatableDataTypeProvider extends LightningDatatable {
+    static customTypes = {
+        customText: {
+            template: customTextTemplate,
+            typeAttributes: ['recordId'],
+        },
+        customStatusStage: {
+            template: customStatusStageTemplate,
+            standardCellLayout: true,
+            typeAttributes: [],
+            cellAttributes: {
+                class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
+            }
+        },
+        customRenewCounter: {
+            template: customRenewCounterTemplate,
+            typeAttributes: ['iconName', 'helpText', 'iconClass'],
+        },
+        customWaiverExpiration: {
+            template: customWaiverExpirationTemplate,
+            typeAttributes: ['expirationIconName', 'expirationHelpText', 'expirationIconClass'],
+        }
+    };
+    renderedCallback(){
+        super.renderedCallback();
+        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
+    }
+}
