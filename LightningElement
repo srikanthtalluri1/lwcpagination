@@ -1,35 +1,13 @@
-import LightningDatatable from 'lightning/datatable';
-import customTextTemplate from './customTextTemplate.html';
-import customStatusStageTemplate from './customStatusStageTemplate.html';
-import customRenewCounterTemplate from './customRenewCounterTemplate.html';
-import customWaiverExpirationTemplate from './customWaiverExpirationTemplate.html';
-import customStatusStageTemplateCSS from './customStatusStageTemplateCss.css';
-
-export default class CustomDatatableDataTypeProvider extends LightningDatatable {
-    static customTypes = {
-        customText: {
-            template: customTextTemplate,
-            typeAttributes: ['recordId'],
-        },
-        customStatusStage: {
-            template: customStatusStageTemplate,
-            standardCellLayout: true,
-            typeAttributes: [],
-            cellAttributes: {
-                class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
-            }
-        },
-        customRenewCounter: {
-            template: customRenewCounterTemplate,
-            typeAttributes: ['iconName', 'helpText', 'iconClass'],
-        },
-        customWaiverExpiration: {
-            template: customWaiverExpirationTemplate,
-            typeAttributes: ['expirationIconName', 'expirationHelpText', 'expirationIconClass'],
-        }
-    };
-    renderedCallback(){
-        super.renderedCallback();
-        this.template.querySelector('.slds-scrollable_y').style.minHeight = '100%';
-    }
-}
+<template>
+    <div class="custom-align" style="display: flex;align-items: center;justify-content: center;gap: 0.5rem;">
+        <span>{value.Renew_Counter__c}</span>
+        <lightning-icon
+            if:true={value.iconName}
+            icon-name={value.iconName}
+            alternative-text={value.helpText}
+            title={value.helpText}
+            class={value.iconClass}
+            size="x-small">
+        </lightning-icon>
+    </div>
+</template>
