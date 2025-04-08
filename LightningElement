@@ -1,1 +1,4 @@
-import getPicklistValues from '@salesforce/apex/WaiverController.getPicklistValues';
+ <lightning-combobox label="Waiver Reason" value={waiverReason} options={waiverReasonOptions}
+                                                        onchange={handleInputChangeValid} data-field="Waiver_Reason__c" 
+                                                       >
+                                                    </lightning-combobox>
