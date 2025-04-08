@@ -1,12 +1,8 @@
-waiverExpirationDate: {
-                        Waiver_Expiration_Date__c: record.Waiver_Id__r?.Waiver_Expiration_Date__c ?? '',
-                        expirationIconName: expirationIconName,
-                        expirationHelpText: expirationHelpText,
-                        expirationIconClass: expirationIconClass
-                    },
-                    renewCounter: {
-                        Renew_Counter__c: record.Waiver_Id__r?.Renew_Counter__c ?? '',
-                        iconName: iconName,
-                        helpText: helpText,
-                        iconClass: iconClass
-                    },
+//Srikant added below code to show waive Reason as picklist field 
+            getPicklistValues({ objectName: 'AWP_Architecture_Waiver_Form__c', fieldName: 'Waiver_Reason__c' })
+            .then(result => {
+                this.waiverReasonOptions = result.map(waiverReason => ({ label: waiverReason, value: waiverReason }));
+            })
+            .catch(error => {
+                console.error('Error fetching picklist values:', error);
+            });
