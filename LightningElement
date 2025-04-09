@@ -1,112 +1,77 @@
-@AuraEnabled(cacheable=true)
-public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy
-) {
-    try {
-        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-        Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-        String condition = '';
-        if (allOrMy == 'mywaivers') {
-            condition = ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
+ Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
+
+/*for (String field : fieldApiName) {
+    if (!fieldList.containsKey(field)) continue;
+
+    if (Limits.getQueries() < maxQueriesAllowed) {
+        String query = '';
+
+        if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
+            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
+        } else {
+            query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY ' + fieldList.get(field);
         }
 
-        Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries();
-
-        for (String field : fieldApiName) {
-            if (!fieldList.containsKey(field)) continue;
-            if (Limits.getQueries() >= maxQueriesAllowed) break;
-
-            String apiName = fieldList.get(field);
-            String query = '';
-
-            if (apiName == 'Affected_Standard_Portfolio1__c') {
-                query = 'SELECT Affected_Standard_Portfolio1__c, Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                        'FROM AWP_Waiver_Relationship__c ' + condition +
-                        ' GROUP BY Affected_Standard_Portfolio1__c, Affected_Standard_Portfolio1__r.Name';
-            } else {
-                query = 'SELECT ' + apiName + ', COUNT(Id) ' +
-                        'FROM AWP_Waiver_Relationship__c ' + condition +
-                        ' GROUP BY ' + apiName;
-            }
-
-            results.put(field, Database.query(query));
-        }
-
-        // Portfolio Name Mapping for Affected Standard
-        Set<Id> portfolioIds = new Set<Id>();
-        for (String field : results.keySet()) {
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    portfolioIds.add((Id) ar.get('Affected_Standard_Portfolio1__c'));
-                }
-            }
-        }
-
-        Map<Id, String> portfolioNameMap = new Map<Id, String>();
-        if (!portfolioIds.isEmpty()) {
-            for (TPM_Port__c port : [SELECT Id, Name FROM TPM_Port__c WHERE Id IN :portfolioIds]) {
-                portfolioNameMap.put(port.Id, port.Name);
-            }
-        }
-
-        // Build result map
-        for (String field : results.keySet()) {
-            List<Object> uniqueValues = new List<Object>();
-
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    Id portId = (Id) ar.get('Affected_Standard_Portfolio1__c');
-                    String name = portfolioNameMap.get(portId);
-
-                    uniqueValues.add(new Map<String, Object>{
-                        'value' => name,
-                        'id' => portId,
-                        'count' => (Integer) ar.get('expr0')
-                    });
-                }
-            } else {
-                for (AggregateResult ar : results.get(field)) {
-                    String valueKey = fieldList.get(field).replace('Waiver_Id__r.', '');
-                    uniqueValues.add(new Map<String, Object>{
-                        'value' => (String) ar.get(valueKey),
-                        'count' => (Integer) ar.get('expr0')
-                    });
-                }
-            }
-
-            fieldUniqueMap.put(field, uniqueValues);
-        }
-
-        // Portfolio → Domain Mapping
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-        List<TPM_Domain__c> domains = [
-            SELECT Id, Port__c, Name
-            FROM TPM_Domain__c
-            WHERE Port__c IN (
-                SELECT Affected_Standard_Portfolio1__c
-                FROM AWP_Waiver_Relationship__c
-                WHERE Affected_Standard_Portfolio1__c != NULL
-            )
-        ];
-
-        for (TPM_Domain__c domain : domains) {
-            if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                portfolioDomainMap.put(domain.Port__c, new List<Object>());
-            }
-            portfolioDomainMap.get(domain.Port__c).add(
-                new Map<String, Object>{
-                    'id' => domain.Id,
-                    'name' => domain.Name
-                }
-            );
-        }
-
-        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-        return fieldUniqueMap;
-
-    } catch (Exception e) {
-        System.debug('Error: ' + e.getMessage());
-        throw new AuraHandledException(e.getMessage());
+        results.put(field, Database.query(query));
+    } else {
+        // Optional: Log or handle case when you're about to exceed limits
+        System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
     }
-}
+} */
+        //Srikant 9 April to write query out of for loop
+        /*Set<String> fieldsToReplace = new Set<String>{
+          'Waiver_Reason__c', 
+              'Requesting_Portfolio__c', 
+              'Status__c', 
+              'Standard_Page_Title__c',
+              'Type__c',
+              'Stage__c'
+              }; 
+		 'Requesting Application' => 'Requesting_Application__c',
+    'Affected Standard' => 'Affected_Standard_Portfolio1__c',
+    'BARR Risk Level' => 'Waiver_Id__r.BARR_Risk_Level_UI__c',
+    'Waiver Reason' => 'Waiver_Id__r.Waiver_Reason__c',
+    'Status' => 'Waiver_Id__r.Status__c',
+    'Type' => 'Waiver_Id__r.Type__c'*/
+        String query = '';
+        string fieldApiNameString = string.join(fieldApiName,',');
+        if(fieldApiNameString.contains('Affected Standard')){
+            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
+            results.put('Affected Standard', Database.query(query));
+        }
+        if(fieldApiNameString.contains('Requesting Application')){
+            query = 'SELECT Requesting_Application__c, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Requesting_Application__c' ;
+            results.put('Requesting Application', Database.query(query));
+        }
+        if(fieldApiNameString.contains('BARR Risk Level')){
+            query = 'SELECT Waiver_Id__r.BARR_Risk_Level_UI__c, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Waiver_Id__r.BARR_Risk_Level_UI__c' ;
+            results.put('BARR Risk Level', Database.query(query));
+        }
+        if(fieldApiNameString.contains('Waiver Reason')){
+            query = 'SELECT Waiver_Id__r.Waiver_Reason__c, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Waiver_Id__r.Waiver_Reason__c' ;
+            results.put('Waiver Reason', Database.query(query));
+        }
+        if(fieldApiNameString.contains('Status')){
+            query = 'SELECT Waiver_Id__r.Status__c, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Waiver_Id__r.Status__c' ;
+             results.put('Status', Database.query(query));
+        }
+        if(fieldApiNameString.contains('Type')){
+            query = 'SELECT Waiver_Id__r.Type__c, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Waiver_Id__r.Type__c' ;
+             results.put('Type', Database.query(query));
+        }
