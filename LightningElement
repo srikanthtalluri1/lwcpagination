@@ -1,25 +1,120 @@
-Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
-
-for (String field : fieldApiName) {
-    if (!fieldList.containsKey(field)) continue;
-
-    if (Limits.getQueries() < maxQueriesAllowed) {
-        String query = '';
-
-        if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
-        } else {
-            query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY ' + fieldList.get(field);
+@AuraEnabled(cacheable=true)
+public static Map<String, Object> getUniqueValues(
+    List<String> fieldApiName,
+    String allOrMy
+) {
+    try {
+        Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
+        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
+        String condition = '';
+        
+        if (allOrMy == 'mywaivers') {
+            condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
         }
 
-        results.put(field, Database.query(query));
-    } else {
-        // Optional: Log or handle case when you're about to exceed limits
-        System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
+        Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
+
+        for (String field : fieldApiName) {
+            if (!fieldList.containsKey(field)) continue;
+
+            if (Limits.getQueries() < maxQueriesAllowed) {
+                String query = '';
+
+                if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
+                    query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
+                            'FROM AWP_Waiver_Relationship__c ' + condition +
+                            ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
+                } else {
+                    query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
+                            'FROM AWP_Waiver_Relationship__c ' + condition +
+                            ' GROUP BY ' + fieldList.get(field);
+                }
+
+                results.put(field, Database.query(query));
+            } else {
+                System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
+            }
+        }
+
+        // After aggregation, fetch the portfolio names using a second query
+        Set<Id> portfolioIds = new Set<Id>();
+        for (String field : results.keySet()) {
+            if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
+                for (AggregateResult ar : results.get(field)) {
+                    portfolioIds.add((Id) ar.get('Affected_Standard_Portfolio1__c'));
+                }
+            }
+        }
+
+        Map<Id, String> portfolioNameMap = new Map<Id, String>();
+        if (!portfolioIds.isEmpty()) {
+            List<TPM_Port__c> portfolios = [
+                SELECT Id, Name FROM TPM_Port__c WHERE Id IN :portfolioIds
+            ];
+            for (TPM_Port__c portfolio : portfolios) {
+                portfolioNameMap.put(portfolio.Id, portfolio.Name);
+            }
+        }
+
+        for (String field : results.keySet()) {
+            List<Object> uniqueValues = new List<Object>();
+
+            if (fieldList.get(field) != 'Affected_Standard_Portfolio__c' && fieldList.get(field) != 'Affected_Standard_Portfolio1__c') {
+                for (AggregateResult ar : results.get(field)) {
+                    Map<String, Object> uni = new Map<String, Object>();
+                    uni.put(
+                        'value',
+                        (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
+                    );
+                    uni.put('count', (Integer) ar.get('expr0'));
+                    uniqueValues.add((Object) uni);
+                }
+            }
+
+            if (fieldList.get(field) == 'Affected_Standard_Portfolio__c' || fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
+                for (AggregateResult ar : results.get(field)) {
+                    Id portfolioId = (Id) ar.get('Affected_Standard_Portfolio1__c');
+                    Map<String, Object> uni = new Map<String, Object>();
+                    String portfolioName = portfolioNameMap.get(portfolioId);
+                    uni.put('value', portfolioName);
+                    uni.put('id', portfolioId);
+                    uni.put('count', (Integer) ar.get('expr0'));
+                    uniqueValues.add((Object) uni);
+                }
+            }
+
+            fieldUniqueMap.put(field, uniqueValues);
+        }
+
+        // Domains related to portfolio logic
+        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
+        List<TPM_Domain__c> domains = [
+            SELECT Id, Port__c, Name
+            FROM TPM_Domain__c
+            WHERE Port__c IN (
+                SELECT Affected_Standard_Portfolio1__c
+                FROM AWP_Waiver_Relationship__c
+                WHERE Affected_Standard_Portfolio1__c != NULL
+            )
+        ];
+
+        for (TPM_Domain__c domain : domains) {
+            if (!portfolioDomainMap.containsKey(domain.Port__c)) {
+                portfolioDomainMap.put(domain.Port__c, new List<Object>());
+            }
+            Map<String, Object> domainData = new Map<String, Object>();
+            domainData.put('id', domain.Id);
+            domainData.put('name', domain.Name);
+            portfolioDomainMap.get(domain.Port__c).add(domainData);
+        }
+
+        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
+
+        return fieldUniqueMap;
+
+    } catch (Exception e) {
+        System.debug('message' + e.getMessage());
+        System.debug('stack' + e.getStackTraceString());
+        throw new AuraHandledException(e.getMessage());
     }
 }
-
