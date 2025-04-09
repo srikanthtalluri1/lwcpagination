@@ -1,4 +1,25 @@
- <lightning-combobox label="Waiver Reason" value={waiverReason} options={waiverReasonOptions}
-                                                        onchange={handleInputChangeValid} data-field="Waiver_Reason__c" 
-                                                       >
-                                                    </lightning-combobox>
+Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
+
+for (String field : fieldApiName) {
+    if (!fieldList.containsKey(field)) continue;
+
+    if (Limits.getQueries() < maxQueriesAllowed) {
+        String query = '';
+
+        if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
+            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
+        } else {
+            query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition +
+                    ' GROUP BY ' + fieldList.get(field);
+        }
+
+        results.put(field, Database.query(query));
+    } else {
+        // Optional: Log or handle case when you're about to exceed limits
+        System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
+    }
+}
+
