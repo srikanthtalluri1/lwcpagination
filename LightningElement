@@ -1,1 +1,1 @@
-const newUrl = `${this.windowUrl.href}/w/${this.recordId}`;
+ let windowUrl = new URL(window.location.href);
