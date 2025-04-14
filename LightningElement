@@ -1,7 +1,2 @@
- @AuraEnabled(cacheable=true)
-    public static AWP_Architecture_Waiver_Form__c getRecordonLoad(String recordId) {
-        
-       AWP_Architecture_Waiver_Form__c  Waiver =[SELECT id, Name from AWP_Architecture_Waiver_Form__c 
-                                                WHERE Id=:recordId];
-        return Waiver;
-    }
+import getOnLoadRecordData from '@salesforce/apex/AWP_WaiverHandlerClass.getRecordonLoad';
+ @track recordName;
