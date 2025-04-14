@@ -1,2 +1,9 @@
-import getOnLoadRecordData from '@salesforce/apex/AWP_WaiverHandlerClass.getRecordonLoad';
- @track recordName;
+ //Srikant Changes for Refresh Issue
+        let pathName= this.windowUrl.pathname;
+        let converstring = pathName.toString();
+        console.log('converstring ',converstring);
+        let resultstring = converstring.substring(converstring.lastIndexOf("/")+1);
+        console.log('resultstring ',resultstring);
+        if(resultstring.includes('a1d')){
+            this.handleOnLoadView(resultstring, 'view');
+        }
