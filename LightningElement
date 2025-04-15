@@ -1,1 +1,11 @@
-import { RefreshEvent } from 'lightning/refresh';
+ /*Back To List View Changes*/
+    handleClose(){
+        let windowUrl = new URL(window.location.href);
+        console.log('windowUrl ',windowUrl);
+        let pathName= windowUrl.href;
+        let converstring = pathName.toString();
+        let result = converstring.slice(0, converstring.lastIndexOf("w"));
+        console.log('converstring ',converstring);
+        console.log('converstring ',result);
+        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
+    }
