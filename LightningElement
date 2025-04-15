@@ -1,15 +1,34 @@
- if(fieldName=='Waiver_Expiration_Date__c'){
-                String jsonStr = JSON.serialize(waiverData.get(fieldName));
-                list<string> lstdate = jsonStr.split('-');
-                System.debug('lstdate '+lstdate);
-                string newdate= lstdate[1]+'/'+lstdate[2]+'/'+lstdate[0];
-                string datenew = newdate.replaceAll('"','');
-                system.debug('datenew '+datenew);
-               date wdate = date.parse(datenew);
-                system.debug('wdate '+wdate);
-                waiver.put(fieldName, wdate);
-            }
-            else{
-                waiver.put(fieldName, waiverData.get(fieldName));
-                system.debug('fieldName '+fieldName);
-            }
+fetchAfterSave() {
+        setTimeout(() => {
+            fetchWaiverDetails({ recordId: this.recordId })
+                .then(data => {
+                    if (data) {
+                        this.wiredRecord = data;
+                        console.log('Data ',JSON.stringify(data));
+                        this.name = data.Name;
+                        this.status = data.Status;
+                        this.waiverReason = data.waiverReason;
+                        // this.rationaleForWaiver = data.RationaleForWaiver;
+                        this.WaiverExpirationDate=data.WaiverExpirationDate; //Srikant added code to update the field to database
+                        this.renewCounter = data.RenewCounter;
+                        // this.originalWaiverSubmissionDate = data.OriginalWaiverSubmissionDate;
+
+                       // this.relTypeOptions = data.relTypeOptions.map(reason => ({ label: reason, value: reason })); //Srikant Commented to do fix update 15 April
+                         this.dispatchEvent(new RefreshEvent()); //Srikan to refresh record view form after save
+                        this.isLoading = false;
+                        console.log('checking fetchAfterSave');
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                       this.dispatchEvent(new RefreshEvent()); //Srikan to refresh record view form after save
+                      // window.location.reload();
+                    console.error('Error fetching waiver details:', JSON.stringify(error));
+                    this.isLoading = false;
+                });
+        }, 2000); // Delay of 500ms
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
