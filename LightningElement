@@ -1,13 +1,23 @@
-let changeurl=this.windowUrl.href.toString();
-            let finalUrl=this.windowUrl.href.toString();
-            if(this.windowUrl.href.includes('a1dHo')){
-                changeurl=changeurl.slice(0, changeurl.lastIndexOf("/"));
-                finalUrl=`${changeurl}/${this.recordId}`;
-                
-            }else{
-                finalUrl =`${changeurl}/w/${this.recordId}`;
-            }
-            const newUrl = finalUrl;
-            window.history.pushState({}, '', newUrl);
-            /*Srikanth Open Url Changes*/
-            location.reload();
+import getRelationship from '@salesforce/apex/AWP_WaiverHandlerClass.getRelationship';
+
+relationShipId;
+
+ getRelationship({ recordId: this.recordId}).then((data) => {
+                        const reldata = data;
+                        this.relationShipId=reldata.Id;
+			            console.log('relationShipId ', this.relationShipId);
+
+                    }).catch((error) => {
+                        console.error(error);
+                       
+                    });
+
+relation-ship-id={relationShipId}
+
+ @AuraEnabled(cacheable=true)
+    public static AWP_Waiver_Relationship__c  getRelationship(String recordId) {
+        
+       AWP_Waiver_Relationship__c   rel =[SELECT Id, Waiver_Id__c  from AWP_Waiver_Relationship__c 
+                                                WHERE Waiver_Id__c =:recordId limit 1];
+        return rel;
+    }
