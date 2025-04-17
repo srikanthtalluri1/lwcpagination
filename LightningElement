@@ -1,11 +1,1 @@
-if (tab == 'Application' && allOrMy == 'allwaivers') {
-    String whereClause = ' Waiver_Id_c.Type_c = \'Application\' ';
-    
-    if (Test.isRunningTest()) {
-        query += (!query.contains('WHERE')) ? ' WHERE ' + whereClause : ' AND ' + whereClause;
-        countQuery += (!countQuery.contains('WHERE')) ? ' WHERE ' + whereClause : ' AND ' + whereClause;
-    } else {
-        query += (!query.contains('WHERE')) ? ' WHERE ' + whereClause : ' AND ' + whereClause;
-        countQuery += (!countQuery.contains('WHERE')) ? ' WHERE ' + whereClause : ' AND ' + whereClause;
-    }
-}
+<lightning-output-field field-name="Name" ></lightning-output-field>
