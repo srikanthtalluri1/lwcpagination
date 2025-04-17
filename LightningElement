@@ -1,20 +1,13 @@
- handleClose(){
-        let windowUrl = new URL(window.location.href);
-        console.log('windowUrl ',windowUrl);
-        let pathName= windowUrl.href;
-        let converstring = pathName.toString();
-        let result = converstring.slice(0, converstring.lastIndexOf("w"));
-        console.log('converstring close',converstring);
-        console.log('converstring close',result);
-         window.location.replace(result);
-                    if (window.PerformanceNavigationTiming) {
-            console.info('window.performance works fine on this browser');
-            
-            if (PerformanceNavigationTiming.type === 'reload') {
-                console.info('This page is reloaded');
-            } else {
-                console.info('This page is not reloaded');
+let changeurl=this.windowUrl.href.toString();
+            let finalUrl=this.windowUrl.href.toString();
+            if(this.windowUrl.href.includes('a1dHo')){
+                changeurl=changeurl.slice(0, changeurl.lastIndexOf("/"));
+                finalUrl=`${changeurl}/${this.recordId}`;
+                
+            }else{
+                finalUrl =`${changeurl}/w/${this.recordId}`;
             }
-            }
-        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
-    }
+            const newUrl = finalUrl;
+            window.history.pushState({}, '', newUrl);
+            /*Srikanth Open Url Changes*/
+            location.reload();
