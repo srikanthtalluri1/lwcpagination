@@ -11,3 +11,4 @@ if (tab == 'Application' && allOrMy == 'allwaivers') {
     String countFilter = (countQuery.contains('WHERE') ? ' AND ' : ' WHERE ') + "Waiver_Id__r.Type__c = 'Application'";
     countQuery += countFilter;
 }
+s
