@@ -1,1 +1,20 @@
-<lightning-output-field field-name="Name" ></lightning-output-field>
+<lightning-record-edit-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy"
+                                        onsubmit={handleSubmitt} onsuccess={handleSuccess}>
+                                        <div class="slds-grid slds-wrap slds-theme_default">
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input-field field-name="Name" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Waiver_Reason__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Rationale_for_Waiver__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Original_Waiver_Submission_Date__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Requesting_TPM_Application__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Type__c" onchange={handlechangew}></lightning-input-field>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input-field field-name="Status__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Renew_Counter__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Resolution_Plan__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Planned_Date_of_Resolution__c" onchange={handlechangew}></lightning-input-field>
+                                                <lightning-input-field field-name="Waiver_Expiration_Date__c" onchange={handlechangew}></lightning-input-field>
+                                            </div>
+                                        </div>
+                                    </lightning-record-edit-form>
