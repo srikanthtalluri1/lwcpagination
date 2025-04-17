@@ -1,23 +1,5 @@
-import getRelationship from '@salesforce/apex/AWP_WaiverHandlerClass.getRelationship';
-
-relationShipId;
-
- getRelationship({ recordId: this.recordId}).then((data) => {
-                        const reldata = data;
-                        this.relationShipId=reldata.Id;
-			            console.log('relationShipId ', this.relationShipId);
-
-                    }).catch((error) => {
-                        console.error(error);
-                       
-                    });
-
-relation-ship-id={relationShipId}
-
- @AuraEnabled(cacheable=true)
-    public static AWP_Waiver_Relationship__c  getRelationship(String recordId) {
-        
-       AWP_Waiver_Relationship__c   rel =[SELECT Id, Waiver_Id__c  from AWP_Waiver_Relationship__c 
-                                                WHERE Waiver_Id__c =:recordId limit 1];
-        return rel;
-    }
+if (tab == 'Application' && allOrMy == 'allwaivers') {
+    String filter = (!query.contains('WHERE') ? ' WHERE ' : ' AND ') + "Waiver_Id__r.Type__c = 'Application'";
+    query += filter;
+    countQuery += (!countQuery.contains('WHERE') ? ' WHERE ' : ' AND ') + "Waiver_Id__r.Type__c = 'Application'";
+}
