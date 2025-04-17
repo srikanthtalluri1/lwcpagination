@@ -1,16 +1,8 @@
 if (tab == 'Application' && allOrMy == 'allwaivers') {
-    String condition = "Waiver_Id__r.Type__c = 'Application'";
-
-    if (Test.isRunningTest()) {
-        query += query.contains('WHERE') ? ' AND ' + condition : ' WHERE ' + condition;
-        countQuery += countQuery.contains('WHERE') ? ' AND ' + condition : ' WHERE ' + condition;
-    } else {
-        query += query.contains('WHERE')
-            ? ' AND ' + condition
-            : ' WHERE ' + condition;
-
-        countQuery += countQuery.contains('WHERE')
-            ? ' AND ' + condition
-            : ' WHERE ' + condition;
-    }
+    String condition = ' Waiver_Id_c.Type_c = \'Application\' ';
+    String prefix = !query.contains('WHERE') ? ' WHERE ' : ' AND ';
+    query += prefix + condition;
+    
+    prefix = !countQuery.contains('WHERE') ? ' WHERE ' : ' AND ';
+    countQuery += prefix + condition;
 }
