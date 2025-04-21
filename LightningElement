@@ -1,20 +1,33 @@
-<lightning-record-edit-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c" density="comfy"
-                                        onsubmit={handleSubmitt} onsuccess={handleSuccess}>
-                                        <div class="slds-grid slds-wrap slds-theme_default">
-                                            <div class="slds-col slds-size_1-of-2">
-                                                <lightning-input-field field-name="Name" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Waiver_Reason__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Rationale_for_Waiver__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Original_Waiver_Submission_Date__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Requesting_TPM_Application__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Type__c" onchange={handlechangew}></lightning-input-field>
-                                            </div>
-                                            <div class="slds-col slds-size_1-of-2">
-                                                <lightning-input-field field-name="Status__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Renew_Counter__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Resolution_Plan__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Planned_Date_of_Resolution__c" onchange={handlechangew}></lightning-input-field>
-                                                <lightning-input-field field-name="Waiver_Expiration_Date__c" onchange={handlechangew}></lightning-input-field>
-                                            </div>
-                                        </div>
-                                    </lightning-record-edit-form>
+ handlechangew(event){
+       // console.log('event.target.value '+event.target);
+       // console.log('event.target.value '+event.target.detail);
+        const field = event.target.fieldName;
+       // console.log('event.detail.fields '+field);
+        
+        const relstionShipFields = this.template.querySelectorAll(
+            'lightning-record-edit-form'
+        );
+        console.log('relstionShipFields '+JSON.stringify(relstionShipFields.objectAapiName));
+        const inputFields = this.template.querySelectorAll(
+            'lightning-input-field'
+        );
+        if (inputFields) {
+            inputFields.forEach(field => {
+               console.log('event.detail.fields '+field.fieldName);
+              
+                console.log('event.detail.fields '+JSON.stringify(field.fieldName));
+                console.log('event.detail.fields '+JSON.stringify(field.value));
+                if(field.fieldName =='Standard__c'||  field.fieldName =='Standard_Title__c'){
+                    this.waiverRelationshipData[field.fieldName] = field.value; 
+                    console.log('checking in relationship loop');
+                }else{
+                this.waiverData[field.fieldName] = field.value;  // Store main record field value
+                }   
+            });
+        }
+
+       
+            
+        
+        console.log('event.detail.this.waiverData '+JSON.stringify(this.waiverData));
+    }
