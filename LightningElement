@@ -1,33 +1,10 @@
- handlechangew(event){
-       // console.log('event.target.value '+event.target);
-       // console.log('event.target.value '+event.target.detail);
-        const field = event.target.fieldName;
-       // console.log('event.detail.fields '+field);
-        
-        const relstionShipFields = this.template.querySelectorAll(
-            'lightning-record-edit-form'
-        );
-        console.log('relstionShipFields '+JSON.stringify(relstionShipFields.objectAapiName));
-        const inputFields = this.template.querySelectorAll(
-            'lightning-input-field'
-        );
-        if (inputFields) {
-            inputFields.forEach(field => {
-               console.log('event.detail.fields '+field.fieldName);
-              
-                console.log('event.detail.fields '+JSON.stringify(field.fieldName));
-                console.log('event.detail.fields '+JSON.stringify(field.value));
-                if(field.fieldName =='Standard__c'||  field.fieldName =='Standard_Title__c'){
-                    this.waiverRelationshipData[field.fieldName] = field.value; 
-                    console.log('checking in relationship loop');
-                }else{
-                this.waiverData[field.fieldName] = field.value;  // Store main record field value
-                }   
-            });
-        }
-
-       
-            
-        
-        console.log('event.detail.this.waiverData '+JSON.stringify(this.waiverData));
-    }
+ if(!sortBy.contains('Waiver_Id__r.')){
+        sortBy='Waiver_Id__r.'+sortBy; 
+      }
+      if(sortBy.contains('renewCounter')){
+          sortBy= 'Waiver_Id__r.Renew_Counter__c';
+      }
+      if(sortBy.contains('waiverExpirationDate')){
+          sortBy= 'Waiver_Id__r.Waiver_Expiration_Date__c';
+      }
+      system.debug('sortBy '+sortBy);
