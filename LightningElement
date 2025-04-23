@@ -1,9 +1,13 @@
- if (daysDifference <= 30 && daysDifference > 0) {
-                    expirationIconName = 'utility:alert';
-                    expirationHelpText = `Expires in ${daysDifference} days`;
-                    expirationIconClass = 'slds-icon-text-warning';
-                } else if (daysDifference <= 0) {
-                    expirationIconName = 'utility:warning';
-                    expirationHelpText = `Expired ${Math.abs(daysDifference)} days ago`;
-                    expirationIconClass = 'slds-icon-text-error';
-                }
+<template>
+    <div class="custom-align" style="display: flex;align-items: center;justify-content: center;gap: 0.5rem;">
+        <span>{value.Waiver_Expiration_Date__c}</span>
+        <lightning-icon
+            if:true={value.expirationIconName}
+            icon-name={value.expirationIconName}
+            alternative-text={value.expirationHelpText}
+            title={value.expirationHelpText}
+            class={value.expirationIconClass}
+            size="x-small">
+        </lightning-icon>
+    </div>
+</template>
