@@ -1,13 +1,6 @@
-<template>
-    <div class="custom-align" style="display: flex;align-items: center;justify-content: center;gap: 0.5rem;">
-        <span>{value.Waiver_Expiration_Date__c}</span>
-        <lightning-icon
-            if:true={value.expirationIconName}
-            icon-name={value.expirationIconName}
-            alternative-text={value.expirationHelpText}
-            title={value.expirationHelpText}
-            class={value.expirationIconClass}
-            size="x-small">
-        </lightning-icon>
-    </div>
-</template>
+  <lightning-layout multiple-rows="true" class="slds-color__background_gray-2" style="height: 80vh;"><!---->
+            <template if:true={showFilter}>
+                <lightning-layout-item padding="around-small" size={leftNavSize}  class="slds-scrollable_y " style="height: 80vh;">
+
+position: sticky;
+     bottom: 5px;
