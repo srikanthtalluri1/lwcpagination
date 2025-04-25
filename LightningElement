@@ -1,6 +1,17 @@
-  <lightning-layout multiple-rows="true" class="slds-color__background_gray-2" style="height: 80vh;"><!---->
-            <template if:true={showFilter}>
-                <lightning-layout-item padding="around-small" size={leftNavSize}  class="slds-scrollable_y " style="height: 80vh;">
-
-position: sticky;
-     bottom: 5px;
+let errorArray='';
+       if(!this.waiverData['Name']){
+        console.log('checking here');
+        errorArray = 'Name' ;
+        this.isError=true;
+       }
+       if(!this.waiverData['Renew_Counter__c']){
+        errorArray = errorArray+' , '+'Renew Counter';
+         this.isError=true;
+       }
+       
+        console.log('checking ',this.waiverData['Name']);
+        console.log('checking errorArray ',errorArray);
+        if(this.isError){
+           this.showToast('Error', `${errorArray} fields are required` , 'error');  
+        }
+        if(this.isError==false){
