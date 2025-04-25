@@ -15,3 +15,8 @@ let errorArray='';
            this.showToast('Error', `${errorArray} fields are required` , 'error');  
         }
         if(this.isError==false){
+
+ }
+        this.isError=false;
+
+isError= false;
