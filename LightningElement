@@ -1,4 +1,2 @@
- <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch">
 
-<lightning-layout-item padding="around-small" size={leftNavSize}  class="slds-scrollable_y slds-color__background_gray-2" style="min-height: 100vh;"><!--size="12"-->
-
+                <div style="width:0.5%; background-color: #b0c4de;padding-left: 10px;">
