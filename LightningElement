@@ -1,9 +1,1 @@
-.tab-container {  
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  margin: -12px;
-  
-}
+<div class="slds-page-header__col-details" style="padding-left: 2rem; padding-right: 2rem;">
