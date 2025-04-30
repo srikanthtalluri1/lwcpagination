@@ -1,1 +1,1 @@
-Select Id, Namespaceprefix,developername,TableEnumOrId from customfield where developername LIKE ‘%(FIELDNAME)%’
+ <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch">
