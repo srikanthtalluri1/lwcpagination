@@ -1,5 +1,1 @@
-if(field.fieldName =='Waiver_Reason__c' && field.value =='Other'){
-                    this.isrequired=true;
-                }else if(field.fieldName =='Waiver_Reason__c' && field.value !='Other'){
-                    this.isrequired=false;
-                }  
+ if(this.waiverData['Waiver_Reason__c'] == 'Other' && !this.waiverData['Renew_Counter__c']){
