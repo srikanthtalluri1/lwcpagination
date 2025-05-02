@@ -1,1 +1,5 @@
-              String filterQuery = (!query.contains(' WHERE ') ? ' WHERE (' : ' AND (');
+if(field.fieldName =='Waiver_Reason__c' && field.value =='Other'){
+                    this.isrequired=true;
+                }else if(field.fieldName =='Waiver_Reason__c' && field.value !='Other'){
+                    this.isrequired=false;
+                }  
