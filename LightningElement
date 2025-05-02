@@ -1,1 +1,1 @@
- if(this.waiverData['Waiver_Reason__c'] == 'Other' && !this.waiverData['Renew_Counter__c']){
+ <div class="custom-align" style="display: flex;align-items: left;justify-content: left;gap: 0.5rem;">
