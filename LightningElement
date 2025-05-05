@@ -1,1 +1,3 @@
- <div class="custom-align" style="display: flex;align-items: left;justify-content: left;gap: 0.5rem;">
+ window.history.pushState({}, '', result);
+
+ const result = converstring.slice(0, converstring.lastIndexOf("w"));
