@@ -1,5 +1,18 @@
- variant={value.iconClass}
+ isFromhandleWaiverChange= false;
 
- iconClass = 'error';
+ if(this.isFromhandleWaiverChange==true){
+            console.log('checking here 586');
+            this.resetPaginationState();
+        this.searchKey = '';
+        this.sortedDirection = 'DESC';
+        this.sortedBy = 'Name';
+        this.currentPage = 1;//
+        /*Lazy Loading*/
+        this.rowOffSet = 0;
+        this.records = [];
+            /*Lazy Loading*/
+        }
 
-iconClass = 'warning';
+ this.isFromhandleWaiverChange=true;
+
+ this.fetchDataAsync();
