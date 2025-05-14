@@ -1,9 +1,9 @@
-isFilterValue = false;
-
- if(this.isFilterValue==false){
-}
-
- this.isFilterValue = true;
-
- this.isFilterValue = false;
-
+this.filters = this._filteredFieldValues.map(x => {
+                    return {
+                        [x.filterFieldApiName]: x.selectedValue,
+                        uniqueKey: `${x.id}-${x.selectedValue}`
+                    }
+                     });
+                this.records = [];
+                console.log('this.filters 1453 '+JSON.stringify(this.filters));
+                this.fetchData();
