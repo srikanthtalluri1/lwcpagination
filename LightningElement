@@ -1,3 +1,6 @@
+
+`${month}/${day}/${year}`;
+
 const month = String(d.getMonth() + 1).padStart(2, '0'); // getMonth() is zero-based
   const day = String(d.getDate()).padStart(2, '0');
   const year = d.getFullYear();
