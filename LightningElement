@@ -1,3 +1,7 @@
+var dateformat = month/day/year
+
+dateformat.incudes('NaN')?'':dateformat;
+
 
 `${month}/${day}/${year}`;
 
