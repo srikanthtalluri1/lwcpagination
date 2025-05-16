@@ -1,18 +1,7 @@
-var dateformat = month/day/year
+handleLoad(event){
+         
+        this.isLoading = false;
+    
+    }
 
-dateformat.incudes('NaN')?'':dateformat;
-
-
-`${month}/${day}/${year}`;
-
-const month = String(d.getMonth() + 1).padStart(2, '0'); // getMonth() is zero-based
-  const day = String(d.getDate()).padStart(2, '0');
-  const year = d.getFullYear();
-
-
-const date = new Date(); const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'short' }); const formattedDate = formatter.format(date); console.log(formattedDate);
-const formatter = new Intl.DateTimeFormat('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }); const formattedDate = formatter.format(date);
-
-
-var date = new Date('2010-10-11T00:00:00+05:30');
-    alert(((date.getMonth() > 😍 ? (date.getMonth() + 1) : ('0' + (date.getMonth() + 1))) + '/' + ((date.getDate() > 9) ? date.getDate() : ('0' + date.getDate())) + '/' + date.getFullYear());
+onload={handleLoad}
