@@ -1,7 +1,6 @@
-handleLoad(event){
-         
-        this.isLoading = false;
-    
-    }
+import { getRecord, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 
-onload={handleLoad}
+ notifyRecordUpdateAvailable([{recordId: this.recordId}]);
+                this.isFooterShow=false;
+
+ this.isLoading =true;
