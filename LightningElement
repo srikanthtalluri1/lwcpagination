@@ -1,6 +1,1 @@
-import { getRecord, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
-
- notifyRecordUpdateAvailable([{recordId: this.recordId}]);
-                this.isFooterShow=false;
-
- this.isLoading =true;
+HYPERLINK("https://apps.usaa.com/entrprise/emplyee-directory?emplNum="& Employee__r.EmployeeId__c , Employee__r.Name , "_blank")
