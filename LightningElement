@@ -5,3 +5,14 @@ this.listOfArray=[];
                         this.listOfArray.push(x.selectedValue);
                     console.log('this.listOfArray ',this.listOfArray);
                     }
+
+
+  this.listOfArray=[];
+                             this._filteredFieldValues.forEach(selVal => {
+                            if(selVal["filterField"] == (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label) && selectedFilter.includes(selVal["filterField"])){
+                               // console.log(JSON.stringify(selVal["selectedValue"]));
+                                this.listOfArray = selVal["selectedValue"];
+                                console.log(JSON.stringify(this.listOfArray));
+                            }});
+
+selectedValue: this.listOfArray,
