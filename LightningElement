@@ -1,1 +1,7 @@
-HYPERLINK("https://apps.usaa.com/entrprise/emplyee-directory?emplNum="& Employee__r.EmployeeId__c , Employee__r.Name , "_blank")
+this.listOfArray=[];
+                this.filters = this._filteredFieldValues.map(x => {
+                    console.log('Selected Filter values:', JSON.stringify(x.selectedValue));
+                    if(x.selectedValue.length !==0){
+                        this.listOfArray.push(x.selectedValue);
+                    console.log('this.listOfArray ',this.listOfArray);
+                    }
