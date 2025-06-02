@@ -1,3 +1,6 @@
+this.isFromhandleWaiverChange=true;
+                this.fetchDataAsync();
+
 this.listOfArray=[];
                 this.filters = this._filteredFieldValues.map(x => {
                     console.log('Selected Filter values:', JSON.stringify(x.selectedValue));
