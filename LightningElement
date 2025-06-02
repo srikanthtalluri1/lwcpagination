@@ -1,21 +1,8 @@
-this.isFromhandleWaiverChange=true;
-                this.fetchDataAsync();
+ <div class="filterContainer">
 
-this.listOfArray=[];
-                this.filters = this._filteredFieldValues.map(x => {
-                    console.log('Selected Filter values:', JSON.stringify(x.selectedValue));
-                    if(x.selectedValue.length !==0){
-                        this.listOfArray.push(x.selectedValue);
-                    console.log('this.listOfArray ',this.listOfArray);
-                    }
+<div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
 
-
-  this.listOfArray=[];
-                             this._filteredFieldValues.forEach(selVal => {
-                            if(selVal["filterField"] == (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label) && selectedFilter.includes(selVal["filterField"])){
-                               // console.log(JSON.stringify(selVal["selectedValue"]));
-                                this.listOfArray = selVal["selectedValue"];
-                                console.log(JSON.stringify(this.listOfArray));
-                            }});
-
-selectedValue: this.listOfArray,
+.filterContainer{
+    max-height: 70vh;
+    
+}
