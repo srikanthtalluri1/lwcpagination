@@ -1,8 +1,8 @@
- <div class="filterContainer">
-
-<div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
-
-.filterContainer{
-    max-height: 70vh;
-    
-}
+system.debug('Check filterQuery '+filterQuery);
+              String lastChar = filterQuery.substring(filterQuery.length() - 1);
+              system.debug('Check filterQuery '+lastChar);
+              if(lastChar=='('){
+                  filterQuery='';
+              }else{
+              filterQuery = filterQuery.removeEnd(' AND ') + ') ';
+              }
