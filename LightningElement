@@ -11,3 +11,12 @@
                 this.historyRecordsLength = this.historyRecords.length;
                 console.log('this.historyRecords '+this.historyRecords);
                 this.error = undefined;
+
+  Map<String,Schema.SObjectField> mfields = Schema.AWP_Architecture_Waiver_Form__c.SObjectType.getDescribe().fields.getMap();
+            system.debug('mfields '+mfields);
+            String fieldLabel = formHistory.Field;
+            if(formHistory.Field != null && mfields.get(formHistory.Field) != null){
+            Schema.DescribeFieldResult fieldResult = mfields.get(formHistory.Field).getDescribe();
+            System.debug(fieldResult.getLabel());
+                fieldLabel=fieldResult.getLabel();
+            }
