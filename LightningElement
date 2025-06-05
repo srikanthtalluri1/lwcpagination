@@ -1,8 +1,21 @@
-<template if:true={value.stage}>
-    <div class="slds-truncate" title={value.stage}>
-        <span class="truncate-text custom-badge">
-            {value.stage}
-        </span>
+<template>
+    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+         style="display: flex; align-items: center; gap: 0.5rem;">
+         
+        <template if:true={value.status}>
+            <div class="slds-truncate" title={value.status}>
+                {value.status}
+            </div>
+        </template>
+
+        <template if:true={value.stage}>
+            <div class="slds-truncate" title={value.stage}>
+                <span class="truncate-text custom-badge">
+                    {value.stage}
+                </span>
+            </div>
+        </template>
+
     </div>
 </template>
 
