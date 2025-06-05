@@ -1,25 +1,31 @@
-@isTest
-static void testGetWaiverHistoryRecordsWithAOWValue() {
-    AWP_Architecture_Waiver_Form__c waiverRecord = new AWP_Architecture_Waiver_Form__c(
-        Name = 'Test Waiver',
-        Is_Initial_Creation__c = true
-    );
-    insert waiverRecord;
-    
-    AWP_Waiver_Relationship__c waiverRelation = new AWP_Waiver_Relationship__c(
-        Name = 'Test Relationship',
-        Is_Initial_Creation__c = true
-    );
-    insert waiverRelation;
-    
-    Test.startTest();
-    
-    waiverRelation.Name = 'aOW' + String.valueOf(waiverRecord.Id).substring(0,15);
-    update waiverRelation;
-    
-    List<AWP_WaiverController.WrapperClass> result = AWP_WaiverController.getHistoryRecords(waiverRecord.Id);
-    
-    Test.stopTest();
-    
-    System.assert(result != null);
+<template if:true={value.stage}>
+    <div class="slds-truncate" title={value.stage}>
+        <span class="truncate-text custom-badge">
+            {value.stage}
+        </span>
+    </div>
+</template>
+
+.slds-truncate {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.truncate-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-badge {
+    background-color: #e3e5ed;
+    color: #080707;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: bold;
 }
