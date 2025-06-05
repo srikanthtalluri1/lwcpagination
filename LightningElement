@@ -1,22 +1,25 @@
- //this.historyRecords = data;
-                
-                console.debug('this.historyRecordsLength ',this.historyRecordsLength);
-                 this.historyRecords = data.map(row => ({
-                ...row,
-                Field: row.Field,
-                OldValue: row.OldValue ? row.OldValue.toString() : '',
-                NewValue: row.NewValue ? row.NewValue.toString() : '',
-                CreatedDate: row.CreatedDate
-            }));
-                this.historyRecordsLength = this.historyRecords.length;
-                console.log('this.historyRecords '+this.historyRecords);
-                this.error = undefined;
-
-  Map<String,Schema.SObjectField> mfields = Schema.AWP_Architecture_Waiver_Form__c.SObjectType.getDescribe().fields.getMap();
-            system.debug('mfields '+mfields);
-            String fieldLabel = formHistory.Field;
-            if(formHistory.Field != null && mfields.get(formHistory.Field) != null){
-            Schema.DescribeFieldResult fieldResult = mfields.get(formHistory.Field).getDescribe();
-            System.debug(fieldResult.getLabel());
-                fieldLabel=fieldResult.getLabel();
-            }
+@isTest
+static void testGetWaiverHistoryRecordsWithAOWValue() {
+    AWP_Architecture_Waiver_Form__c waiverRecord = new AWP_Architecture_Waiver_Form__c(
+        Name = 'Test Waiver',
+        Is_Initial_Creation__c = true
+    );
+    insert waiverRecord;
+    
+    AWP_Waiver_Relationship__c waiverRelation = new AWP_Waiver_Relationship__c(
+        Name = 'Test Relationship',
+        Is_Initial_Creation__c = true
+    );
+    insert waiverRelation;
+    
+    Test.startTest();
+    
+    waiverRelation.Name = 'aOW' + String.valueOf(waiverRecord.Id).substring(0,15);
+    update waiverRelation;
+    
+    List<AWP_WaiverController.WrapperClass> result = AWP_WaiverController.getHistoryRecords(waiverRecord.Id);
+    
+    Test.stopTest();
+    
+    System.assert(result != null);
+}
