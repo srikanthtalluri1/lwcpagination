@@ -1,37 +1,44 @@
- string oldValue = String.valueOf(formHistory.OldValue);
-            string newValue = String.valueOf(formHistory.NewValue);
+<template>
+    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+         style="display: flex; align-items: center; gap: 0.5rem;">
+         
+        <template if:true={value.status}>
+            <div class="slds-truncate" title={value.status}>
+                {value.status}
+            </div>
+        </template>
 
-if(fieldLabel=='Status'){
-                if(formHistory.OldValue != null ){
-                  oldValue = getPicklistLabel('AWP_Architecture_Waiver_Form__c', 'Status__c', String.valueOf(formHistory.OldValue));   
-                }
-                if(formHistory.NewValue != null){
-                  newValue= getPicklistLabel('AWP_Architecture_Waiver_Form__c', 'Status__c', String.valueOf(formHistory.NewValue));      
-                }
-                
-            }
-            system.debug('fieldLabel '+fieldLabel);
-            system.debug('oldValue '+oldValue);
-            system.debug('newValue '+newValue);
+        <template if:true={value.stage}>
+            <div class="slds-truncate" title={value.stage}>
+                <span class="truncate-text custom-badge">
+                    {value.stage}
+                </span>
+            </div>
+        </template>
 
- public static String getPicklistLabel(String objectApiName, String fieldApiName, String apiValue) {
-    if (String.isBlank(objectApiName) || String.isBlank(fieldApiName) || String.isBlank(apiValue)) return null;
-	system.debug('Checking here 217 '+ apiValue);
-        system.debug('Checking here 217 '+ fieldApiName);
-    Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
-    if (objType == null) return null;
-	system.debug('Checking here 220 '+ objType);
-    Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-    Schema.SObjectField field = objDescribe.fields.getMap().get(fieldApiName);
-    if (field == null) return null;
-	system.debug('Checking here 224 '+ field);
-    List<Schema.PicklistEntry> picklistValues = field.getDescribe().getPicklistValues();
-    for (Schema.PicklistEntry entry : picklistValues) {
-        if (entry.getValue() == apiValue) {
-            system.debug('Checking here 228 '+ entry.getLabel());
-            return entry.getLabel();
-        }
-    }
-    return null; // no match found
+    </div>
+</template>
+
+.slds-truncate {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+.truncate-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-badge {
+    background-color: #e3e5ed;
+    color: #080707;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
