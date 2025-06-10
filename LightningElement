@@ -1,44 +1,8 @@
-<template>
-    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
-         style="display: flex; align-items: center; gap: 0.5rem;">
-         
-        <template if:true={value.status}>
-            <div class="slds-truncate" title={value.status}>
-                {value.status}
-            </div>
-        </template>
-
-        <template if:true={value.stage}>
-            <div class="slds-truncate" title={value.stage}>
-                <span class="truncate-text custom-badge">
-                    {value.stage}
-                </span>
-            </div>
-        </template>
-
-    </div>
-</template>
-
-.slds-truncate {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.truncate-text {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.custom-badge {
-    background-color: #e3e5ed;
-    color: #080707;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.75rem;
-    font-size: 0.75rem;
-    font-weight: bold;
+.stickyfooter{
+ position: fixed;
+  bottom: 0;
+  right: 10px;
+  width: 80%;
+  text-align: center; 
+  z-index: 10;
 }
