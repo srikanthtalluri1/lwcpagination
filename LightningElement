@@ -1,7 +1,6 @@
- --slds-c-modal-footer-color-background: rgba(176, 176, 176, 0.5);
-
-::part(footer) lightning-button {
- 
-  /* box-shadow: none;  Optional: remove shadow if needed */
-   width: 100%;
-}
+<button class="slds-button slds-button_icon slds-modal__close slds-p-right_medium" title="Close">
+    <svg class="slds-button__icon slds-button__icon_large" aria-hidden="true">
+        <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
+    </svg>
+    <span class="slds-assistive-text">Cancel and close</span>
+</button>
