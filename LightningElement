@@ -1,8 +1,7 @@
-.stickyfooter{
- position: fixed;
-  bottom: 0;
-  right: 10px;
-  width: 80%;
-  text-align: center; 
-  z-index: 10;
+ --slds-c-modal-footer-color-background: rgba(176, 176, 176, 0.5);
+
+::part(footer) lightning-button {
+ 
+  /* box-shadow: none;  Optional: remove shadow if needed */
+   width: 100%;
 }
