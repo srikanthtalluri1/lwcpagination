@@ -1,9 +1,5 @@
-.stickyfooter{
-position: sticky;
-    bottom: 0;
-   
-   
-    border-top: 1px solid #ddd;
-    z-index: 1;
- 
-}
+ <label class="slds-form-element__label " for="affectedStandardPortfolio12">Affected Standard Portfolio</label><br/>
+                                              <lightning-formatted-url value={EmployeeId} id="affectedStandardPortfolio12"
+                             label="Visit Salesforce" 
+                             target="_blank">
+    </lightning-formatted-url>
