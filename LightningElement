@@ -1,6 +1,9 @@
-<button class="slds-button slds-button_icon slds-modal__close slds-p-right_medium" title="Close">
-    <svg class="slds-button__icon slds-button__icon_large" aria-hidden="true">
-        <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
-    </svg>
-    <span class="slds-assistive-text">Cancel and close</span>
-</button>
+.stickyfooter{
+position: sticky;
+    bottom: 0;
+   
+   
+    border-top: 1px solid #ddd;
+    z-index: 1;
+ 
+}
