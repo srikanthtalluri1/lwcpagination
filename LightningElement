@@ -1,2 +1,8 @@
  String employeeUrl='';
         return  employeeUrl = 'https://apps.usaa.com/entrprise/emplyee-directory?emplNum='+linkId;
+
+ <label class="slds-form-element__label " for="affectedStandardPortfolio12">Affected Standard Portfolio</label><br/>
+                                              <lightning-formatted-url value={EmployeeId} id="affectedStandardPortfolio12"
+                             label="Visit Salesforce" 
+                             target="_blank">
+    </lightning-formatted-url>
