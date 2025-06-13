@@ -1,8 +1,13 @@
- String employeeUrl='';
-        return  employeeUrl = 'https://apps.usaa.com/entrprise/emplyee-directory?emplNum='+linkId;
-
- <label class="slds-form-element__label " for="affectedStandardPortfolio12">Affected Standard Portfolio</label><br/>
-                                              <lightning-formatted-url value={EmployeeId} id="affectedStandardPortfolio12"
-                             label="Visit Salesforce" 
-                             target="_blank">
-    </lightning-formatted-url>
+ <div class="underline">
+                                                            <label class="slds-form-element__label slds-size_2-of-4" for="affectedStandardPortfolio">Affected Standard Portfolio</label>
+                                                            <div class="slds-form-element__control slds-size_2-of-4">
+                                                                <lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c"
+                                                                    density="comfy">
+                                                                    <div class="slds-m-around_x-small">
+                                                                    <lightning-formatted-url label={AffectedStandardPortfolio1Name} value={AffectedStandardPortfolio1recordLink} target="_blank"
+                                                                        id="affectedStandardPortfolio1" data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden">
+                                                                    </lightning-formatted-url>
+                                                                    </div>
+                                                                </lightning-record-view-form>
+                                                    </div>
+                                                                    </div>
