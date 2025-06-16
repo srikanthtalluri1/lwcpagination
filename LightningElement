@@ -1,13 +1,26 @@
- <div class="underline">
-                                                            <label class="slds-form-element__label slds-size_2-of-4" for="affectedStandardPortfolio">Affected Standard Portfolio</label>
-                                                            <div class="slds-form-element__control slds-size_2-of-4">
-                                                                <lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c"
-                                                                    density="comfy">
-                                                                    <div class="slds-m-around_x-small">
-                                                                    <lightning-formatted-url label={AffectedStandardPortfolio1Name} value={AffectedStandardPortfolio1recordLink} target="_blank"
-                                                                        id="affectedStandardPortfolio1" data-field="Affected_Standard_Portfolio1__c" read-only variant="label-hidden">
-                                                                    </lightning-formatted-url>
-                                                                    </div>
-                                                                </lightning-record-view-form>
-                                                    </div>
-                                                                    </div>
+<lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c" density="comfy">
+    <div class="slds-grid slds-wrap slds-p-around_x-small">
+
+        <!-- Standard Title -->
+        <div class="slds-col slds-size_1-of-2">
+            <lightning-output-field field-name="Standard_Title__c"></lightning-output-field>
+        </div>
+
+        <!-- Domain Architect (Formatted URL) with same UI -->
+        <div class="slds-col slds-size_1-of-2">
+            <div class="slds-form-element">
+                <label class="slds-form-element__label" for="domainUrl">Affected Standard Domain Architect</label>
+                <div class="slds-form-element__control">
+                    <lightning-formatted-url 
+                        value={StandardDomainArchitect} 
+                        label={StandardDomainArchitectName}
+                        id="domainUrl"
+                        target="_blank"
+                        class="slds-truncate">
+                    </lightning-formatted-url>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</lightning-record-view-form>
