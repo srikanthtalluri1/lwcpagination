@@ -1,26 +1,18 @@
-<lightning-record-view-form record-id={relationShipId} object-api-name="AWP_Waiver_Relationship__c" density="comfy">
-    <div class="slds-grid slds-wrap slds-p-around_x-small">
-
-        <!-- Standard Title -->
-        <div class="slds-col slds-size_1-of-2">
-            <lightning-output-field field-name="Standard_Title__c"></lightning-output-field>
-        </div>
-
-        <!-- Domain Architect (Formatted URL) with same UI -->
-        <div class="slds-col slds-size_1-of-2">
-            <div class="slds-form-element">
-                <label class="slds-form-element__label" for="domainUrl">Affected Standard Domain Architect</label>
-                <div class="slds-form-element__control">
-                    <lightning-formatted-url 
-                        value={StandardDomainArchitect} 
-                        label={StandardDomainArchitectName}
-                        id="domainUrl"
-                        target="_blank"
-                        class="slds-truncate">
-                    </lightning-formatted-url>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</lightning-record-view-form>
+ @AuraEnabled(cacheable=true)
+    public static Map<String, String> getStagePicklistValues() {
+        Map<String, String> stageLabelMap = new Map<String, String>();
+        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Stage__c.getDescribe();
+        Schema.DescribeFieldResult fieldResult2 = AWP_Architecture_Waiver_Form__c.Status__c.getDescribe();
+        List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
+        List<Schema.PicklistEntry> picklistValues2 = fieldResult2.getPicklistValues();
+        
+        for (Schema.PicklistEntry entry : picklistValues) {
+            stageLabelMap.put(entry.getValue(), entry.getLabel());
+        }
+        if(!picklistValues2.IsEmpty()){
+        for (Schema.PicklistEntry entry1 : picklistValues2) {
+            stageLabelMap.put(entry1.getValue(), entry1.getLabel());
+        }
+        }
+        return stageLabelMap;
+    }
