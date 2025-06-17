@@ -1,18 +1,1 @@
- @AuraEnabled(cacheable=true)
-    public static Map<String, String> getStagePicklistValues() {
-        Map<String, String> stageLabelMap = new Map<String, String>();
-        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Stage__c.getDescribe();
-        Schema.DescribeFieldResult fieldResult2 = AWP_Architecture_Waiver_Form__c.Status__c.getDescribe();
-        List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
-        List<Schema.PicklistEntry> picklistValues2 = fieldResult2.getPicklistValues();
-        
-        for (Schema.PicklistEntry entry : picklistValues) {
-            stageLabelMap.put(entry.getValue(), entry.getLabel());
-        }
-        if(!picklistValues2.IsEmpty()){
-        for (Schema.PicklistEntry entry1 : picklistValues2) {
-            stageLabelMap.put(entry1.getValue(), entry1.getLabel());
-        }
-        }
-        return stageLabelMap;
-    }
+status: this.stageLabelMap[record.Waiver_Id__r?.Status__c],
