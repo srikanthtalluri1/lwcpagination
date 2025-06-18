@@ -1,1 +1,15 @@
-status: this.stageLabelMap[record.Waiver_Id__r?.Status__c],
+ Map<String, String> fieldLabel = getStagePicklistValues();
+
+  if(field =='Status'){
+                     uni.put(
+                      'value',
+                      fieldLabel.get((String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', '')))
+                  );
+                  uni.put('count', (Integer) ar.get('expr0')); 
+                  }else{
+                  uni.put(
+                      'value',
+                      (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
+                  );
+                  uni.put('count', (Integer) ar.get('expr0'));
+                  }
