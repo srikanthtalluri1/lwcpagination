@@ -1,15 +1,21 @@
- Map<String, String> fieldLabel = getStagePicklistValues();
+ Map<String, String> fieldLableMap = getStagePicklistValues();
 
-  if(field =='Status'){
-                     uni.put(
-                      'value',
-                      fieldLabel.get((String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', '')))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0')); 
-                  }else{
-                  uni.put(
-                      'value',
-                      (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0'));
-                  }
+  string fieldApiName = getKeyByValue(fieldLableMap, String.valueOf(value));
+                              system.debug('checking here' +String.valueOf(value));
+                             
+                              if (String.valueOf(value) == 'nullcheck') {
+                                  includeNull = true; // Mark nullcheck
+                              }else if( filterMap.keySet().contains('Status')){
+                                   system.debug('checking here fieldApiName ' +fieldApiName);
+                                   stringFilterValues.add(fieldApiName); // Add non-null values
+                                  onlyNullChecks = false; // There are other values besides nullcheck
+                              }
+
+public static String getKeyByValue(Map<String, String> fielMap, String valueToFind) {
+    for (String key : fielMap.keySet()) {
+        if (fielMap.get(key) == valueToFind) {
+            return key;
+        }
+    }
+    return null; // if not found
+}
