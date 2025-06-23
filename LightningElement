@@ -1,58 +1,9 @@
-.slds-wrap {
-    /* flex-wrap: wrap; */
-    /* align-items: flex-start; */
+.button-container {
+    position: relative; /* parent should have relative positioning */
 }
-
-.underline {
-    border-bottom: var(--lwc-borderWidthThin,4px) solid var(--lwc-colorBorder,rgb(221, 219, 218));
-}
-
-
-
-.custom-tab {
-    background-color: bisque;
-}
-
-.custom-section-header .slds-accordion__summary {
-    background-color: rgb(173, 216, 230); /* Choose your desired color */
-    padding: 0.5rem;
-    font-weight: bold;
-    color: #333; /* Darker text color for readability */
-    border-radius: 4px;
-}
-
-:host { 
-    --sds-c-accordion-summary-color-background: rgb(243, 242, 242);
-    --slds-c-modal-footer-color-background: rgba(176, 176, 176, 0.5);
-}
-
-.custom-border-box {
-    border: 1px solid #d8dde6; /* Light grey border */
-    border-radius: 5px; /* Optional: rounded corners */
-    padding: 1rem; /* Add spacing inside the box */
-    background-color: white; /* Optional: white background */
-}
-
-.custom-border {
-    border: none; /* Removes any default border on the datatable */
-}
-/* #444641 */
-.stickyfooter{
-position: sticky;
-    bottom: 0;
-   
-   
-    border-top: 1px solid #ddd;
-    z-index: 1;
- 
-}
-
-::part(footer) lightning-button {
- 
-  /* box-shadow: none;  Optional: remove shadow if needed */
-   width: 100%;
-}
-.fixdiv{
-    overflow-y: auto;
-    max-height: 100vh;
+.centered-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
