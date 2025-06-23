@@ -1,21 +1,4 @@
- Map<String, String> fieldLableMap = getStagePicklistValues();
-
-  string fieldApiName = getKeyByValue(fieldLableMap, String.valueOf(value));
-                              system.debug('checking here' +String.valueOf(value));
-                             
-                              if (String.valueOf(value) == 'nullcheck') {
-                                  includeNull = true; // Mark nullcheck
-                              }else if( filterMap.keySet().contains('Status')){
-                                   system.debug('checking here fieldApiName ' +fieldApiName);
-                                   stringFilterValues.add(fieldApiName); // Add non-null values
-                                  onlyNullChecks = false; // There are other values besides nullcheck
-                              }
-
-public static String getKeyByValue(Map<String, String> fielMap, String valueToFind) {
-    for (String key : fielMap.keySet()) {
-        if (fielMap.get(key) == valueToFind) {
-            return key;
-        }
-    }
-    return null; // if not found
+.fixdiv{
+    overflow-y: auto;
+    max-height: 100vh;
 }
