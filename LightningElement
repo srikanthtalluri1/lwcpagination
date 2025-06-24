@@ -1,9 +1,1 @@
-.button-container {
-    position: relative; /* parent should have relative positioning */
-}
-.centered-button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
+const myArray = text.split("");
