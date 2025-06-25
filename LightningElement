@@ -1,1 +1,18 @@
- <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
+ handleFilterSearch(event) {
+        const searchKey = event.target.value.toLowerCase();
+        console.log('checking here', JSON.stringify(this._filteredFieldValues[0].filteredFieldValue));
+        console.log('checking here', JSON.stringify(this._filteredFieldValues));
+        const filteredData = this._filteredFieldValues.map(filterObj => {
+        const filteredValues = filterObj.filteredFieldValue.filter(option =>
+                 option.label.toLowerCase().includes(searchKey.toLowerCase())
+        );
+        return {
+            ...filterObj,
+            filteredFieldValue: filteredValues
+            };
+        });
+
+        console.log(filteredData);
+        console.log('checking here', JSON.stringify(filteredData));
+        this._filteredFieldValues=filteredData;
+    }
