@@ -1,2 +1,33 @@
-<div if:true={showFilterValues}>
-                        <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
+ handleScroll = () => {
+        // Check if user scrolled to bottom
+        const container = this.refs.scrollContainer;
+        this.scrollContainer = this.template.querySelector('.fixdiv');
+        const scrollTop = this.scrollContainer.scrollTop;
+        const scrollHeight = this.scrollContainer.scrollHeight;
+    console.log('Scroll inside container:', scrollTop);
+    console.log('Scroll inside scrollHeight container:', scrollHeight);
+        if (container) {
+            let scrollHeight = container.scrollHeight;
+            let scrollHeighty = container.scrollTop;
+            let clientHeight = container.clientHeight;
+            console.log('Container scroll height:', scrollHeight);
+            console.log('Container scrollTop  =====:', scrollHeighty);
+            console.log('Container clientHeight  =====:', clientHeight);
+        }
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const pageHeight = document.body.offsetHeight;
+        console.log('window.innerHeight ',window.innerHeight);
+        console.log('window.scrollY ',window.scrollY);
+        console.log('scrollPosition ',scrollPosition);
+        console.log('pageHeight ',document.body.scrollHeight);
+        if((window.innerHeight+scrollTop)-scrollHeight <= -2){
+            console.log('Checking here ==========');
+        }
+        if (scrollPosition >= pageHeight) {
+           // this.buttonContainerClass = 'button-container extra-padding';
+            console.log('pageHeight  416');
+        } else {
+           // this.buttonContainerClass = 'button-container';
+            console.log('pageHeight  419');
+        }
+    };
