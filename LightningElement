@@ -31,3 +31,9 @@
             console.log('pageHeight  419');
         }
     };
+
+ disconnectedCallback() {
+        window.removeEventListener('scroll', this.handleScroll);
+    }
+
+window.addEventListener('scroll', this.handleScroll);
