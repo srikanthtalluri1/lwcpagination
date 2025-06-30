@@ -1,5 +1,7 @@
 style="bottom:{buttonOffset}px;"
 
+const docHeight = document.documentElement.scrollHeight;
+
 handleScroll = () => {
         // Check if user scrolled to bottom
         const container = this.refs.scrollContainer;
