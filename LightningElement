@@ -1,14 +1,16 @@
-handleCancel() {
-    const childComponent = this.template.querySelector('c-awpwaiver-create-record-page');
-    if (childComponent) {
-        childComponent.resetForm();
-    }
-    this.closeModal(); // or any other modal close logic
+:host {
+    display: block;
+    width: 100%;
 }
 
-handleSave() {
-    const childComponent = this.template.querySelector('c-awpwaiver-create-record-page');
-    if (childComponent) {
-        childComponent.submitForm();
-    }
+.child-footer {
+    display: block;
+    width: 100%;
+    padding: 1rem 0;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: flex-end; /* push buttons right */
+    width: 100%;
 }
