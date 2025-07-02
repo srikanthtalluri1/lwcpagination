@@ -1,16 +1,13 @@
-:host {
-    display: block;
-    width: 100%;
-}
+handleDo() {
+        const child = this.template.querySelector('c-child-component');
+        if (child) {
+            child.doSomething();
+        }
+    }
 
-.child-footer {
-    display: block;
-    width: 100%;
-    padding: 1rem 0;
-}
-
-.footer-content {
-    display: flex;
-    justify-content: flex-end; /* push buttons right */
-    width: 100%;
-}
+    handleRevoke() {
+        const child = this.template.querySelector('c-child-component');
+        if (child) {
+            child.revokeSomething();
+        }
+    }
