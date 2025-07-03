@@ -1,19 +1,31 @@
-<lightning-modal-footer class="slds-align_absolute-center slds-p-top_xx-small slds-p-top_xx-buttom full-width-footer">
-                <div class="buttoncontainer">
+ spinnerStartTime;
 
-.full-width-footer {
-   display: block;
-    width: 107.5%;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -15px;
-}
+    connectedCallback() {
+        this.startProcess();
+    }
 
-.full-width-footer > * {
-    display: inline-block; /* keep buttons inline */
-}
-.buttoncontainer{
-    margin-right: 1.5%;
-    
-}
+    startProcess() {
+        // Show spinner and record start time
+        this.showSpinner = true;
+        this.spinnerStartTime = Date.now();
+
+        // Simulate async call (e.g., Apex call that finishes in 1 second)
+        setTimeout(() => {
+            this.endProcess();
+        }, 1000);
+    }
+
+    endProcess() {
+        const elapsed = Date.now() - this.spinnerStartTime;
+        const minDisplayTime = 2000; // 2 seconds
+
+        if (elapsed < minDisplayTime) {
+            // Wait the remaining time before hiding spinner
+            setTimeout(() => {
+                this.showSpinner = false;
+            }, minDisplayTime - elapsed);
+        } else {
+            // Enough time passed, hide immediately
+            this.showSpinner = false;
+        }
+    }s
