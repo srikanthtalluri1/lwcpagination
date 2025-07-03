@@ -1,13 +1,19 @@
-handleDo() {
-        const child = this.template.querySelector('c-child-component');
-        if (child) {
-            child.doSomething();
-        }
-    }
+<lightning-modal-footer class="slds-align_absolute-center slds-p-top_xx-small slds-p-top_xx-buttom full-width-footer">
+                <div class="buttoncontainer">
 
-    handleRevoke() {
-        const child = this.template.querySelector('c-child-component');
-        if (child) {
-            child.revokeSomething();
-        }
-    }
+.full-width-footer {
+   display: block;
+    width: 107.5%;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -15px;
+}
+
+.full-width-footer > * {
+    display: inline-block; /* keep buttons inline */
+}
+.buttoncontainer{
+    margin-right: 1.5%;
+    
+}
