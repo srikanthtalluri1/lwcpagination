@@ -1,8 +1,26 @@
-const openedSections = event.detail.openSections;
-  if (openedSections.includes('A') && !this.accountData) {
-    this.isLoading = true;
-    getAccount({ id: this.recordId }).then(result => {
-      this.accountData = result;
-      this.isLoading = false;
-    });
-  }
+  <template for:each={filteredFieldValue.filteredFieldValue} for:item="category">
+                            <div key={category.id} class="slds-m-left_medium slds-m-top_small">
+                                <lightning-input
+                            type="checkbox"
+                            label={category.label}
+                            data-id={category.label}
+                            checked={category.checked}
+                            onchange={handleParentCheckboxChange}>
+                            </lightning-input>
+
+                            <template if:true={category.checked}>
+                            <template for:each={category.subOption} for:item="child">
+                                <div key={child.id} class="slds-m-left_large slds-m-top_xx-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={child.name}
+                                    data-parent={category.label}
+                                    data-id={child.id}
+                                    checked={child.checked}
+                                    onchange={handleChildCheckboxChange}>
+                                </lightning-input>
+                                </div>
+                            </template>
+                            </template>
+                             </div>
+                            </template>
