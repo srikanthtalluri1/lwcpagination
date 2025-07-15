@@ -24,3 +24,59 @@
                             </template>
                              </div>
                             </template>
+
+const subOption = data.PortfolioDomains[id];
+                                        return { label: `${label} (${val.count})`, value: value, id: id , subOption:subOption, checked:false};
+
+ get selectedItems() {
+    let items = [];
+    this._filteredFieldValues.filteredFieldValue.forEach(category => {
+      category.subOption.forEach(child => {
+        if (child.checked) {
+          items.push(child.name);
+        }
+      });
+    });
+    console.log('items ',items);
+    return items;
+  }
+
+  handleParentCheckboxChange(event) {
+    const categoryName = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
+    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', JSON.stringify(this._filteredFieldValues));
+    this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
+          console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
+      if (category.label === categoryName) {
+        // Update parent
+        category.checked = isChecked;
+        // If unchecking, also uncheck all children
+        if (!isChecked) {
+          category.children = category.children.map(child => ({
+            ...child,
+            checked: false
+          }));
+        }
+      }
+      return category;
+    });
+  }
+
+  handleChildCheckboxChange(event) {
+    const parentName = event.target.dataset.parent;
+    const childId = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
+    this._filteredFieldValues.filteredFieldValue = this._filteredFieldValues?.filteredFieldValue?.map(category => {
+      if (category.label === parentName) {
+        category.subOption = category.subOption.map(child => {
+          if (child.id === childId) {
+            child.checked = isChecked;
+          }
+          return child;
+        });
+      }
+      return category;
+    });
+  }
