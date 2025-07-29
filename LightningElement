@@ -1,82 +1,22 @@
-  <template for:each={filteredFieldValue.filteredFieldValue} for:item="category">
-                            <div key={category.id} class="slds-m-left_medium slds-m-top_small">
-                                <lightning-input
-                            type="checkbox"
-                            label={category.label}
-                            data-id={category.label}
-                            checked={category.checked}
-                            onchange={handleParentCheckboxChange}>
-                            </lightning-input>
+.custom-selected {
+    --slds-c-button-color-background: #f3f2f2;
+    --slds-c-button-color-border: #0070d2;
+    --slds-c-button-text-color: #0070d2;
+    border-radius: 50%;
+    border: 2px solid #0070d2;
+}
 
-                            <template if:true={category.checked}>
-                            <template for:each={category.subOption} for:item="child">
-                                <div key={child.id} class="slds-m-left_large slds-m-top_xx-small">
-                                <lightning-input
-                                    type="checkbox"
-                                    label={child.name}
-                                    data-parent={category.label}
-                                    data-id={child.id}
-                                    checked={child.checked}
-                                    onchange={handleChildCheckboxChange}>
-                                </lightning-input>
-                                </div>
-                            </template>
-                            </template>
-                             </div>
-                            </template>
+.custom-unselected {
+    --slds-c-button-color-background: white;
+    --slds-c-button-color-border: #ccc;
+    --slds-c-button-text-color: #999;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+}
 
-const subOption = data.PortfolioDomains[id];
-                                        return { label: `${label} (${val.count})`, value: value, id: id , subOption:subOption, checked:false};
 
- get selectedItems() {
-    let items = [];
-    this._filteredFieldValues.filteredFieldValue.forEach(category => {
-      category.subOption.forEach(child => {
-        if (child.checked) {
-          items.push(child.name);
-        }
-      });
-    });
-    console.log('items ',items);
-    return items;
-  }
+   get buttonClass() {
+        return this.isSelected ? 'custom-selected' : 'custom-unselected';
+    }
 
-  handleParentCheckboxChange(event) {
-    const categoryName = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
-    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', JSON.stringify(this._filteredFieldValues));
-    this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
-          console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
-      if (category.label === categoryName) {
-        // Update parent
-        category.checked = isChecked;
-        // If unchecking, also uncheck all children
-        if (!isChecked) {
-          category.children = category.children.map(child => ({
-            ...child,
-            checked: false
-          }));
-        }
-      }
-      return category;
-    });
-  }
-
-  handleChildCheckboxChange(event) {
-    const parentName = event.target.dataset.parent;
-    const childId = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
-    this._filteredFieldValues.filteredFieldValue = this._filteredFieldValues?.filteredFieldValue?.map(category => {
-      if (category.label === parentName) {
-        category.subOption = category.subOption.map(child => {
-          if (child.id === childId) {
-            child.checked = isChecked;
-          }
-          return child;
-        });
-      }
-      return category;
-    });
-  }
+ class={buttonClass}
