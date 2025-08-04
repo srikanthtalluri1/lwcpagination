@@ -1,22 +1,110 @@
-.custom-selected {
-    --slds-c-button-color-background: #f3f2f2;
-    --slds-c-button-color-border: #0070d2;
-    --slds-c-button-text-color: #0070d2;
-    border-radius: 50%;
-    border: 2px solid #0070d2;
-}
+'Domain Standard' => 'Affected_Standard_Domain1__r.Name'
 
-.custom-unselected {
-    --slds-c-button-color-background: white;
-    --slds-c-button-color-border: #ccc;
-    --slds-c-button-text-color: #999;
-    border-radius: 50%;
-    border: 1px solid #ccc;
-}
-
-
-   get buttonClass() {
-        return this.isSelected ? 'custom-selected' : 'custom-unselected';
+@AuraEnabled(cacheable=true)
+    public static Map<String, Object> getRecordApplicationPortfolio(string fieldApiName, string allOrMy){
+         List<AWP_Waiver_Relationship__c> waiverRecords;
+       // Map<String, Object> result = new Map<String, Object>();
+  /*  Integer waiverRecordsCount = 0;
+   List<String> filters = filterValues.split(',');
+    // Clean up spaces
+    for (Integer i = 0; i < filters.size(); i++) {
+        filters[i] = '\'' + filters[i].trim().replace('\'', '\\\'') + '\'';
     }
 
- class={buttonClass}
+    String formattedValues = String.join(filters, ',');
+        system.debug('filtervalues '+filtervalues); */
+
+   /* String query = 'SELECT ' + FIELDS_TO_BE_QUERIED_NEW + 
+                   ' FROM ' + OBJECT_NAME + 
+                   ' WHERE Affected_Standard_Portfolio1__c IN (' + formattedValues + ')';
+
+    String countQuery = 'SELECT COUNT() FROM ' + OBJECT_NAME + 
+                        ' WHERE Affected_Standard_Portfolio1__c IN (' + formattedValues + ')';
+
+         system.debug('query '+query);
+         system.debug('countQuery '+countQuery);
+        waiverRecords = Database.query(query);
+    	waiverRecordsCount = Database.countQuery(countQuery);
+	
+    result.put('waiverRecords', waiverRecords);
+    result.put('waiverRecordsCount', waiverRecordsCount);
+      system.debug('waiverRecords '+waiverRecords);
+        system.debug('waiverRecords '+waiverRecordsCount); */
+        system.debug('filtervalues '+fieldApiName);
+         String condition = '';
+        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
+        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
+      if (allOrMy == 'mywaivers') {
+        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
+      }
+        condition += 'AND Affected_Standard_Portfolio1__r.Name IN (\''+ fieldApiName+ '\')';
+            string query = 'SELECT Id, Affected_Standard_Portfolio1__c,Affected_Standard_Domain1__c ,Affected_Standard_Domain1__r.Name  ' +
+                    'FROM AWP_Waiver_Relationship__c ' + condition ;
+            // results.put('Affected Domain', Database.query(query));
+           system.debug('query '+query);
+        List<AWP_Waiver_Relationship__c> lstWaiverRel = (List<AWP_Waiver_Relationship__c>) Database.query(query);
+        System.debug('lstWaiverRel ' + lstWaiverRel);
+        
+       // Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
+        Map<String, Integer> duplicateCountMap = new Map<String, Integer>(); // New map to track duplicates per portfolio
+        
+        for (AWP_Waiver_Relationship__c domain : lstWaiverRel) {
+            String portfolioId = domain.Affected_Standard_Portfolio1__c;
+            String domainId = domain.Affected_Standard_Domain1__c;
+            String domainName = domain.Affected_Standard_Domain1__r?.Name;
+            
+            if (String.isBlank(portfolioId) || String.isBlank(domainId)) continue;
+            
+            if (!portfolioDomainMap.containsKey(portfolioId)) {
+                portfolioDomainMap.put(portfolioId, new List<Object>());
+            }
+            
+            List<Object> existingList = portfolioDomainMap.get(portfolioId);
+            Boolean alreadyExists = false;
+            
+            for (Object obj : existingList) {
+                Map<String, Object> mapObj = (Map<String, Object>) obj;
+                if (mapObj.get('id') == domainId) {
+                    alreadyExists = true;
+                    break;
+                }
+            }
+            
+            if (alreadyExists) {
+                // Increment duplicate count for this portfolio
+                if (duplicateCountMap.containsKey(portfolioId)) {
+                    duplicateCountMap.put(portfolioId, duplicateCountMap.get(portfolioId) + 1);
+                } else {
+                    duplicateCountMap.put(portfolioId, 1);
+                }
+            } else {
+                Map<String, Object> domainData = new Map<String, Object>{
+                    'id' => domainId,
+                        'name' => domainName
+                        };
+                            existingList.add(domainData);
+            }
+        }
+        
+        System.debug('portfolioDomainMap: ' + portfolioDomainMap);
+        System.debug('Duplicate counts per portfolio: ' + duplicateCountMap);
+
+			/*List<AWP_Waiver_Relationship__c> lstWaiverRel = (List<AWP_Waiver_Relationship__c>) Database.query(query);
+         system.debug('lstWaiverRel '+lstWaiverRel);
+         for (AWP_Waiver_Relationship__c domain : lstWaiverRel) {
+            if (!portfolioDomainMap.containsKey(domain.Affected_Standard_Portfolio1__c)) {
+                portfolioDomainMap.put(domain.Affected_Standard_Portfolio1__c, new List<Object>());
+            }
+            Map<String, Object> domainData = new Map<String, Object>();
+            domainData.put('id', domain.Affected_Standard_Domain1__c);
+            domainData.put('name', domain.Affected_Standard_Domain1__r.Name);
+            portfolioDomainMap.get(domain.Affected_Standard_Portfolio1__c).add(domainData);
+        } */
+        system.debug('fieldUniqueMap 1384 '+fieldUniqueMap);
+        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
+        
+
+             
+      
+    return fieldUniqueMap;
+    }
