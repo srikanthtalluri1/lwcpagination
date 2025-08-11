@@ -1,50 +1,209 @@
- @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getRecordApplicationPortfolio(string fieldApiName, string allOrMy){ 
-        system.debug('filtervalues '+fieldApiName);
-        String condition = '';
-        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-         if (allOrMy == 'mywaivers') {
-        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
-      }
-        condition += 'AND Affected_Standard_Portfolio1__r.Name IN (\''+ fieldApiName+ '\')';
-        
-        // New logic to get count
-        List<Object> uniqueValues = new List<Object>();
-       string query = 'SELECT  Affected_Standard_Domain1__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY  Affected_Standard_Domain1__c' ;
-        List<AggregateResult> agResult = Database.query(query);
-         // After aggregation, fetch the portfolio names using a second query
-        Set<Id> domainIds = new Set<Id>();
-        
-                for (AggregateResult ar : agResult) {
-                    domainIds.add((Id) ar.get('Affected_Standard_Domain1__c'));
-                }
-            
-        System.debug('domainIds '+domainIds);
-        
-        // Fetch the related names for the portfolio IDs
-        Map<Id, String> domainNameMap = new Map<Id, String>();
-        if (!domainIds.isEmpty()) {
-            List<TPM_Domain__c > domains = [SELECT Id, Name FROM TPM_Domain__c  WHERE Id IN :domainIds];
-            for (TPM_Domain__c domain : domains) {
-                domainNameMap.put(domain.Id, domain.Name);
+ handleParentCheckboxChange(event) {
+    const categoryName = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('isChecked ', isChecked);
+    console.log('categoryName ', categoryName);
+    let repeathtmldata=[];
+    const selected = [];
+    const selectedChilds = [];
+    const inputs = this.template.querySelectorAll('[data-name="test12"]');
+    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
+       // console.log(inputs.checked);
+         
+        let methodFilter='';
+        let methodFilterChild='';
+        inputs.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selected.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilter=result   
             }
-        }
-        System.debug('domainNameMap '+domainNameMap);
+        });
+        inputsChild.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selectedChilds.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilterChild=result   
+            }
+        });
+        this.filters=[
+            {"Affected Standard":selected,
+            "uniqueKey":'0-'+selected.join(",")}]
+            if(selectedChilds != null){
+            this.filters.push({"Domain Standard":selectedChilds,
+            "uniqueKey":'0-'+selectedChilds.join(",")});
+            }
+         console.log('methodFilter ',methodFilter);
+        console.log('Selected checkbox IDs:', JSON.stringify(selected));
+        console.log('Selected checkbox IDs:', JSON.stringify(this.filters));
+         let selectedFilter = selected.join(",");
+         const resultstring = selectedFilter
+                .split(',')
+                .map(str => `'${str.trim()}'`)
+                .join(',');
+
+                console.log('resultstring ',resultstring);
+
+      console.log('selectedFilter 2289 ', selectedFilter);
+
+                    getRecordApplicationPortfolio({ fieldApiName: methodFilter, allOrMy: this.selectedWaiver }).then((data) => {
+                        console.log('Returned data:', JSON.stringify(data));
+                        let allCheckboxData = [];
+                        const domainGroups = data?.PortfolioDomains || {};
+                        console.log('domainGroups 2200 ', JSON.stringify(domainGroups));
+                        
+                        const cleandata = Object.entries(domainGroups).map(( [key, val]) => ({
+                      /*  // Commenting this logic as per requirement change
+                      Object.entries(domainGroups).map(([groupKey, domainList]) => {
+                        const cleandata = (domainList || [])
+                            .filter(child => child && child.id)
+                            .map((child, index) => ({
+                            label: child.name || 'Unnamed Domain',
+                            value: child.id,
+                            checked: false,
+                            id: `${groupKey}-${index}`
+                            // End of Commenting this logic as per requirement change*/
+                           
+                                     
+                                        
+                                    
+                                     
+                           
+                             label:  `${val.value ? val.value : 'No Data'} (${val.count})`,
+                            value: val.id ? val.id : 'nullcheck',
+                            checked: false,
+                            id: val.id ? val.id : 'nullcheck'
+                            }));
+                            console.log('domainGroups 2200 ', JSON.stringify(cleandata));
+                         allCheckboxData.push(...cleandata); 
+
+                             
+                        
+                    
+                        console.log('All checkbox data:', JSON.stringify(allCheckboxData));
+                        
+                        this.checkboxData = allCheckboxData;
+                       
+                        console.log('selectedFilter 2218 ', JSON.stringify(this.checkboxData));
+                        this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
+                                    console.log('this.category 2220 ', JSON.stringify(category));
+                                if (category.label === categoryName) {
+                                    // Update parent
+                                    console.log('this._filteredFieldValues.filteredFieldValue 2241 ', categoryName);
+                                    category.checked = isChecked;
+                                    // If unchecking, also uncheck all children
+                                    if (!isChecked) {
+                                    category.children = category?.children?.map(child => ({
+                                        ...child,
+                                        checked: false
+                                    }));
+                                    }
+                                }
+                                return category;
+                                });
+                                console.log('allCheckboxData ', JSON.stringify(allCheckboxData));
+                         this._filteredFieldValues[0].filteredFieldValue.forEach(obj => {
+                            if(obj.label==categoryName){
+                                console.log('this.checkboxData @@ ',JSON.stringify(this.checkboxData), 'hcbhxf ', obj.label);
+                                 obj.checkboxArray = allCheckboxData;
+                            }
+                               
+                                });
+                        
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+                    
+        this.rowOffSet=0;
+        this.records = [];
+        this.fetchData();
+         const payload1 = {
+                    _filteredFieldValues: this._filteredFieldValues,
+                    totalRecords: this.totalRecords,
+                    totalPages: this.totalPages,
+                    isLoadingFilter: this.isLoadingFilter,
+                    selectedWaiver: this.selectedWaiver,
+                    selectedFilter: this.selectedFilter
+                };
+                pubsub.publish('filterBy', payload1);
+                console.log('payload1 2181 ', JSON.stringify(payload1));
+    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
+    this._filteredFieldValues[0].selectedValue = selected;
+    //this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.
+
+  }
+
+  handleChildCheckboxChange(event) {
+    const parentName = event.target.dataset.parent;
+    const childId = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('childId 2310', childId);
+    let selectedChildrenForParent = [];
+    const selected = [];
+    console.log('this._filteredFieldValues.filteredFieldValue 2224 ', this._filteredFieldValues[0].filteredFieldValue);
+    this._filteredFieldValues.filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
+       console.log('Checking 2230', category.label); 
+      if (category.label === parentName) {
+        console.log('Checking 2233', category);
+        this.checkboxData = this.checkboxData.map(child => {
+            console.log('Checking 2235', child.id);
+          if (child.label === childId) {
+            child.checked = isChecked
+            console.log('Checking 2238', child.label);
+          }
+          return child;
+        });
+      }
+      
         
-        for (AggregateResult ar : agResult) {
-                  //String portfolioName = (String) ar.get('Affected_Standard_Portfolio1__r.Name');
-                  Id domainId = (Id) ar.get('Affected_Standard_Domain1__c');
-                  Map<String, Object> uni = new Map<String, Object>();
-                  String domainName = domainNameMap.get(domainId);
-            	  uni.put('value', domainName);  // Domain Name as label
-                  uni.put('id', domainId);  // Domain Id
-                  uni.put('count', (Integer) ar.get('expr0'));  // The count of related records
-                  uniqueValues.add((Object) uni);
-                  
-              }
-        fieldUniqueMap.put('PortfolioDomains', uniqueValues);
-        //End of new logic to get count
-         List<AWP_Waiver_Relationship__c> waiverRecords;
+            return category;
+    });
+    const selectedChild = (this.checkboxData || []).filter(child => child.checked).map(child => (child.label).replace(/\s*\(\d+\)\s*$/, ""));
+          selectedChildrenForParent.push(...selectedChild);
+        console.log('selectedChild 2247', JSON.stringify(selectedChild));
+    console.log('childId 2245', this._filteredFieldValues.length);
+  /*  let domainarray = {
+        "id": this._filteredFieldValues.length,
+        "filterField": "Domain Standard",
+        "filteredFieldValue":[],
+        "showValues": true,
+        "selectedValue": selectedChildrenForParent,
+        "icon":"utility:chevrondown",
+        "isApplicationStandred":false
+
+    };
+    this._filteredFieldValues.push(domainarray); */
+     console.log('selectedChild 2263', JSON.stringify(selectedChildrenForParent));
+     console.log('2264 before child filter array ', JSON.stringify(this.filters));
+    if(selectedChildrenForParent.length != 0){
+        let filterArray = {"Domain Standard":selectedChildrenForParent,
+            "uniqueKey":'0-'+selectedChildrenForParent.join(",")}
+            this.filters.push(filterArray);
+        }
+                const output = [];
+                let seenDomain = false;
+
+                for (let i = this.filters.length - 1; i >= 0; i--) {
+                const item = this.filters[i];
+                if (item["Domain Standard"]) {
+                    if (!seenDomain) {
+                    output.unshift(item);
+                    seenDomain = true;
+                    }
+                } else {
+                    output.unshift(item);
+                }
+            }
+            this.filters=output;
+         console.log('2269 final child filter array ', JSON.stringify(this.filters));
+    console.log('2262 final child main array ', JSON.stringify(this._filteredFieldValues));
+    
+    this.rowOffSet=0;
+    this.records = [];
+        this.fetchData();
+  }
