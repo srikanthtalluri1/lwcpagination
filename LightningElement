@@ -1,4 +1,15 @@
- // New logic to get count
+ @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getRecordApplicationPortfolio(string fieldApiName, string allOrMy){ 
+        system.debug('filtervalues '+fieldApiName);
+        String condition = '';
+        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
+        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
+         if (allOrMy == 'mywaivers') {
+        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
+      }
+        condition += 'AND Affected_Standard_Portfolio1__r.Name IN (\''+ fieldApiName+ '\')';
+        
+        // New logic to get count
         List<Object> uniqueValues = new List<Object>();
        string query = 'SELECT  Affected_Standard_Domain1__c, COUNT(Id) ' +
                     'FROM AWP_Waiver_Relationship__c ' + condition +
