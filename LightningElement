@@ -1,3 +1,8 @@
+if(fieldList.get(field) == 'Affected_Standard_Portfolio1__c'){
+             List<PortfolioItem> lstportfolio = getPortfolioDomainCounts(affctedSTNames);
+              fieldUniqueMap.put('modifedAffectedStandard', lstportfolio);
+          }
+
 public class DomainItem {
         @AuraEnabled public String label;
         @AuraEnabled public Integer count;
