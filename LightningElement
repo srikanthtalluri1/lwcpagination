@@ -1,3 +1,34 @@
+
+public static String buildWhereConditionForNames(List<String> names) {
+    if (names == null || names.isEmpty()) {
+        return ''; // No condition if list is empty
+    }
+    
+    List<String> nonNullNames = new List<String>();
+    Boolean hasNull = false;
+    
+    for (String s : names) {
+        if (s == null) {
+            hasNull = true;
+        } else {
+            // Escape single quotes in values
+            nonNullNames.add(s.replace('\'', '\\\''));
+        }
+    }
+    
+    List<String> conditions = new List<String>();
+    
+    if (!nonNullNames.isEmpty()) {
+        String inClause = 'Affected_Standard_Portfolio1__r.Name IN (\'' + String.join(nonNullNames, '\',\'') + '\')';
+        conditions.add(inClause);
+    }
+    
+    if (hasNull) {
+        conditions.add('Affected_Standard_Portfolio1__r.Name = null');
+    }
+    
+    return '(' + String.join(conditions, ' OR ') + ')';
+}
 if(fieldList.get(field) == 'Affected_Standard_Portfolio1__c'){
              List<PortfolioItem> lstportfolio = getPortfolioDomainCounts(affctedSTNames);
               fieldUniqueMap.put('modifedAffectedStandard', lstportfolio);
