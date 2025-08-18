@@ -1,119 +1,490 @@
-appDomainArray=[];
+<template>
+    <!--<lightning-card >--><!--class={filterCardClass}-->
+    <div class="viewport">
+        <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch"><!---->
+            <template if:true={showFilter}>
+                <lightning-layout-item padding="around-small" size={leftNavSize}  class="slds-scrollable_y slds-color__background_gray-2" style="min-height: 100vh;"><!--size="12"-->
 
- addChildrenToFilteredValues() {
-           
+                <!--<div class="slds-scrollable_y slds-border_top" style="display: block;overflow-y: auto;" >-->
 
-            this._filteredFieldValues = this._filteredFieldValues.map(filterGroup => {
-                return {
-                    ...filterGroup,
-                    filteredFieldValue: filterGroup.filteredFieldValue.map(parent => {
-                        const match = this.appDomainArray.find(
-                            cat => this.removeCount(cat.label) === parent.value
-                        );
+                    <div class="button-container"><!--Added on Feb 6th 2025-->
+                        <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+                            onclick={handleActions} variant="border-filled" data-action="showfiltertoggle">
+                        </lightning-button-icon-stateful>
+                    </div><!--Added on Feb 6th 2025-->
+                    
+                    <div class="slds-grid slds-wrap">
+                        <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+                            <div class="slds-grid slds-wrap">
+                                <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search"
+                                    type="search" onchange={handleReset} onkeyup={handleSearch} value={searchKey}>
+                                </lightning-input>
+                                <div style="margin-top: 10px;"></div> 
 
-                        return {
-                            ...parent,
-                            children: match ? match.domains : []
-                        };
-                    })
-                };
-            });
-            console.log('this._filteredFieldValues 330 ', JSON.stringify(this._filteredFieldValues));
-        }
+                                <!--Srikanth Change-->
+                                <!--<p class="slds-col slds-size_1-of-1">Filter by:</p>
+                                <lightning-combobox class="slds-col slds-size_1-of-1" title="Waivers List"
+                                    value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
+                                </lightning-combobox>-->
 
-        removeCount(label) {
-            return label.replace(/\s*\(\d+\)$/, '');
-        }
+                                <lightning-combobox label="Filter by:" class="slds-col slds-size_1-of-1" title="Waivers List"
+                                    value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
+                                </lightning-combobox>
+                                <!--Srikanth Change-->
 
-  this.appDomainArray= data?.['modifedAffectedStandard'];
+                                <c-custom-multi-pick-list class="slds-col slds-size_1-of-1" label=""
+                                    required={valueFalse} showpills={valueFalse} role="cm-picklist"
+                                    onselectedvalues={handleActions}></c-custom-multi-pick-list>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filterContainer">
+                        <div if:true={showFilterValues}>
+                        <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
+                    <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+                        for:each={filteredFieldValues} for:item="filteredFieldValue">
+                        <div class="slds-grid slds-align--spread slds-wrap">
+                             <!-- <template if:false={filteredFieldValue.isApplicationStandred}> -->
+                            <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                             <lightning-button-icon class="slds-col slds-text-align--right"
+                                icon-name={filteredFieldValue.icon} size="small" variant="bare" onclick={handleActions}
+                                data-action="filterbyexpand" data-index={filteredFieldValue.id}></lightning-button-icon> 
+                              <!--  </template> -->
+                        </div>
+                        
+                       {filteredFieldValue.uniqueKey} 
+                     
+                         
+                      <template if:false={filteredFieldValue.isApplicationStandred}>
+                       <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-bottom_medium"
+                            name="filterValue" options={filteredFieldValue.filteredFieldValue}
+                            data-action="selectedfiltervalue" data-index={filteredFieldValue.id}
+                            onchange={handleActions} value={filteredFieldValue.selectedValue}
+                            key={filteredFieldValue.uniqueKey}>
+                        </lightning-checkbox-group>
+                        </template>
+                     <!--   <template for:each={filteredFieldValue.filteredFieldValue} for:item="category"> 
+                            <lightning-checkbox-group  class="slds-p-bottom_medium"
+                            name="filterValue" options={category.subOption}
+                            data-action="selectedfiltervalue" data-index={filteredFieldValue.id}
+                            onchange={handleActions} value={filteredFieldValue.selectedValue}
+                            key={filteredFieldValue.uniqueKey}>
+                        </lightning-checkbox-group>
+                        </template> 
+                            <template for:each={category.subOption} for:item="child">
+                                <div key={child.id} class="slds-m-left_large slds-m-top_xx-small">
+                                <lightning-input
+                                    id="test11"
+                                    type="checkbox"
+                                    label={child.name}
+                                    data-parent={category.label}
+                                    data-id={child.id}
+                                    checked={child.checked}
+                                    onchange={handleChildCheckboxChange}>
+                                </lightning-input>
+                                </div>
+                                 
+                                  </template>
+                                   </template> -->
+                        <template if:true={filteredFieldValue.isApplicationStandred}>
+                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="category"> 
+                        <!-- <template for:each={parentsWithChildren} for:item="category"> -->
+                            <div key={category.label} >
+                            <lightning-input
+                            data-name="test12"
+                            type="checkbox"
+                            label={category.label}
+                            data-id={category.label}
+                            checked={category.checked}
+                            onchange={handleParentCheckboxChangeNew}>
+                            </lightning-input>
 
-  if (x !== 'PortfolioDomains' && x !== 'modifedAffectedStandard') {
+                          <!--  <template if:true={category.label ==filteredFieldValue.filteredFieldValue}> -->
+                           <!--   <template for:each={parent.children} for:item="group"> -->
+                           
+                              <template for:each={category.children} for:item="group"> 
+                                    <div key={group.label} class="slds-m-left_large">
+                                      <!--   <p class="slds-text-title_bold">{group.label}</p>
+                                       <template for:each={group.values} for:item="item"> -->
+                                   
+                                            <lightning-input
+                                                key={group.label}
+                                                data-name="test11"
+                                                type="checkbox"
+                                                label={group.label}
+                                                data-parent={category.label}
+                                                data-id={group.label}
+                                                checked={group.checked}
+                                                onchange={handleChildCheckboxChangeNew}>
+                                            </lightning-input>
+                                      <!--  </template> -->
+                                    </div>
+                                 <!-- </template>  -->
+                            </template> 
 
-handleParentCheckboxChangeNew(event){
-    const categoryName = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('isChecked ', isChecked);
-    console.log('categoryName ', categoryName);
-    let repeathtmldata=[];
-    const selected = [];
-    const selectedChilds = [];
-    const inputs = this.template.querySelectorAll('[data-name="test12"]');
-    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
-       // console.log(inputs.checked);
-         
-        let methodFilter='';
-        let methodFilterChild='';
-        inputs.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selected.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilter=result   
-            }
-        });
-        inputsChild.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selectedChilds.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilterChild=result   
-            }
-        });
-        this.filters=[
-            {"Affected Standard":selected,
-            "uniqueKey":'0-'+selected.join(",")}]
-            if(selectedChilds != null){
-            this.filters.push({"Domain Standard":selectedChilds,
-            "uniqueKey":'0-'+selectedChilds.join(",")});
-            } 
-            this.rowOffSet=0;
-        this.records = [];
-        this.fetchData();
-}
-handleChildCheckboxChangeNew(event) {
-    const parentName = event.target.dataset.parent;
-    const childId = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('childId 2310', childId);
-    console.log('parentName 2310', parentName);
-    console.log('isChecked 2310', isChecked);
-    let selectedChildrenForParent = [];
-     const selected = [];
-    const selectedChilds = [];
-    const inputs = this.template.querySelectorAll('[data-name="test12"]');
-    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
-       // console.log(inputs.checked);
-         
-        let methodFilter='';
-        let methodFilterChild='';
-        inputs.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selected.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilter=result   
-            }
-        });
-        inputsChild.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selectedChilds.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilterChild=result   
-            }
-        });
-        this.filters=[
-            {"Affected Standard":selected,
-            "uniqueKey":'0-'+selected.join(",")}]
-            if(selectedChilds != null){
-            this.filters.push({"Domain Standard":selectedChilds,
-            "uniqueKey":'0-'+selectedChilds.join(",")});
-            } 
-            this.rowOffSet=0;
-        this.records = [];
-        this.fetchData();
-}
+                          <!--  <template if:true={category.checked} //Earler code for showing domain> 
+                            <template for:each={category.subOption} for:item="child">
+                                <div key={child.id} class="slds-m-left_large slds-m-top_xx-small">
+                                <lightning-input
+                                    id="test11"
+                                    type="checkbox"
+                                    label={child.name}
+                                    data-parent={category.label}
+                                    data-id={child.id}
+                                    checked={child.checked}
+                                    onchange={handleChildCheckboxChange}>
+                                </lightning-input>
+                                </div>
+                            </template>
+                            </template> -->
+                             </div>
+                            </template>
+                        </template>
+                        <!-- Render Sub-options -->
+                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="option">
+                            <div key={option.value}>
+                                <template if:true={option.subOptions}>
+                                    <ul>
+                                        <template for:each={option.subOptions} for:item="subOption">
+                                            <li key={subOption.value} class="sub-option">
+                                                <label class="slds-checkbox">
+                                                    <input type="checkbox"
+                                                        value={subOption.value}
+                                                        checked={subOption.checked}
+                                                        onchange={handleSubOptionChange} />
+                                                    <span class="slds-checkbox_faux"></span>
+                                                    <span class="slds-form-element__label">&nbsp;&nbsp;{subOption.label}test</span>
+                                                </label>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                            </div>
+                      
+                        </template>
+                    </div>
+                    </div>
+                    
+
+
+                     <!--Srikanth Changes-->
+                    <!--<div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+                        for:each={filteredFieldValues} for:item="filteredFieldValue">
+                        <div class="slds-grid slds-align--spread slds-wrap">
+                            <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                            <lightning-button-icon class="slds-col slds-text-align--right" icon-name={filteredFieldValue.icon} size="small"
+                                variant="bare" onclick={handleActions} data-action="filterbyexpand" data-index={filteredFieldValue.id}>
+                            </lightning-button-icon>
+                        </div>
+                        {filteredFieldValue.uniqueKey}
+                    
+                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="option">
+                            <div key={option.value} class="parent-option">
+                                <label class="slds-checkbox">
+                                    <input type="checkbox"
+                                        name="filterValue"
+                                        data-action="selectedfiltervalue"
+                                        data-index={filteredFieldValue.id}
+                                        value={option.value} 
+                                        checked={option.checked}
+                                        onchange={handleActions} 
+                                    />
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label">{option.label}</span>
+                                </label>-->
+                    
+                                <!-- Render sub-options if they exist -->
+                                <!--<template if:true={option.subOptions}>
+                                    <ul class="slds-list_horizontal slds-wrap sub-options-list">
+                                        <template for:each={option.subOptions} for:item="subOption">
+                                            <li key={subOption.value} class="slds-m-left_large sub-option">
+                                                <label class="slds-checkbox">
+                                                    <input type="checkbox"
+                                                        value={subOption.value}
+                                                        checked={subOption.checked}
+                                                        onchange={handleSubOptionChange} 
+                                                    />
+                                                    <span class="slds-checkbox_faux"></span>
+                                                    <span class="slds-form-element__label">{subOption.label}</span>
+                                                </label>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                            </div>
+                        </template>
+                    </div>-->
+                    <!--Srikanth Changes-->
+
+
+                    <!--<template for:each={parentOptions} for:item="parent">
+                        <div key={parent.value} class="slds-p-around_medium">
+                            <div class="slds-text-title_bold">{parent.label}</div>
+                            <template for:each={parent.options} for:item="option">
+                                <div key={option.value} class="slds-p-top_small">
+                                    <lightning-input
+                                        type="checkbox"
+                                        label={option.label}
+                                        checked={option.checked}
+                                        data-parent={parent.value}
+                                        data-value={option.value}
+                                        onchange={handleOptionChange}>
+                                    </lightning-input>
+                                    <template if:true={option.subOptions}>
+                                        <div class="slds-m-left_large slds-m-top_small">
+                                            <template for:each={option.subOptions} for:item="subOption">
+                                                <div key={subOption.value}>
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        label={subOption.label}
+                                                        checked={subOption.checked}
+                                                        data-parent={parent.value}
+                                                        data-option={option.value}
+                                                        data-sub-value={subOption.value}
+                                                        onchange={handleSubOptionChange}>
+                                                    </lightning-input>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>-->
+
+
+
+                    <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
+                        <div class="slds-col">
+                            <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                                onclick={handleActions}></lightning-button>
+                        </div>
+                        <div class="slds-col slds-var-p-left_small">
+                            <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                                onclick={handleActions}></lightning-button>
+                        </div>
+                    </div>
+                    <template if:true={isLoadingFilter}>
+                        <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                    </template>
+                </div>
+                <!--</div>-->
+
+                </lightning-layout-item>
+
+
+              <!--<div style={blueStyle}>-->
+
+                <!--<lightning-layout-item padding="around-small" size="1"
+                style="padding-block: 68vh; background-color: yellow;">width:2%;-->
+                <!--</lightning-layout-item>-->
+                <!--</div>-->
+
+            </template>
+
+
+
+            
+
+
+            <lightning-layout-item size={tableSize} style={tableStyle} class="slds-border_left slds-border_right background-white ">
+                <!--min-height-container-->
+                 <div >
+                     <template if:false={noRecordsFound}> 
+                    <div class="slds-page-header">
+                        <div class="slds-page-header__row">
+                            <div class="slds-page-header__col-title">
+                                <div class="slds-media">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <div class="slds-page-header__name">
+                                            <div class="slds-page-header__name-title">
+                                                <h1>
+                                                    <span>Architecture Waivers</span>
+                                                    <span class="slds-page-header__title slds-truncate"
+                                        title="Recently Viewed">{selectedWaiverLabel}</span>
+                                                </h1>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <template if:false={showRecord}>
+                                        <div class="slds-media__body" style="text-align-last: end;">
+                                            <div class="slds-page-header__name">
+                                                <div class="slds-page-header__name-title">
+                                                    <lightning-button variant="neutral" label="New" data-action="newrecord"
+                                                        onclick={handleActions}>
+                                                    </lightning-button>
+                                                    <!-- <div class="slds-col slds-var-p-left_small"> -->
+                                                    <lightning-button class="slds-var-p-left_small" label="Share View"
+                                                        variant="brand" data-action="sharefilter" onclick={handleActions}>
+                                                    </lightning-button>
+                                                    <!-- </div> -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div>
+                                    {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
+                                    {selectedWaiverLabel}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                  <!--  <div class="slds-scrollable_y slds-border_top" style="display: block;overflow-y: auto;height: 300px;min-height: 400px;" >height: 300px;min-height: 400px;--><!--onscroll={handleScroll} height: calc(110vh - 0px);-->
+                       <div style="height: 100vh;">
+
+                        <lightning-spinner if:true={showSpinner} alternative-text="Loading" size="medium"></lightning-spinner>
+
+                        <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={records}
+                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortedBy}
+                            sorted-direction={sortedDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
+                            onrowaction={handleActions} oncustomtext={handleActions} 
+                            onloadmore={loadMoreData1} enable-infinite-loading><!--key-field="Id"-->
+                        </c-custom-datatable-data-type-provider>
+
+                    <template if:true={isLoadingMore}>
+                        <div class="slds-text-align_center">
+                            <lightning-spinner alternative-text="Loading more records"></lightning-spinner>
+                        </div>
+                    </template>
+
+                       
+                    </div>
+                     </template>
+                     <template if:true={noRecordsFound}> 
+                        <div class="slds-text-heading_large slds-color__background_gray-2" style="min-height: 100vh; text-align: center;"> No records to display </div>
+                    </template>
+                </div>
+                <!--<div class="slds-grid slds-wrap slds-grid--align-spread slds-var-p-top_xx-large"
+                    style="background-color: rgb(243, 243, 243)">
+                    <div class="slds-col">-->
+                        <!-- <lightning-combobox label="Page Size" value={currentPageSize} options={pageSizeOptions}
+                          onchange={handlePageSize}></lightning-combobox> -->
+                    <!--</div>
+                    <div class="slds-col slds-var-p-top_xx-large">
+                        <lightning-button-group>
+                            <lightning-button label="" variant="base" icon-name="utility:jump_to_left" onclick={handleFirst}
+                                disabled={isFirstPage}></lightning-button>
+                            <lightning-button label="" variant="base" icon-name="utility:left" onclick={handlePrevious}
+                                disabled={isFirstPage}></lightning-button>
+                        </lightning-button-group>
+                        <span class="slds-m-horizontal_small">
+                          {currentPage}/{totalPages}
+                        </span>
+                        <lightning-button-group>
+                            <lightning-button label="" variant="base" icon-name="utility:right" icon-position="right"
+                                onclick={handleNext} disabled={isLastPage}></lightning-button>
+                            <lightning-button label="" variant="base" icon-name="utility:jump_to_right" icon-position="right"
+                                onclick={handleLast} disabled={isLastPage}></lightning-button>
+                        </lightning-button-group>
+                    </div>
+                </div>-->
+            </lightning-layout-item>
+            
+            <template if:true={showRecord}>
+
+                <div style="width:0.5%; background-color: #b0c4de;padding-left: 10px;"> <!-- Removed padding-block: 68vh; to align the page height -->
+                </div>
+
+                <lightning-layout-item size={recordViewSize} style={recordViewStyle}>
+                    
+                    <c-custom-highlight-panel record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+                      field-set="CompactPanelFieldSet" edit-click={editClick}></c-custom-highlight-panel><!--oneditclick={handleEditClick} //Srikant 17 April-->
+                    <c-waivers-record-page record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c" relation-ship-id={relationShipId} 
+                        record-name={recordName} waiverfooterwidth={waiverfooterwidth} edit-click={editClick}></c-waivers-record-page>
+                    <!-- <lightning-card title="Architecture Waiver Record" icon-name="standard:opportunity">
+                      <lightning-record-form record-id={recordId} object-api-name="AWP_Architecture_Waiver_Form__c"
+                        layout-type="Full" columns="2" mode="readonly">
+                      </lightning-record-form>
+                      <div class="slds-p-left_small slds-m-top_x-large">
+                        <lightning-button variant="brand" label="Close" data-action="close"
+                          onclick={handleActions}></lightning-button>
+                      </div>
+                    </lightning-card> -->
+                    <!--<div class="slds-p-left_small slds-m-top_x-large">
+                        <lightning-button variant="brand" label="Close" data-action="close" onclick={handleActions}>
+                        </lightning-button>
+                    </div>-->
+                </lightning-layout-item>
+            </template>
+
+
+
+        </lightning-layout>
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+
+        
+        
+    <!--</lightning-card>-->
+    </div>
+    
+
+    <template if:false={showFilter}>
+        <!-- <div class="filter-container slds-is-fixed"> -->
+        <lightning-button-icon-stateful class="filter-button slds-is-fixed" icon-name="utility:filterList"
+            selected={showFilter} size="medium" onclick={handleActions} variant="border-filled"
+            data-action="showfiltertoggle"></lightning-button-icon-stateful>
+        <!-- </div> -->
+    </template>
+
+
+    <!-- Modal to copy the filter link -->
+  <template if:true={showShareLinkModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <h2>Share Filter </h2>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_11-of-12 slds-box slds-theme_shade slds-theme_alert-texture"
+              style="word-wrap: break-word;">
+              <p class="slds-text-body_small">{generatedFilterLink}</p>
+            </div>
+            <div class="slds-col slds-size_1-of-12 slds-p-top--medium slds-text-align--center">
+              <lightning-button-icon class="slds-p-left_small" icon-name="utility:copy" variant="bare" size="large"
+                onclick={handleCopy}></lightning-button-icon>
+            </div>
+          </div>
+        </div>
+        <div class="slds-modal__footer">
+          <lightning-button label="close" variant="brand" onclick={closeModal}>
+          </lightning-button>
+        </div>
+      </div>
+    </div>
+  </template>
+  <!-- END Modal to copy the filter link -->
+
+  <template if:true={showNewRecordModal}>
+    <div class="slds-modal slds-fade-in-open slds-backdrop">
+      <div class="slds-modal__container">
+        <div class="slds-modal__header">
+          <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+            variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+          </lightning-button-icon>
+          <span class="slds-text-heading_medium">New Record </span>
+        </div>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-wrap">
+            <div class="slds-col">
+              <c-waivers-create-record-page onclose={closeModal}></c-waivers-create-record-page>
+            </div>
+          </div>
+        </div>
+        <!-- <div class="slds-modal__footer">
+        </div> -->
+      </div>
+    </div>
+  </template>
+
+</template>
