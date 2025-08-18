@@ -1,209 +1,78 @@
- handleParentCheckboxChange(event) {
-    const categoryName = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('isChecked ', isChecked);
-    console.log('categoryName ', categoryName);
-    let repeathtmldata=[];
-    const selected = [];
-    const selectedChilds = [];
-    const inputs = this.template.querySelectorAll('[data-name="test12"]');
-    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
-       // console.log(inputs.checked);
-         
-        let methodFilter='';
-        let methodFilterChild='';
-        inputs.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selected.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilter=result   
+public class DomainItem {
+        @AuraEnabled public String label;
+        @AuraEnabled public Integer count;
+    }
+
+    public class PortfolioItem {
+        @AuraEnabled public String label;
+        @AuraEnabled public Integer count;
+        @AuraEnabled public List<DomainItem> domains;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PortfolioItem> getPortfolioDomainCounts(list<string> filterNames) {
+        String whereClause = buildWhereConditionForNames(filterNames);
+        system.debug('whereClause '+whereClause);
+         string query = 'SELECT Affected_Standard_Portfolio1__r.Name portfolioName, Affected_Standard_Domain1__r.Name domainName,COUNT(Id) recordCount FROM AWP_Waiver_Relationship__c WHERE '
+             		 + whereClause +
+                    ' GROUP BY  Affected_Standard_Portfolio1__r.Name, Affected_Standard_Domain1__r.Name ORDER BY Affected_Standard_Portfolio1__r.Name' ;
+           system.debug('query 1520 '+query);
+        List<AggregateResult> results = Database.query(query);
+        system.debug('results '+results);
+        // Step 1: Query aggregated counts
+       /* List<AggregateResult> results = [
+            SELECT Affected_Standard_Portfolio1__r.Name portfolioName,
+                   Affected_Standard_Domain1__r.Name domainName,
+                   COUNT(Id) recordCount
+            FROM AWP_Waiver_Relationship__c
+            WHERE (
+                Affected_Standard_Portfolio1__r.Name IN ('test nov 5','Test Jan 22nd','Test Sri Record')
+                OR Affected_Standard_Portfolio1__r.Name = null
+            )
+            GROUP BY Affected_Standard_Portfolio1__r.Name,
+                     Affected_Standard_Domain1__r.Name
+            ORDER BY Affected_Standard_Portfolio1__r.Name
+        ]; */
+
+        // Step 2: Group by Portfolio
+        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
+
+        for (AggregateResult ar : results) {
+            system.debug('ar '+ar);
+            String portfolioName = (String)ar.get('portfolioName');
+            String domainName = (String)ar.get('domainName');
+            Integer count = (Integer)ar.get('recordCount');
+
+            if (String.isBlank(portfolioName)) {
+                portfolioName = 'No Data';
             }
-        });
-        inputsChild.forEach(input => {
-            if (input.checked) {
-                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
-                selectedChilds.push(result);
-                console.log(input.dataset.id);
-                
-                    methodFilterChild=result   
+            if (String.isBlank(domainName)) {
+                domainName = 'No Data';
             }
-        });
-        this.filters=[
-            {"Affected Standard":selected,
-            "uniqueKey":'0-'+selected.join(",")}]
-            if(selectedChilds != null){
-            this.filters.push({"Domain Standard":selectedChilds,
-            "uniqueKey":'0-'+selectedChilds.join(",")});
+
+            // Create portfolio if missing
+            if (!portfolioMap.containsKey(portfolioName)) {
+                PortfolioItem p = new PortfolioItem();
+                p.label = portfolioName + ' (0)'; // Will update later with total
+                p.count = 0;
+                p.domains = new List<DomainItem>();
+                portfolioMap.put(portfolioName, p);
             }
-         console.log('methodFilter ',methodFilter);
-        console.log('Selected checkbox IDs:', JSON.stringify(selected));
-        console.log('Selected checkbox IDs:', JSON.stringify(this.filters));
-         let selectedFilter = selected.join(",");
-         const resultstring = selectedFilter
-                .split(',')
-                .map(str => `'${str.trim()}'`)
-                .join(',');
 
-                console.log('resultstring ',resultstring);
+            // Add domain to portfolio
+            DomainItem d = new DomainItem();
+            d.label = domainName + ' (' + count + ')';
+            d.count = count;
+            portfolioMap.get(portfolioName).domains.add(d);
 
-      console.log('selectedFilter 2289 ', selectedFilter);
-
-                    getRecordApplicationPortfolio({ fieldApiName: methodFilter, allOrMy: this.selectedWaiver }).then((data) => {
-                        console.log('Returned data:', JSON.stringify(data));
-                        let allCheckboxData = [];
-                        const domainGroups = data?.PortfolioDomains || {};
-                        console.log('domainGroups 2200 ', JSON.stringify(domainGroups));
-                        
-                        const cleandata = Object.entries(domainGroups).map(( [key, val]) => ({
-                      /*  // Commenting this logic as per requirement change
-                      Object.entries(domainGroups).map(([groupKey, domainList]) => {
-                        const cleandata = (domainList || [])
-                            .filter(child => child && child.id)
-                            .map((child, index) => ({
-                            label: child.name || 'Unnamed Domain',
-                            value: child.id,
-                            checked: false,
-                            id: `${groupKey}-${index}`
-                            // End of Commenting this logic as per requirement change*/
-                           
-                                     
-                                        
-                                    
-                                     
-                           
-                             label:  `${val.value ? val.value : 'No Data'} (${val.count})`,
-                            value: val.id ? val.id : 'nullcheck',
-                            checked: false,
-                            id: val.id ? val.id : 'nullcheck'
-                            }));
-                            console.log('domainGroups 2200 ', JSON.stringify(cleandata));
-                         allCheckboxData.push(...cleandata); 
-
-                             
-                        
-                    
-                        console.log('All checkbox data:', JSON.stringify(allCheckboxData));
-                        
-                        this.checkboxData = allCheckboxData;
-                       
-                        console.log('selectedFilter 2218 ', JSON.stringify(this.checkboxData));
-                        this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
-                                    console.log('this.category 2220 ', JSON.stringify(category));
-                                if (category.label === categoryName) {
-                                    // Update parent
-                                    console.log('this._filteredFieldValues.filteredFieldValue 2241 ', categoryName);
-                                    category.checked = isChecked;
-                                    // If unchecking, also uncheck all children
-                                    if (!isChecked) {
-                                    category.children = category?.children?.map(child => ({
-                                        ...child,
-                                        checked: false
-                                    }));
-                                    }
-                                }
-                                return category;
-                                });
-                                console.log('allCheckboxData ', JSON.stringify(allCheckboxData));
-                         this._filteredFieldValues[0].filteredFieldValue.forEach(obj => {
-                            if(obj.label==categoryName){
-                                console.log('this.checkboxData @@ ',JSON.stringify(this.checkboxData), 'hcbhxf ', obj.label);
-                                 obj.checkboxArray = allCheckboxData;
-                            }
-                               
-                                });
-                        
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-                    
-        this.rowOffSet=0;
-        this.records = [];
-        this.fetchData();
-         const payload1 = {
-                    _filteredFieldValues: this._filteredFieldValues,
-                    totalRecords: this.totalRecords,
-                    totalPages: this.totalPages,
-                    isLoadingFilter: this.isLoadingFilter,
-                    selectedWaiver: this.selectedWaiver,
-                    selectedFilter: this.selectedFilter
-                };
-                pubsub.publish('filterBy', payload1);
-                console.log('payload1 2181 ', JSON.stringify(payload1));
-    console.log('this._filteredFieldValues.filteredFieldValue 2169 ', this._filteredFieldValues[0].filteredFieldValue);
-    this._filteredFieldValues[0].selectedValue = selected;
-    //this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.
-
-  }
-
-  handleChildCheckboxChange(event) {
-    const parentName = event.target.dataset.parent;
-    const childId = event.target.dataset.id;
-    const isChecked = event.target.checked;
-    console.log('childId 2310', childId);
-    let selectedChildrenForParent = [];
-    const selected = [];
-    console.log('this._filteredFieldValues.filteredFieldValue 2224 ', this._filteredFieldValues[0].filteredFieldValue);
-    this._filteredFieldValues.filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
-       console.log('Checking 2230', category.label); 
-      if (category.label === parentName) {
-        console.log('Checking 2233', category);
-        this.checkboxData = this.checkboxData.map(child => {
-            console.log('Checking 2235', child.id);
-          if (child.label === childId) {
-            child.checked = isChecked
-            console.log('Checking 2238', child.label);
-          }
-          return child;
-        });
-      }
-      
-        
-            return category;
-    });
-    const selectedChild = (this.checkboxData || []).filter(child => child.checked).map(child => (child.label).replace(/\s*\(\d+\)\s*$/, ""));
-          selectedChildrenForParent.push(...selectedChild);
-        console.log('selectedChild 2247', JSON.stringify(selectedChild));
-    console.log('childId 2245', this._filteredFieldValues.length);
-  /*  let domainarray = {
-        "id": this._filteredFieldValues.length,
-        "filterField": "Domain Standard",
-        "filteredFieldValue":[],
-        "showValues": true,
-        "selectedValue": selectedChildrenForParent,
-        "icon":"utility:chevrondown",
-        "isApplicationStandred":false
-
-    };
-    this._filteredFieldValues.push(domainarray); */
-     console.log('selectedChild 2263', JSON.stringify(selectedChildrenForParent));
-     console.log('2264 before child filter array ', JSON.stringify(this.filters));
-    if(selectedChildrenForParent.length != 0){
-        let filterArray = {"Domain Standard":selectedChildrenForParent,
-            "uniqueKey":'0-'+selectedChildrenForParent.join(",")}
-            this.filters.push(filterArray);
+            // Increase portfolio count
+            portfolioMap.get(portfolioName).count += count;
         }
-                const output = [];
-                let seenDomain = false;
 
-                for (let i = this.filters.length - 1; i >= 0; i--) {
-                const item = this.filters[i];
-                if (item["Domain Standard"]) {
-                    if (!seenDomain) {
-                    output.unshift(item);
-                    seenDomain = true;
-                    }
-                } else {
-                    output.unshift(item);
-                }
-            }
-            this.filters=output;
-         console.log('2269 final child filter array ', JSON.stringify(this.filters));
-    console.log('2262 final child main array ', JSON.stringify(this._filteredFieldValues));
-    
-    this.rowOffSet=0;
-    this.records = [];
-        this.fetchData();
-  }
+        // Step 3: Update portfolio labels with correct total
+        for (PortfolioItem p : portfolioMap.values()) {
+            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
+        }
+
+        return new List<PortfolioItem>(portfolioMap.values());
+    }
