@@ -1,3 +1,6 @@
+ list<string> affctedSTNames = new list<string>();
+
+ affctedSTNames.add(portfolioName);
 
 public static String buildWhereConditionForNames(List<String> names) {
     if (names == null || names.isEmpty()) {
