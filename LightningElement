@@ -1,117 +1,119 @@
- list<string> affctedSTNames = new list<string>();
+appDomainArray=[];
 
- affctedSTNames.add(portfolioName);
+ addChildrenToFilteredValues() {
+           
 
-public static String buildWhereConditionForNames(List<String> names) {
-    if (names == null || names.isEmpty()) {
-        return ''; // No condition if list is empty
-    }
-    
-    List<String> nonNullNames = new List<String>();
-    Boolean hasNull = false;
-    
-    for (String s : names) {
-        if (s == null) {
-            hasNull = true;
-        } else {
-            // Escape single quotes in values
-            nonNullNames.add(s.replace('\'', '\\\''));
+            this._filteredFieldValues = this._filteredFieldValues.map(filterGroup => {
+                return {
+                    ...filterGroup,
+                    filteredFieldValue: filterGroup.filteredFieldValue.map(parent => {
+                        const match = this.appDomainArray.find(
+                            cat => this.removeCount(cat.label) === parent.value
+                        );
+
+                        return {
+                            ...parent,
+                            children: match ? match.domains : []
+                        };
+                    })
+                };
+            });
+            console.log('this._filteredFieldValues 330 ', JSON.stringify(this._filteredFieldValues));
         }
-    }
-    
-    List<String> conditions = new List<String>();
-    
-    if (!nonNullNames.isEmpty()) {
-        String inClause = 'Affected_Standard_Portfolio1__r.Name IN (\'' + String.join(nonNullNames, '\',\'') + '\')';
-        conditions.add(inClause);
-    }
-    
-    if (hasNull) {
-        conditions.add('Affected_Standard_Portfolio1__r.Name = null');
-    }
-    
-    return '(' + String.join(conditions, ' OR ') + ')';
+
+        removeCount(label) {
+            return label.replace(/\s*\(\d+\)$/, '');
+        }
+
+  this.appDomainArray= data?.['modifedAffectedStandard'];
+
+  if (x !== 'PortfolioDomains' && x !== 'modifedAffectedStandard') {
+
+handleParentCheckboxChangeNew(event){
+    const categoryName = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('isChecked ', isChecked);
+    console.log('categoryName ', categoryName);
+    let repeathtmldata=[];
+    const selected = [];
+    const selectedChilds = [];
+    const inputs = this.template.querySelectorAll('[data-name="test12"]');
+    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
+       // console.log(inputs.checked);
+         
+        let methodFilter='';
+        let methodFilterChild='';
+        inputs.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selected.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilter=result   
+            }
+        });
+        inputsChild.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selectedChilds.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilterChild=result   
+            }
+        });
+        this.filters=[
+            {"Affected Standard":selected,
+            "uniqueKey":'0-'+selected.join(",")}]
+            if(selectedChilds != null){
+            this.filters.push({"Domain Standard":selectedChilds,
+            "uniqueKey":'0-'+selectedChilds.join(",")});
+            } 
+            this.rowOffSet=0;
+        this.records = [];
+        this.fetchData();
 }
-if(fieldList.get(field) == 'Affected_Standard_Portfolio1__c'){
-             List<PortfolioItem> lstportfolio = getPortfolioDomainCounts(affctedSTNames);
-              fieldUniqueMap.put('modifedAffectedStandard', lstportfolio);
-          }
-
-public class DomainItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-    }
-
-    public class PortfolioItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-        @AuraEnabled public List<DomainItem> domains;
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<PortfolioItem> getPortfolioDomainCounts(list<string> filterNames) {
-        String whereClause = buildWhereConditionForNames(filterNames);
-        system.debug('whereClause '+whereClause);
-         string query = 'SELECT Affected_Standard_Portfolio1__r.Name portfolioName, Affected_Standard_Domain1__r.Name domainName,COUNT(Id) recordCount FROM AWP_Waiver_Relationship__c WHERE '
-             		 + whereClause +
-                    ' GROUP BY  Affected_Standard_Portfolio1__r.Name, Affected_Standard_Domain1__r.Name ORDER BY Affected_Standard_Portfolio1__r.Name' ;
-           system.debug('query 1520 '+query);
-        List<AggregateResult> results = Database.query(query);
-        system.debug('results '+results);
-        // Step 1: Query aggregated counts
-       /* List<AggregateResult> results = [
-            SELECT Affected_Standard_Portfolio1__r.Name portfolioName,
-                   Affected_Standard_Domain1__r.Name domainName,
-                   COUNT(Id) recordCount
-            FROM AWP_Waiver_Relationship__c
-            WHERE (
-                Affected_Standard_Portfolio1__r.Name IN ('test nov 5','Test Jan 22nd','Test Sri Record')
-                OR Affected_Standard_Portfolio1__r.Name = null
-            )
-            GROUP BY Affected_Standard_Portfolio1__r.Name,
-                     Affected_Standard_Domain1__r.Name
-            ORDER BY Affected_Standard_Portfolio1__r.Name
-        ]; */
-
-        // Step 2: Group by Portfolio
-        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
-
-        for (AggregateResult ar : results) {
-            system.debug('ar '+ar);
-            String portfolioName = (String)ar.get('portfolioName');
-            String domainName = (String)ar.get('domainName');
-            Integer count = (Integer)ar.get('recordCount');
-
-            if (String.isBlank(portfolioName)) {
-                portfolioName = 'No Data';
+handleChildCheckboxChangeNew(event) {
+    const parentName = event.target.dataset.parent;
+    const childId = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('childId 2310', childId);
+    console.log('parentName 2310', parentName);
+    console.log('isChecked 2310', isChecked);
+    let selectedChildrenForParent = [];
+     const selected = [];
+    const selectedChilds = [];
+    const inputs = this.template.querySelectorAll('[data-name="test12"]');
+    const inputsChild = this.template.querySelectorAll('[data-name="test11"]');
+       // console.log(inputs.checked);
+         
+        let methodFilter='';
+        let methodFilterChild='';
+        inputs.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selected.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilter=result   
             }
-            if (String.isBlank(domainName)) {
-                domainName = 'No Data';
+        });
+        inputsChild.forEach(input => {
+            if (input.checked) {
+                const result = input.dataset.id.replace(/\s*\(.*?\)\s*/g, '').trim();
+                selectedChilds.push(result);
+                console.log(input.dataset.id);
+                
+                    methodFilterChild=result   
             }
-
-            // Create portfolio if missing
-            if (!portfolioMap.containsKey(portfolioName)) {
-                PortfolioItem p = new PortfolioItem();
-                p.label = portfolioName + ' (0)'; // Will update later with total
-                p.count = 0;
-                p.domains = new List<DomainItem>();
-                portfolioMap.put(portfolioName, p);
-            }
-
-            // Add domain to portfolio
-            DomainItem d = new DomainItem();
-            d.label = domainName + ' (' + count + ')';
-            d.count = count;
-            portfolioMap.get(portfolioName).domains.add(d);
-
-            // Increase portfolio count
-            portfolioMap.get(portfolioName).count += count;
-        }
-
-        // Step 3: Update portfolio labels with correct total
-        for (PortfolioItem p : portfolioMap.values()) {
-            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
-        }
-
-        return new List<PortfolioItem>(portfolioMap.values());
-    }
+        });
+        this.filters=[
+            {"Affected Standard":selected,
+            "uniqueKey":'0-'+selected.join(",")}]
+            if(selectedChilds != null){
+            this.filters.push({"Domain Standard":selectedChilds,
+            "uniqueKey":'0-'+selectedChilds.join(",")});
+            } 
+            this.rowOffSet=0;
+        this.records = [];
+        this.fetchData();
+}
