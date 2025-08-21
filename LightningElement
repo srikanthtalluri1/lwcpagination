@@ -32,3 +32,13 @@ this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.
                                 }
                                 return category;
                                 });
+
+ this.appDomainArray = this.appDomainArray.map( domain =>{
+                            return{
+                                ...domain,
+                                domains: domain.domains.map(eachDomain =>({
+                                    ...eachDomain,
+                                    checked: false
+                                }))
+                            }
+                        });
