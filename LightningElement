@@ -1,4 +1,34 @@
- get appDomainArrays() {
-        console.log('appDomainArray 267' + JSON.stringify(this.appDomainArray));
-        return this.appDomainArray;
-    }
+  this._filteredFieldValues.filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
+       console.log('Checking 2230', category.label); 
+      if (category.label === parentName) {
+        console.log('Checking 2233', category);
+        this.checkboxData = category.children.map(child => {
+            console.log('Checking 2235', child.id);
+          if (child.label === childId) {
+            child.checked = isChecked
+            console.log('Checking 2238', child.label);
+          }
+          return child;
+        });
+      }
+      
+        
+            return category;
+    });
+
+this._filteredFieldValues[0].filteredFieldValue = this._filteredFieldValues[0]?.filteredFieldValue?.map(category => {
+                                    console.log('this.category 2220 ', JSON.stringify(category));
+                                if (category.label === categoryName) {
+                                    // Update parent
+                                    console.log('this._filteredFieldValues.filteredFieldValue 2241 ', categoryName);
+                                    category.checked = isChecked;
+                                    // If unchecking, also uncheck all children
+                                    if (!isChecked) {
+                                    category.children = category?.children?.map(child => ({
+                                        ...child,
+                                        checked: false
+                                    }));
+                                    }
+                                }
+                                return category;
+                                });
