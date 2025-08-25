@@ -1,2 +1,6 @@
+Akshay Salesforce
+3:29 PM
 we are using lightning record edit form to show data when we clid edit approve button...That data comes from data base as a part of lightning record edit form functionality(Out of Box).
 Now to override that i need to use another lightning input with template tag to render it conditionally
+also i need to handle the value to save it database.. so its bit of complex change so taking time
+dmn-nfrv-bez
