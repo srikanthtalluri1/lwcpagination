@@ -1,15 +1,3 @@
-if (this.planneddates) {
-    this.waiverData = {
-        ...this.waiverData,
-        Planned_Date_of_Resolution__c: this.normalizeDate(this.planneddates)
-    };
-    console.log('Updated Planned Date:', this.waiverData['Planned_Date_of_Resolution__c']);
-}
-
-normalizeDate(dateVal) {
-    if (!dateVal) return null;
-    if (dateVal instanceof Date) {
-        return dateVal.toISOString().slice(0, 10); // YYYY-MM-DD
-    }
-    return String(dateVal).slice(0, 10);
-}
+const selvalues = event.detail.selectedValues;
+        console.log('selvalues 1985 ', selvalues);
+        if(!selvalues) return;
