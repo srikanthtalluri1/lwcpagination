@@ -1,99 +1,13 @@
-<template>
-    <lightning-modal-header label="New Decision">
-        </lightning-modal-header>
-<lightning-modal-body>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision__c" data-object="TechnologyDecision__c"
-        onsuccess={handleSuccess}>
+Button Visibility
 
-        <!-- Always visible fields -->
-        <lightning-input-field field-name="Name" ></lightning-input-field>
-        <lightning-input-field field-name="Decision_Reason__c" onchange={handleDecisionChange}></lightning-input-field>
-    </lightning-record-edit-form>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision_Relationship__c" data-object="TechnologyDecision_Relationship__c"
-        onsuccess={handleSuccess}>
-        <template if:true={showDomain}>
-            <lightning-input-field field-name="Requesting_Domain__c" required ></lightning-input-field>
-           
-        </template>
+Show the New button on Decisions list view only for users with FTE role/permission set.
 
-        <!-- Conditionally render AnnualRevenue -->
-        <template if:true={showReqPlatform}>
-            <lightning-input-field field-name="Requesting_Platform__c" required={required}></lightning-input-field>
-        </template>
-        <template if:true={showReqApplication}>
-            <lightning-input-field field-name="Requesting_Application__c" required={required}></lightning-input-field>
-        </template>
-    </lightning-record-edit-form>
-</lightning-modal-body>
-<lightning-modal-footer>
-        <!-- Submit & Cancel buttons -->
-    <div class="slds-m-top_medium">
-        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
-    </div>
-    
-</lightning-modal-footer>
-</template>
+Hide the button for non-FTE users.
 
+Duplicate Validation
 
+On Save, check for an existing record with the same Name and Decision Reason.
 
+If duplicate exists → show error message: “Decision already exists.”
 
-import { LightningElement, track, api, wire } from 'lwc';
-import DECISION_OBJECT from '@salesforce/schema/TechnologyDecision__c';
-export default class TechnologyDecision_CreateForm extends LightningElement {
-   decisionReason='';
-   isRequired;
-    handleDecisionChange(event){
-         this.decisionReason = event.target.value;
-        console.log('decisionReason ', this.decisionReason);
-    }
-
-    // Show AnnualRevenue only if Industry = Technology
-    get showDomain (){
-       return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-    }
-    get showReqPlatform (){
-       return ['Replace Platform', 'Existing Platform', 'Upgrade Platform','New Platform'].includes(this.decisionReason);
-    }
-     get showReqApplication (){
-       return ['Replace Application', 'Existing Application', 'Upgrade Application','New Application'].includes(this.decisionReason);
-    }
-    get required(){
-        this.isRequired= ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason);
-        this.isRequired= ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
-        this.isRequired= !['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-        return this.isRequired;
-    }
-
-    handleSave(event) {
-        const decisionFields = {};
-        const relationFields = {};
-         // collect values from inputs
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            if (el.dataset.object === 'TechnologyDecision__c') {
-                 console.log('checking here');
-                decisionFields[el.fieldName] = el.value;
-                console.log('checking here');
-            }
-            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
-                relationFields[el.fieldName] = el.value;
-            }
-        });
-        console.log('decisionFields ', JSON.stringify(decisionFields));
-    }
-}
-
-
-<?xml version="1.0"?>
-<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-	<apiVersion>63.0</apiVersion>
-	<isExposed>true</isExposed>
-	<targets>
-		<target>lightning__AppPage</target>
-		<target>lightning__HomePage</target>
-		<target>lightning__RecordPage</target>
-		<target>lightning__RecordAction</target>
-	</targets>
-</LightningComponentBundle>
+If no duplicate exists → save successfully and redirect to the new record’s detail page.
