@@ -1,13 +1,35 @@
-Button Visibility
+<template>
+    <lightning-modal-header label="New Decision">
+        </lightning-modal-header>
+<lightning-modal-body>
+    <lightning-record-edit-form 
+        object-api-name="TechnologyDecision__c">
+        <!-- Always visible fields -->
+        <lightning-input-field field-name="Name" data-object="TechnologyDecision__c"></lightning-input-field>
+        <lightning-input-field field-name="Decision_Reason__c" data-object="TechnologyDecision__c" onchange={handleDecisionChange}></lightning-input-field>
+    </lightning-record-edit-form>
+    <lightning-record-edit-form 
+        object-api-name="TechnologyDecision_Relationship__c" >
+        <template if:true={showDomain}>
+            <lightning-input-field field-name="Requesting_Domain__c" data-object="TechnologyDecision_Relationship__c" required ></lightning-input-field>
+           
+        </template>
 
-Show the New button on Decisions list view only for users with FTE role/permission set.
-
-Hide the button for non-FTE users.
-
-Duplicate Validation
-
-On Save, check for an existing record with the same Name and Decision Reason.
-
-If duplicate exists → show error message: “Decision already exists.”
-
-If no duplicate exists → save successfully and redirect to the new record’s detail page.
+        <!-- Conditionally render AnnualRevenue -->
+        <template if:true={showReqPlatform}>
+            <lightning-input-field field-name="Requesting_Platform__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
+        </template>
+        <template if:true={showReqApplication}>
+            <lightning-input-field field-name="Requesting_Application__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
+        </template>
+    </lightning-record-edit-form>
+</lightning-modal-body>
+<lightning-modal-footer>
+        <!-- Submit & Cancel buttons -->
+    <div class="slds-m-top_medium">
+        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
+    </div>
+    
+</lightning-modal-footer>
+</template>
