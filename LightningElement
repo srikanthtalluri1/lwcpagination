@@ -1,137 +1,39 @@
-<template>
-    <lightning-modal-header label="New Decision">
-        </lightning-modal-header>
-<lightning-modal-body>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision__c">
-        <!-- Always visible fields -->
-        <lightning-input-field field-name="Name" data-object="TechnologyDecision__c"></lightning-input-field>
-        <lightning-input-field field-name="Decision_Reason__c" data-object="TechnologyDecision__c" onchange={handleDecisionChange}></lightning-input-field>
-    </lightning-record-edit-form>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision_Relationship__c" >
-        <template if:true={showDomain}>
-            <lightning-input-field field-name="Requesting_Domain__c" data-object="TechnologyDecision_Relationship__c" required ></lightning-input-field>
-           
-        </template>
+public class technologyDecision_CreateFormHelper {
+	
+    @AuraEnabled
+    public static String createDecisionWithRelation(Map<String, Object> decisionFields, 
+                                                Map<String, Object> relationFields) {
+        // Create TechnologyDecision__c record
+        TechnologyDecision__c decision = (TechnologyDecision__c)
+            populateFields(new TechnologyDecision__c(), decisionFields);
+			try{
+				insert decision;
+			}
+			catch(Exception e){
+				return e.getMessage();
+			}
+        
 
-        <!-- Conditionally render AnnualRevenue -->
-        <template if:true={showReqPlatform}>
-            <lightning-input-field field-name="Requesting_Platform__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-        <template if:true={showReqApplication}>
-            <lightning-input-field field-name="Requesting_Application__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-    </lightning-record-edit-form>
-</lightning-modal-body>
-<lightning-modal-footer>
-        <!-- Submit & Cancel buttons -->
-    <div class="slds-m-top_medium">
-        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
-    </div>
-    
-</lightning-modal-footer>
-</template>
+        // Create TechnologyDecision_Relationship__c record
+        TechnologyDecision_Relationship__c relation = (TechnologyDecision_Relationship__c)
+            populateFields(new TechnologyDecision_Relationship__c(), relationFields);
 
+        // link relation to decision (adjust field name!)
+        //relation.TechnologyDecision__c = decision.Id;
+        insert relation;
 
-import { LightningElement, track, api, wire } from 'lwc';
-import DECISION_OBJECT from '@salesforce/schema/TechnologyDecision__c';
-import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { CloseActionScreenEvent } from 'lightning/actions';
-export default class TechnologyDecision_CreateForm extends LightningElement {
-   decisionReason='';
-   isRequired;
-   errormsg='';
-    handleDecisionChange(event){
-         this.decisionReason = event.target.value;
-        console.log('decisionReason ', this.decisionReason);
+        return decision.Id;
     }
 
-    // Show AnnualRevenue only if Industry = Technology
-    get showDomain (){
-       return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-    }
-    get showReqPlatform (){
-       return ['Replace Platform', 'Existing Platform', 'Upgrade Platform','New Platform'].includes(this.decisionReason);
-    }
-     get showReqApplication (){
-       return ['Replace Application', 'Existing Application', 'Upgrade Application','New Application'].includes(this.decisionReason);
-    }
-    get required(){
-        this.isRequired= ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason);
-        this.isRequired= ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
-        this.isRequired= !['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-        return this.isRequired;
-    }
-
-    handleSave(event) {
-        const decisionFields = {};
-        const relationFields = {};
-         // collect values from inputs
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            console.log('checking here', JSON.stringify(el));
-
-            if (el.dataset.object === 'TechnologyDecision__c') {
-                 console.log('checking here');
-                decisionFields[el.fieldName] = el.value;
-                console.log('checking here');
+    // Helper to populate sObject fields dynamically
+    private static sObject populateFields(sObject record, Map<String, Object> fieldMap) {
+        for (String fieldName : fieldMap.keySet()) {
+            try {
+                record.put(fieldName, fieldMap.get(fieldName));
+            } catch (Exception e) {
+                System.debug('Skipping field ' + fieldName + ': ' + e.getMessage());
             }
-            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
-                relationFields[el.fieldName] = el.value;
-            }
-        });
-        console.log('decisionFields ', JSON.stringify(decisionFields));
-        createDecisionWithRelation({ 
-            decisionFields: decisionFields, 
-            relationFields: relationFields 
-        })
-        .then(result => {
-            console.log('Inserted TechnologyDecision Id: ', result);
-            if(result.includes('DUPLICATES_DETECTED')){
-                this.errormsg='DUPLICATES_DETECTED, Decision with this name already exists.'
-            }
-            if(this.errormsg){
-               this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error creating record',
-                    message: this.errormsg,
-                    variant: 'error'
-                })
-            ); 
-            this.errormsg='';
-            }else{
-            // ✅ Success Toast
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Success',
-                    message: 'Record created successfully!',
-                    variant: 'success'
-                })
-            );
-
-            // ✅ Close quick action modal
-            this.dispatchEvent(new CloseActionScreenEvent());
-            }
-        })
-        .catch(error => {
-           // ❌ Error Toast
-           let message = 'test Error creating record';
-
-            // check for duplicate rule violation
-            if (
-                this.errormsg
-            ) {
-                message = this.errormsg; 
-            }
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error creating record',
-                    message: message,
-                    variant: 'error'
-                })
-            );
-        });
+        }
+        return record;
     }
 }
