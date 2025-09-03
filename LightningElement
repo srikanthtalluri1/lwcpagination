@@ -33,3 +33,105 @@
     
 </lightning-modal-footer>
 </template>
+
+
+import { LightningElement, track, api, wire } from 'lwc';
+import DECISION_OBJECT from '@salesforce/schema/TechnologyDecision__c';
+import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { CloseActionScreenEvent } from 'lightning/actions';
+export default class TechnologyDecision_CreateForm extends LightningElement {
+   decisionReason='';
+   isRequired;
+   errormsg='';
+    handleDecisionChange(event){
+         this.decisionReason = event.target.value;
+        console.log('decisionReason ', this.decisionReason);
+    }
+
+    // Show AnnualRevenue only if Industry = Technology
+    get showDomain (){
+       return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
+    }
+    get showReqPlatform (){
+       return ['Replace Platform', 'Existing Platform', 'Upgrade Platform','New Platform'].includes(this.decisionReason);
+    }
+     get showReqApplication (){
+       return ['Replace Application', 'Existing Application', 'Upgrade Application','New Application'].includes(this.decisionReason);
+    }
+    get required(){
+        this.isRequired= ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason);
+        this.isRequired= ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
+        this.isRequired= !['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
+        return this.isRequired;
+    }
+
+    handleSave(event) {
+        const decisionFields = {};
+        const relationFields = {};
+         // collect values from inputs
+        this.template.querySelectorAll('lightning-input-field').forEach(el => {
+            console.log('checking here', JSON.stringify(el));
+
+            if (el.dataset.object === 'TechnologyDecision__c') {
+                 console.log('checking here');
+                decisionFields[el.fieldName] = el.value;
+                console.log('checking here');
+            }
+            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
+                relationFields[el.fieldName] = el.value;
+            }
+        });
+        console.log('decisionFields ', JSON.stringify(decisionFields));
+        createDecisionWithRelation({ 
+            decisionFields: decisionFields, 
+            relationFields: relationFields 
+        })
+        .then(result => {
+            console.log('Inserted TechnologyDecision Id: ', result);
+            if(result.includes('DUPLICATES_DETECTED')){
+                this.errormsg='DUPLICATES_DETECTED, Decision with this name already exists.'
+            }
+            if(this.errormsg){
+               this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: this.errormsg,
+                    variant: 'error'
+                })
+            ); 
+            this.errormsg='';
+            }else{
+            // ✅ Success Toast
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Record created successfully!',
+                    variant: 'success'
+                })
+            );
+
+            // ✅ Close quick action modal
+            this.dispatchEvent(new CloseActionScreenEvent());
+            }
+        })
+        .catch(error => {
+           // ❌ Error Toast
+           let message = 'test Error creating record';
+
+            // check for duplicate rule violation
+            if (
+                this.errormsg
+            ) {
+                message = this.errormsg; 
+            }
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: message,
+                    variant: 'error'
+                })
+            );
+        });
+    }
+}
