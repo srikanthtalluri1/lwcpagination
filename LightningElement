@@ -1,39 +1,29 @@
-Role-based data
+Login to Salesforce.
 
-Contractors: show only Approved decisions.
+Navigate to Decisions list view.
 
-FTEs: show all accessible decisions.
+Confirm New button is visible only for users with FTE role/permission.
 
-UI/UX
+Click New button → modal/popup form opens.
 
-Datatable with frozen header and lazy loading (fetch more on scroll).
+Enter Name and select a Decision Reason.
 
-Columns: Name, Status, Type, Owner, Approved On, Last Modified.
+Based on the selected Decision Reason, verify that additional related fields appear.
 
-Multi-select rows with toolbar actions.
+Fill in all required fields.
 
-Actions
+Save the record.
 
-Validate: Only for Draft/In Review. Marks Passed/Failed with reason.
+Expected Result:
 
-Enable: Only for Approved + Passed. Sets status to Enabled.
+Non-FTE users / 3rd party users: New button is hidden.
 
-Execute: Only for Enabled. Marks Executed (immediate or queued).
+FTE users: New button is visible.
 
-Update: Inline/modal edit respecting FLS.
+Modal/popup opens with Name and Decision Reason required.
 
-Behavior
+When Decision Reason is selected, corresponding related fields dynamically appear.
 
-Sorting, filtering, and search supported.
+All mandatory fields must be completed before saving.
 
-Success/failure toasts shown; partial failures exportable.
-
-Actions disabled if no permission or invalid status.
-
-Performance & Errors
-
-Lazy load in pages (50 rows at a time).
-
-Respect CRUD/FLS/sharing.
-
-Show retry banner on load errors.
+On save, record is created successfully and user is redirected to the detail page.
