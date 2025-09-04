@@ -1,39 +1,39 @@
-public class technologyDecision_CreateFormHelper {
-	
-    @AuraEnabled
-    public static String createDecisionWithRelation(Map<String, Object> decisionFields, 
-                                                Map<String, Object> relationFields) {
-        // Create TechnologyDecision__c record
-        TechnologyDecision__c decision = (TechnologyDecision__c)
-            populateFields(new TechnologyDecision__c(), decisionFields);
-			try{
-				insert decision;
-			}
-			catch(Exception e){
-				return e.getMessage();
-			}
-        
+Role-based data
 
-        // Create TechnologyDecision_Relationship__c record
-        TechnologyDecision_Relationship__c relation = (TechnologyDecision_Relationship__c)
-            populateFields(new TechnologyDecision_Relationship__c(), relationFields);
+Contractors: show only Approved decisions.
 
-        // link relation to decision (adjust field name!)
-        //relation.TechnologyDecision__c = decision.Id;
-        insert relation;
+FTEs: show all accessible decisions.
 
-        return decision.Id;
-    }
+UI/UX
 
-    // Helper to populate sObject fields dynamically
-    private static sObject populateFields(sObject record, Map<String, Object> fieldMap) {
-        for (String fieldName : fieldMap.keySet()) {
-            try {
-                record.put(fieldName, fieldMap.get(fieldName));
-            } catch (Exception e) {
-                System.debug('Skipping field ' + fieldName + ': ' + e.getMessage());
-            }
-        }
-        return record;
-    }
-}
+Datatable with frozen header and lazy loading (fetch more on scroll).
+
+Columns: Name, Status, Type, Owner, Approved On, Last Modified.
+
+Multi-select rows with toolbar actions.
+
+Actions
+
+Validate: Only for Draft/In Review. Marks Passed/Failed with reason.
+
+Enable: Only for Approved + Passed. Sets status to Enabled.
+
+Execute: Only for Enabled. Marks Executed (immediate or queued).
+
+Update: Inline/modal edit respecting FLS.
+
+Behavior
+
+Sorting, filtering, and search supported.
+
+Success/failure toasts shown; partial failures exportable.
+
+Actions disabled if no permission or invalid status.
+
+Performance & Errors
+
+Lazy load in pages (50 rows at a time).
+
+Respect CRUD/FLS/sharing.
+
+Show retry banner on load errors.
