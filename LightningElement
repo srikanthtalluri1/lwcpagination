@@ -1,29 +1,19 @@
-Login to Salesforce.
+ let isValid = true;
 
-Navigate to Decisions list view.
+    // validate all input fields before collecting values
+    this.template.querySelectorAll('lightning-input-field').forEach(el => {
+        if (!el.reportValidity()) {
+            isValid = false;
+        }
+    });
 
-Confirm New button is visible only for users with FTE role/permission.
-
-Click New button → modal/popup form opens.
-
-Enter Name and select a Decision Reason.
-
-Based on the selected Decision Reason, verify that additional related fields appear.
-
-Fill in all required fields.
-
-Save the record.
-
-Expected Result:
-
-Non-FTE users / 3rd party users: New button is hidden.
-
-FTE users: New button is visible.
-
-Modal/popup opens with Name and Decision Reason required.
-
-When Decision Reason is selected, corresponding related fields dynamically appear.
-
-All mandatory fields must be completed before saving.
-
-On save, record is created successfully and user is redirected to the detail page.
+    if (!isValid) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Missing Required Fields',
+                message: 'Please fill in all required fields before saving.',
+                variant: 'error'
+            })
+        );
+        return; // stop execution, don't call Apex
+    }
