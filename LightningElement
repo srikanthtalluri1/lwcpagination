@@ -1,19 +1,35 @@
- let isValid = true;
+Role-based Filters
 
-    // validate all input fields before collecting values
-    this.template.querySelectorAll('lightning-input-field').forEach(el => {
-        if (!el.reportValidity()) {
-            isValid = false;
-        }
-    });
+Contractors: show only filters relevant to Approved decisions.
 
-    if (!isValid) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Missing Required Fields',
-                message: 'Please fill in all required fields before saving.',
-                variant: 'error'
-            })
-        );
-        return; // stop execution, don't call Apex
-    }
+FTEs: show all filters for accessible decisions.
+
+UI/UX
+
+Left navigation panel displays available filters as collapsible sections.
+
+Filters should map directly to datatable columns (e.g., Status, Stage, Decision Reason, Estimated Decision Date).
+
+Multi-select support for filter values.
+
+Selected filters should display as active tags above the datatable with an option to clear individually or all.
+
+Behavior
+
+Selecting/unselecting filters should refresh the datatable results dynamically without a full page reload.
+
+Filters should apply in combination (AND logic across filter categories, OR logic within a category).
+
+Default state: no filters applied → show all accessible decisions.
+
+Actions disabled if the filtered result returns no records.
+
+Performance & Errors
+
+Apply filters client-side where possible; server fetch on large datasets (>50 rows).
+
+Lazy load results in pages (50 rows at a time) after applying filters.
+
+Respect CRUD/FLS/sharing when applying filters.
+
+Show error/retry banner if filter application fails.
