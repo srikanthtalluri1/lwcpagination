@@ -1,35 +1,16 @@
-Role-based Filters
-
-Contractors: show only filters relevant to Approved decisions.
-
-FTEs: show all filters for accessible decisions.
-
-UI/UX
-
-Left navigation panel displays available filters as collapsible sections.
-
-Filters should map directly to datatable columns (e.g., Status, Stage, Decision Reason, Estimated Decision Date).
-
-Multi-select support for filter values.
-
-Selected filters should display as active tags above the datatable with an option to clear individually or all.
-
-Behavior
-
-Selecting/unselecting filters should refresh the datatable results dynamically without a full page reload.
-
-Filters should apply in combination (AND logic across filter categories, OR logic within a category).
-
-Default state: no filters applied → show all accessible decisions.
-
-Actions disabled if the filtered result returns no records.
-
-Performance & Errors
-
-Apply filters client-side where possible; server fetch on large datasets (>50 rows).
-
-Lazy load results in pages (50 rows at a time) after applying filters.
-
-Respect CRUD/FLS/sharing when applying filters.
-
-Show error/retry banner if filter application fails.
+public class TechnologyDecision_DataTableHandler {
+	 // Method to fetch Accounts
+    @AuraEnabled(cacheable=true)
+    public static List<TechnologyDecision__c> getTechnologyDecision() {
+        try {
+            return [
+                SELECT Id, Name, Status__c, Stage__c, Estimated_Decision_Date__c,Decision_Reason__c 
+                FROM  TechnologyDecision__c 
+				ORDER BY CreatedDate DESC 
+                LIMIT 50
+            ];
+        } catch (Exception ex) {
+            throw new AuraHandledException('Error fetching Accounts: ' + ex.getMessage());
+        }
+	}
+}
