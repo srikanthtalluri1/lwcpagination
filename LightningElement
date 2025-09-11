@@ -1,16 +1,93 @@
-public class TechnologyDecision_DataTableHandler {
-	 // Method to fetch Accounts
-    @AuraEnabled(cacheable=true)
-    public static List<TechnologyDecision__c> getTechnologyDecision() {
-        try {
-            return [
-                SELECT Id, Name, Status__c, Stage__c, Estimated_Decision_Date__c,Decision_Reason__c 
-                FROM  TechnologyDecision__c 
-				ORDER BY CreatedDate DESC 
-                LIMIT 50
-            ];
-        } catch (Exception ex) {
-            throw new AuraHandledException('Error fetching Accounts: ' + ex.getMessage());
+<template>
+  <!--  <c-datatable-with-badge
+        key-field="id"
+        data={data}
+        columns={columns}>
+    </c-datatable-with-badge> -->
+    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
+                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortedBy}
+                            sorted-direction={sortedDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
+                            onrowaction={handleActions} oncustomtext={handleActions} 
+                            ><!--key-field="Id"-->
+                        </c-custom-datatable-data-type-provider>
+</template>
+
+
+import { LightningElement, track } from 'lwc';
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+export default class TechnologyDecision_DataTable extends LightningElement {
+
+     @track data = [];
+    @track error;
+
+    columns = [
+        { label: 'Name',
+        sortable: true,
+        fieldName: 'recordLink', // URL field
+        type: 'url',
+        typeAttributes: {
+            label: { fieldName: 'Name' }, // Text shown in table
+            target: '_blank'               // Open in new tab
         }
-	}
+    },
+    {
+        label: 'Status & Stage',
+        fieldName: 'statusStage',
+        sortable: true,
+        type: 'customStatusStage',
+        typeAttributes: {},
+        cellAttributes: {
+            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
+        }
+    },
+        { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
+        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'date',typeAttributes: {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        } },
+        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
+    ];
+    // Call Apex imperatively
+    connectedCallback() {
+        this.loadAccounts();
+    }
+
+    loadAccounts() {
+        getTechnologyDecision()
+            .then(result => {
+                this.data = result;
+                this.data = this.data.map(item => {
+    return {
+        ...item,
+        statusStage: {
+                        status: item.Status__c,
+                        stage: item.Stage__c
+                    },
+        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view` // Construct record link
+        
+    };
+});
+console.log('data ', JSON.stringify(this.data));
+                this.error = undefined;
+            })
+            .catch(error => {
+                this.error = error;
+                this.data = [];
+                console.error('Error fetching accounts', error);
+            });
+    }
+}
+
+
+
+.custom-container{
+	color : black;
+}
+.slds-badge {
+    background-color: #f3f3f3;
+    color: #181818;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.25rem 0.75rem;
 }
