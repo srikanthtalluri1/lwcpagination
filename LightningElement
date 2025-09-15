@@ -1,102 +1,233 @@
 <template>
-    <div class="slds-combobox_container">
-        <div class={dropdownClass}>
-            <!-- Input field -->
-            <div class="slds-combobox__form-element" role="none">
-                <input type="text" 
-                       class="slds-input slds-combobox__input" 
-                       placeholder="Select filters..." 
-                       value={searchKey}
-                       oninput={handleSearch}
-                       onclick={toggleDropdown}/>
-            </div>
+    <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch">
+       <!-- <template if:true={showFilter}> -->
+             <lightning-layout-item padding="around-small"  class="slds-scrollable_y slds-color__background_gray-2" style="min-height: 100vh;"><!--size="12"-->
 
-            <!-- Dropdown -->
-            <template if:true={isDropdownOpen}>
-                <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid">
-                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
-                        <template for:each={filteredOptions} for:item="opt">
-                            <li key={opt.value} role="presentation" class="slds-listbox__item">
-                                <div class="slds-media slds-listbox__option slds-listbox__option_plain" role="option">
-                                    <label class="slds-checkbox">
-                                        <input type="checkbox" value={opt.value} checked={opt.checked} onchange={handleCheck}/>
-                                        <span class="slds-checkbox_faux slds-p-right_medium"></span>
-                                        <span style="padding-left: 10px;" class={opt.class}>{opt.label}</span>
-                                    </label>
+
+                        <div class="button-container"><!--Added on Feb 6th 2025-->
+                            <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+                                onclick={handleActions} variant="border-filled" data-action="showfiltertoggle">
+                            </lightning-button-icon-stateful>
+                        </div><!--Added on Feb 6th 2025-->
+                        
+                        <div class="slds-grid slds-wrap">
+                            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+                                <div class="slds-grid slds-wrap">
+                                    <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search"
+                                        type="search" onchange={handleReset} onkeyup={handleSearch} value={searchKey}>
+                                    </lightning-input>
+                                    <div style="margin-top: 10px;"></div> 
+
+                                    <lightning-combobox label="Filter by:" class="slds-col slds-size_1-of-1" title="Waivers List"
+                                        value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
+                                    </lightning-combobox>
+                                    <!--Srikanth Change-->
+                                    <div class="slds-m-top_medium">
+                                    <c-technology-decision-custom-pick></c-technology-decision-custom-pick>
+                                    </div>
                                 </div>
-                            </li>
+                            </div>
+                        </div>
+                        <div class="filterContainer">
+                            <div if:true={showFilterValues}>
+                            <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
+                            <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+                            for:each={filteredFieldValues} for:item="filteredFieldValue">
+                            <div class="slds-grid slds-align--spread slds-wrap">
+                                <!-- <template if:false={filteredFieldValue.isApplicationStandred}> -->
+                                <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                                <lightning-button-icon class="slds-col slds-text-align--right"
+                                    icon-name={filteredFieldValue.icon} size="small" variant="bare" onclick={handleActions}
+                                    data-action="filterbyexpand" data-index={filteredFieldValue.id}></lightning-button-icon> 
+                                <!--  </template> -->
+                            </div>
+                            
+                        {filteredFieldValue.uniqueKey} 
+                        
+                            
+                
+                                </div>
+                               
+                        
+                        </div>
+                        </div>
+                    
+
+
+                        <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
+                            <div class="slds-col">
+                                <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                                    onclick={handleActions}></lightning-button>
+                            </div>
+                            <div class="slds-col slds-var-p-left_small">
+                                <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                                    onclick={handleActions}></lightning-button>
+                            </div>
+                        </div>
+                        <template if:true={isLoadingFilter}>
+                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
                         </template>
-                        <template if:true={noResults}>
-                            <li class="slds-listbox__item">
-                                <span class="slds-p-around_small">No results found</span>
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-            </template>
-        </div>
-    </div>
-</template>
+                   
+            
+            </lightning-layout-item>
+       <!-- </template> -->
+    </lightning-layout>
+ </template>
 
-import { LightningElement, track, api } from 'lwc';
-export default class TechnologyDecisionCustomPick extends LightningElement {
 
-    @track isDropdownOpen = false;
-    @track searchKey = '';
-    @track options = [
-        { label: 'Name', value: 'Name', checked: false, class: 'slds-form-element__label' },
-        { label: 'Status', value: 'Status', checked: false, class: 'slds-form-element__label' },
-        { label: 'Decision Reason', value: 'Decision Reason', checked: false, class: 'slds-form-element__label' }
-        
-    ];
-
-    get dropdownClass() {
-        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
+import { LightningElement } from 'lwc';
+export default class TechnologyDecisionDataFilters extends LightningElement {
+    searchKey;
+    isLoading;
+    currentPage;
+    rowOffSet;
+    records=[];
+    selectedWaiver;
+    sortedBy;
+    sortedDirection;
+get waiverOptions() {
+        return [
+            { label: 'My Waivers', value: 'mywaivers' },
+            { label: 'All Waivers', value: 'allwaivers' }
+        ];
     }
+handleSearch(event) {
+        window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            this.resetPaginationState();
+            this.currentPage = 1;
 
-    get filteredOptions() {
-        if (!this.searchKey) return this.options;
-        return this.options.filter(opt =>
-            opt.label.toLowerCase().includes(this.searchKey.toLowerCase())
-        );
+            /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
+
+            this.fetchData();
+        }, 300);
+}
+ handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        this.resetPaginationState();
+        this.selectedWaiver = event.detail.value;
+        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
+        this.loading = true;
+        this.isFromhandleWaiverChange=true;
+        this.handleFilterBy('resetfilter');
+        this.fetchDataAsync();
+       // this.fetchData();
     }
-
-    get noResults() {
-        return this.filteredOptions.length === 0;
-    }
-
-    toggleDropdown() {
-        this.isDropdownOpen = !this.isDropdownOpen;
-    }
-
-    handleSearch(event) {
-        this.searchKey = event.target.value;
-        this.isDropdownOpen = true;
-    }
-
-    handleCheck(event) {
-        const { value, checked } = event.target;
-        this.options = this.options.map(opt =>
-            opt.value === value
-                ? { ...opt, checked, class: checked ? 'slds-form-element__label slds-text-title_bold' : 'slds-form-element__label' }
-                : opt
-        );
+ resetPaginationState() {
+        this.isLoading = true;
+        this.sortedBy = Name;
+        this.sortedDirection = 'asc';
     }
 }
 
+/*Added on Feb 6th 2025*/
+.button-container {
+    text-align: right;
+     position: sticky;
+     bottom: 5px;
+}
+/*Added on Feb 6th 2025*/
 
-.slds-combobox__form-element {
-    min-height: 2.5rem;
+.container {
+    position: absolute; /* position absolute and negative margin allows us to position our component */
+    background-color: white;
+}
+
+.filter-button {
+    top: 15rem;
+    z-index: 1000;
+    left: 0rem;
+    opacity: 60%;
+}
+
+.filter-button:hover {
+    opacity: 100%;
+}
+
+.background-white {
+    background-color: white;
+}
+
+.min-height-container {
+    min-height: 630px; /* Adjust this height as needed */
     display: flex;
-    align-items: center;
+    flex-direction: column;
 }
-.slds-pill_container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
+.hidden {
+    display: none;
 }
-.slds-combobox_container {
-    width: 300px;
+
+/* Add padding to create space for sub-checkboxes */
+.sub-option {
+    padding-left: 20px; /* Adjust the value as needed */
+}
+
+.sub-option .slds-checkbox {
+    margin-left: 5px; /* Optional: You can tweak this to match your design */
 }
 
 
+.sub-options-list {
+    margin-left: 2rem; /* Adjust as needed for proper spacing */
+}
+.sub-option {
+    padding-left: 1rem; /* Additional space between sub-options */
+}
+
+.slds-card {
+    padding-top: 0px;
+    /* padding-right: var(--slds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline, 0))); */
+    /* padding-bottom: var(--slds-c-card-spacing-block-end, var(--sds-c-card-spacing-block-end, var(--sds-c-card-spacing-block, 0))); */
+    /* padding-left: var(--slds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline, 0))); */
+    /* background: var(--slds-c-card-color-background, var(--sds-c-card-color-background, var(--slds-g-color-neutral-base-100, var(--lwc-cardColorBackground, rgb(255, 255, 255))))); */
+    border-width: 0px;
+    /* border-style: solid; */
+    /* border-color: var(--slds-c-card-color-border, var(--sds-c-card-color-border, var(--slds-g-color-border-base-1, var(--lwc-cardColorBorder, rgb(201, 201, 201))))); */
+    /* border-radius: var(--slds-c-card-radius-border, var(--sds-c-card-radius-border, var(--lwc-borderRadiusMedium, 0.25rem))); */
+    /* background-clip: padding-box; */
+    /* box-shadow: var(--slds-c-card-shadow, var(--sds-c-card-shadow, var(--lwc-cardShadow, 0 2px 2px 0 rgba(0, 0, 0, 0.10)))); */
+    /* color: var(--slds-c-card-text-color, var(--sds-c-card-text-color)); */
+}
+
+.slds-card__header {
+    padding-top: 0px;
+}
+
+.tab-container {  
+ flex: 1;
+  overflow-y: auto;
+
+  
+}
+.customtable{
+  width:82.8%;
+  padding-left: 10px;
+  background-color: #b0c4de;
+  overflow-y: auto;
+  max-height: 100%;
+}
+.testclass{
+        --lwc-colorTextIconDefault: yellow;
+}
+.filterContainer{
+    max-height: 70vh;
+    
+}
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10px;
+    display: inline-block;
+}
+.viewport {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
