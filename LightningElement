@@ -1,92 +1,27 @@
-import { LightningElement, track } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-export default class TechnologyDecision_DataTable extends LightningElement {
+<template>
+    <lightning-layout class="container slds-color__background_gray-2" vertical-align="stretch">
+        <lightning-layout-item size=3 class="custom-border-right">
+            
+          <c-technology-decision-data-filters></c-technology-decision-data-filters>
 
-     @track data = [];
-    @track error;
-    
-    @track sortBy;
-    @track sortDirection = 'asc';
+        </lightning-layout-item>
+       
 
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'recordLink', // URL field
-        type: 'url',
-        typeAttributes: {
-            label: { fieldName: 'Name' }, // Text shown in table
-            target: '_blank'               // Open in new tab
-        }
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
-    ];
-    // Call Apex imperatively
-    connectedCallback() {
-        this.loadTechnologyDecision();
-    }
-    handleSort(event) {
-        this.sortBy = event.detail.fieldName;
-        this.sortDirection = event.detail.sortDirection;
-        console.log('sort data ', this.sortBy);
-        console.log('sort data ', this.sortDirection);
-        let cloneData = [...this.data];
+        <lightning-layout-item flexibility="auto">
+           <c-technology-decision-data-table></c-technology-decision-data-table>
+        </lightning-layout-item>
+    </lightning-layout>
+</template>
 
-        cloneData.sort((a, b) => {
-            let valA = a[this.sortBy] || '';
-            let valB = b[this.sortBy] || '';
-
-            // For dates in YYYY-MM-DD, string compare works same as date compare
-            return this.sortDirection === 'asc'
-                ? valA.localeCompare(valB)
-                : valB.localeCompare(valA);
-        });
-
-        this.data = cloneData;
-        console.log('sort data ', JSON.stringify(this.data));
-    }
-    loadTechnologyDecision() {
-        getTechnologyDecision()
-            .then(result => {
-                this.data = result;
-                this.data = this.data.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
-        }
-    }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view`, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-    };
-});
-console.log('data ', JSON.stringify(this.data));
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                console.error('Error fetching accounts', error);
-            });
-    }
+.container{
+	position: absolute;
+	left: 0%;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	margin: -12px;
+	background-color: slds-color__background_gray-2;
+}
+.custom-border-right {
+  border-right: 15px solid #d0e6f9; /* light blue */
 }
