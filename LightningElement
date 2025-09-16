@@ -1,15 +1,4 @@
-/**
-* @File Name : TechnologyDecision_DataTableHandler.cls
-* @Description :
-* @Author :
-* @Last Modified By :
-* @Last Modified On : September 11, 2025
-* @Modification Log :
-*==============================================================================
-* Ver | Date | Author | Modification
-*==============================================================================
-* 1.0 | September 11, 2025 |   | Initial Version
-**/
+
 
 public class TechnologyDecision_DataTableHandler {
     public static Id userId = UserInfo.getUserId();
