@@ -1,183 +1,43 @@
 <template>
+    <lightning-layout class="container slds-color__background_gray-2" vertical-align="stretch">
+        <lightning-layout-item size=3 class="custom-border-right">
+            
+          <c-technology-decision-data-filters onfilterdata={handlefilterdata}></c-technology-decision-data-filters>
 
-    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
-                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
-                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
-                            onrowaction={handleActions} oncustomtext={handleActions} enable-infinite-loading
-                            is-loading={isLoading} onloadmore={loadMoreData}> 
-                            ><!--key-field="Id"-->
-                        </c-custom-datatable-data-type-provider>
+        </lightning-layout-item>
+       
+
+        <lightning-layout-item flexibility="auto">
+           <c-technology-decision-data-table></c-technology-decision-data-table>
+        </lightning-layout-item>
+    </lightning-layout>
 </template>
 
-import { LightningElement, track, api } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-export default class TechnologyDecision_DataTable extends LightningElement {
-
-    @track data = [];
-    @track error;
-    @track sortBy;
-    @track sortDirection = 'asc';
-    @track isLoading = false;
-    @api filters;
-
-    // Pagination support
-    offset = 0;
-    limit = 5; // batch size
-    allDataLoaded = false;
-
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'recordLink', // URL field
-        type: 'url',
-        typeAttributes: {
-            label: { fieldName: 'Name' }, // Text shown in table
-            target: '_blank'               // Open in new tab
+import { LightningElement } from 'lwc';
+export default class TechnologyDecision_AppHomePage extends LightningElement {
+    filters;
+    handlefilterdata(event){
+        console.log('Data from child: ');
+         console.log('Data from child: ', event.detail.value);
+         this.filters= event.detail.value;
+         const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updatefilters(this.filters);
         }
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
-    ];
-    // Call Apex imperatively
-   
-    connectedCallback() {
-        this.loadTechnologyDecision();
-       
-    }
-     @api
-    updatefilters(filters) {
-        this.filters = filters;
-         console.log('filters 44 ', JSON.stringify(this.filters));
-         this.loadTechnologyDecision();
-    }
-   handleSort(event) {
-    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
-    let backendField = uiField;
 
-    // Map UI field to backend field
-    if (uiField === 'recordLink') {
-        backendField = 'Name';
-    } else if (uiField === 'statusStage') {
-        backendField = 'Status__c';
     }
 
-    this.sortBy = backendField;   // used for sorting logic
-    this.sortByUi = uiField;      // used for UI arrow
-    this.sortDirection = event.detail.sortDirection;
-
-    let cloneData = [...this.data];
-
-    cloneData.sort((a, b) => {
-        let valA = a[backendField] ?? '';
-        let valB = b[backendField] ?? '';
-
-        // Numeric
-        if (!isNaN(valA) && !isNaN(valB)) {
-            valA = Number(valA);
-            valB = Number(valB);
-        }
-        // Dates
-        else if (this.isDate(valA) && this.isDate(valB)) {
-            valA = new Date(valA).getTime();
-            valB = new Date(valB).getTime();
-        }
-        // Strings
-        else {
-            valA = valA.toString().toLowerCase();
-            valB = valB.toString().toLowerCase();
-        }
-
-        return this.sortDirection === 'asc'
-            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
-            : (valA < valB ? 1 : valA > valB ? -1 : 0);
-    });
-
-    this.data = cloneData;
 }
 
-
-// Utility to detect valid date string
-isDate(val) {
-    return !isNaN(Date.parse(val));
+.container{
+	position: absolute;
+	left: 0%;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	margin: -12px;
+	background-color: slds-color__background_gray-2;
 }
-
-    loadTechnologyDecision(isLoadMore = false) {
-        this.isLoading = true;
-
-        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters) })
-            .then(result => {
-                //this.data = result;
-                console.log('result ', JSON.stringify(result));
-                let newData = result.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
-        }
-    }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view`, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-        };
-    });
-    console.log('data ', JSON.stringify(this.data));
-        if (isLoadMore) {
-                    this.data = [...this.data, ...newData];
-                } else {
-                    this.data = newData;
-                }
-
-                if (newData.length < this.limit) {
-                    this.allDataLoaded = true;
-                } else {
-                    this.offset += this.limit;
-                }
-
-                this.isLoading = false;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                 this.isLoading = false;
-                console.error('Error fetching accounts', error);
-            });
-    }
-    loadMoreData(event) {
-        if (this.allDataLoaded) {
-            event.target.isLoading = false; // stop spinner
-            return;
-        }
-        this.loadTechnologyDecision(true);
-    }
-}
-
-.custom-container{
-	color : black;
-}
-.slds-badge {
-    background-color: #f3f3f3;
-    color: #181818;
-    font-weight: 600;
-    border-radius: 12px;
-    padding: 0.25rem 0.75rem;
+.custom-border-right {
+  border-right: 15px solid #d0e6f9; /* light blue */
 }
