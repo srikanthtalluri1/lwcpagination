@@ -1,175 +1,29 @@
-<template>
- 
-    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
-                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
-                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
-                            onrowaction={handleActions} oncustomtext={handleActions} enable-infinite-loading
-                            is-loading={isLoading} onloadmore={loadMoreData}> 
-                            ><!--key-field="Id"-->
-                        </c-custom-datatable-data-type-provider>
-</template>
+Test Steps
 
-import { LightningElement, track } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-export default class TechnologyDecision_DataTable extends LightningElement {
+Login as Contractor and navigate to the Decisions page.
 
-    @track data = [];
-    @track error;
-    @track sortBy;
-    @track sortDirection = 'asc';
-    @track isLoading = false;
+Verify only Approved decisions are visible.
 
-    // Pagination support
-    offset = 0;
-    limit = 5; // batch size
-    allDataLoaded = false;
+Login as FTE and navigate to the Decisions page.
 
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'recordLink', // URL field
-        type: 'url',
-        typeAttributes: {
-            label: { fieldName: 'Name' }, // Text shown in table
-            target: '_blank'               // Open in new tab
-        }
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
-    ];
-    // Call Apex imperatively
-    connectedCallback() {
-        this.loadTechnologyDecision();
-    }
-   handleSort(event) {
-    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
-    let backendField = uiField;
+Verify all accessible decisions are visible.
 
-    // Map UI field to backend field
-    if (uiField === 'recordLink') {
-        backendField = 'Name';
-    } else if (uiField === 'statusStage') {
-        backendField = 'Status__c';
-    }
+Perform sorting, filtering, and search on the datatable.
 
-    this.sortBy = backendField;   // used for sorting logic
-    this.sortByUi = uiField;      // used for UI arrow
-    this.sortDirection = event.detail.sortDirection;
+Check lazy loading by scrolling down.
 
-    let cloneData = [...this.data];
+Attempt an action without permission or invalid status.
 
-    cloneData.sort((a, b) => {
-        let valA = a[backendField] ?? '';
-        let valB = b[backendField] ?? '';
+Expected Result
 
-        // Numeric
-        if (!isNaN(valA) && !isNaN(valB)) {
-            valA = Number(valA);
-            valB = Number(valB);
-        }
-        // Dates
-        else if (this.isDate(valA) && this.isDate(valB)) {
-            valA = new Date(valA).getTime();
-            valB = new Date(valB).getTime();
-        }
-        // Strings
-        else {
-            valA = valA.toString().toLowerCase();
-            valB = valB.toString().toLowerCase();
-        }
+Contractors see only Approved decisions.
 
-        return this.sortDirection === 'asc'
-            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
-            : (valA < valB ? 1 : valA > valB ? -1 : 0);
-    });
+FTEs see all accessible decisions.
 
-    this.data = cloneData;
-}
+Datatable shows columns: Name, Status, Decision Reason, Stage, Estimated Decision Date.
 
+Sorting, filtering, search, and lazy load work correctly.
 
-// Utility to detect valid date string
-isDate(val) {
-    return !isNaN(Date.parse(val));
-}
+Unauthorized actions are disabled.
 
-    loadTechnologyDecision(isLoadMore = false) {
-        this.isLoading = true;
-
-        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit })
-            .then(result => {
-                //this.data = result;
-                let newData = result.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
-        }
-    }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view`, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-        };
-    });
-    console.log('data ', JSON.stringify(this.data));
-        if (isLoadMore) {
-                    this.data = [...this.data, ...newData];
-                } else {
-                    this.data = newData;
-                }
-
-                if (newData.length < this.limit) {
-                    this.allDataLoaded = true;
-                } else {
-                    this.offset += this.limit;
-                }
-
-                this.isLoading = false;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                 this.isLoading = false;
-                console.error('Error fetching accounts', error);
-            });
-    }
-    loadMoreData(event) {
-        if (this.allDataLoaded) {
-            event.target.isLoading = false; // stop spinner
-            return;
-        }
-        this.loadTechnologyDecision(true);
-    }
-}
-
-
-
-.custom-container{
-	color : black;
-}
-.slds-badge {
-    background-color: #f3f3f3;
-    color: #181818;
-    font-weight: 600;
-    border-radius: 12px;
-    padding: 0.25rem 0.75rem;
-}
+Retry banner appears when errors occur.
