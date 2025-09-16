@@ -123,3 +123,23 @@ export default class TechnologyDecisionCustomPick extends LightningElement {
     }
     
 }
+
+.slds-combobox__form-element {
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+}
+.slds-pill_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+.slds-combobox_container {
+    width: 330px;
+}
+.selected {
+    font-weight: bold;
+    background-color: #f3f3f3; /* optional highlight */
+    border-radius: 4px;
+    padding: 2px 6px;
+}
