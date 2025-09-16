@@ -1,232 +1,124 @@
 <template>
-    <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch">
-       <!-- <template if:true={showFilter}> -->
-             <lightning-layout-item padding="around-small"  class="slds-scrollable_y slds-color__background_gray-2" style="min-height: 100vh;"><!--size="12"-->
 
+    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
+                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
+                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
+                            onrowaction={handleActions} oncustomtext={handleActions} enable-infinite-loading
+                            is-loading={isLoading} onloadmore={loadMoreData}> 
+                            ><!--key-field="Id"-->
+                        </c-custom-datatable-data-type-provider>
+</template>
 
-                        <div class="button-container"><!--Added on Feb 6th 2025-->
-                            <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
-                                onclick={handleActions} variant="border-filled" data-action="showfiltertoggle">
-                            </lightning-button-icon-stateful>
-                        </div><!--Added on Feb 6th 2025-->
-                        
-                        <div class="slds-grid slds-wrap">
-                            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
-                                <div class="slds-grid slds-wrap">
-                                    <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search"
-                                        type="search" onchange={handleReset} onkeyup={handleSearch} value={searchKey}>
-                                    </lightning-input>
-                                    <div style="margin-top: 10px;"></div> 
-
-                                    <lightning-combobox label="Filter by:" class="slds-col slds-size_1-of-1" title="Waivers List"
-                                        value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
-                                    </lightning-combobox>
-                                    <!--Srikanth Change-->
-                                    <div class="slds-m-top_medium">
-                                    <c-technology-decision-custom-pick onselectionchange={handleActionsPicklist}></c-technology-decision-custom-pick>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="filterContainer">
-                            <div if:true={showFilterValues}>
-                            <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
-                            <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
-                            for:each={filteredFieldValues} for:item="filteredFieldValue">
-                            <div class="slds-grid slds-align--spread slds-wrap">
-                                <!-- <template if:false={filteredFieldValue.isApplicationStandred}> -->
-                                <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
-                                <lightning-button-icon class="slds-col slds-text-align--right"
-                                    icon-name={filteredFieldValue.icon} size="small" variant="bare" onclick={handleActions}
-                                    data-action="filterbyexpand" data-index={filteredFieldValue.id}></lightning-button-icon> 
-                                <!--  </template> -->
-                            </div>
-                            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-bottom_medium"
-                            name="filterValue" options={filteredFieldValue.filteredFieldValue}
-                            data-action={filteredFieldValue.selectedValue} data-index={filteredFieldValue.id}
-                            onchange={handleActions} value={filteredFieldValue.selectedValue}
-                            key={filteredFieldValue.uniqueKey}>
-                        </lightning-checkbox-group>
-                         </div>
-                               
-                        
-                        </div>
-                        </div>
-                    
-
-
-                        <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
-                            <div class="slds-col">
-                                <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
-                                    onclick={handleActions}></lightning-button>
-                            </div>
-                            <div class="slds-col slds-var-p-left_small">
-                                <lightning-button label="Apply" variant="brand" data-action="applyfilter"
-                                    onclick={handleActions}></lightning-button>
-                            </div>
-                        </div>
-                        <template if:true={isLoadingFilter}>
-                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-                        </template>
-                   
-            
-            </lightning-layout-item>
-       <!-- </template> -->
-    </lightning-layout>
- </template>
-
-
-import { LightningElement, track } from 'lwc';
+import { LightningElement, track, api } from 'lwc';
 import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-import getUniqueValues from '@salesforce/apex/TechnologyDecision_DataTableHandler.getUniqueValues';
-export default class TechnologyDecisionDataFilters extends LightningElement {
-    searchKey;
-    isLoading;
-    currentPage;
-    rowOffSet;
-    records=[];
-    selectedWaiver;
-    sortedBy;
-    sortedDirection;
-    @track selectedFilters;
-    scope = 'All';
-    @track _filteredFieldValues = [];
-    @track _filterOptions = [];
-    filters = [];
-    get filteredFieldValues() {
-        console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
-        return this._filteredFieldValues;
+export default class TechnologyDecision_DataTable extends LightningElement {
+
+    @track data = [];
+    @track error;
+    @track sortBy;
+    @track sortDirection = 'asc';
+    @track isLoading = false;
+    @api filters;
+
+    // Pagination support
+    offset = 0;
+    limit = 5; // batch size
+    allDataLoaded = false;
+
+    columns = [
+        { label: 'Name',
+        sortable: true,
+        fieldName: 'recordLink', // URL field
+        type: 'url',
+        typeAttributes: {
+            label: { fieldName: 'Name' }, // Text shown in table
+            target: '_blank'               // Open in new tab
         }
-    get showFilterValues() {
-        return this._filteredFieldValues.length > 0;
+    },
+    {
+        label: 'Status(Stage)',
+        fieldName: 'statusStage',
+        sortable: true,
+        type: 'customStatusStage',
+        typeAttributes: {},
+        cellAttributes: {
+            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
+        }
+    },
+       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
+        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
+        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
+    ];
+    // Call Apex imperatively
+   
+    connectedCallback() {
+        this.loadTechnologyDecision();
+       
     }
-    get waiverOptions() {
-        return [
-            { label: 'My Decisons', value: 'mywaivers' },
-            { label: 'All Decisons', value: 'allwaivers' }
-        ];
+     @api
+    updatefilters(filters) {
+        this.filters = filters;
+         console.log('filters 44 ', JSON.stringify(this.filters));
+         this.loadTechnologyDecision();
     }
-handleSearch(event) {
-        window.clearTimeout(this.delayTimeout);
-        this.searchKey = event.target.value.toLowerCase() ?? '';
-        this.delayTimeout = setTimeout(() => {
-            this.isLoading = true;
-            this.resetPaginationState();
-            this.currentPage = 1;
+   handleSort(event) {
+    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
+    let backendField = uiField;
 
-            /*Lazy Loading*/
-            this.rowOffSet = 0;
-            this.records = [];
-            /*Lazy Loading*/
+    // Map UI field to backend field
+    if (uiField === 'recordLink') {
+        backendField = 'Name';
+    } else if (uiField === 'statusStage') {
+        backendField = 'Status__c';
+    }
 
-            this.fetchData();
-        }, 300);
+    this.sortBy = backendField;   // used for sorting logic
+    this.sortByUi = uiField;      // used for UI arrow
+    this.sortDirection = event.detail.sortDirection;
+
+    let cloneData = [...this.data];
+
+    cloneData.sort((a, b) => {
+        let valA = a[backendField] ?? '';
+        let valB = b[backendField] ?? '';
+
+        // Numeric
+        if (!isNaN(valA) && !isNaN(valB)) {
+            valA = Number(valA);
+            valB = Number(valB);
+        }
+        // Dates
+        else if (this.isDate(valA) && this.isDate(valB)) {
+            valA = new Date(valA).getTime();
+            valB = new Date(valB).getTime();
+        }
+        // Strings
+        else {
+            valA = valA.toString().toLowerCase();
+            valB = valB.toString().toLowerCase();
+        }
+
+        return this.sortDirection === 'asc'
+            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
+            : (valA < valB ? 1 : valA > valB ? -1 : 0);
+    });
+
+    this.data = cloneData;
 }
- handleWaiverChange(event) {
-        this.currentPage = 1;
-        this.searchKey = '';
-        this.resetPaginationState();
-        this.selectedWaiver = event.detail.value;
-        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
-        this.loading = true;
-        this.isFromhandleWaiverChange=true;
-        this.handleFilterBy('resetfilter');
-        this.fetchDataAsync();
-       // this.fetchData();
-    }
- resetPaginationState() {
+
+
+// Utility to detect valid date string
+isDate(val) {
+    return !isNaN(Date.parse(val));
+}
+
+    loadTechnologyDecision(isLoadMore = false) {
         this.isLoading = true;
-        this.sortedBy = Name;
-        this.sortedDirection = 'asc';
-    }
-    handleActionsPicklist(event){
-        const selectedValues = event.detail.values;
-      console.log('Selected values from child: ', JSON.stringify(selectedValues));
 
-      // you can store in a tracked property
-      this.selectedFilters = selectedValues;
-    
-        getUniqueValues({
-            fieldApiName: this.selectedFilters,
-            allOrMy: this.scope
-        })
-        .then(data => {
-            console.log('Apex result 65 :', JSON.stringify(data));
-             
-                            
-                        const values = (data) ? Object.keys(data).map(x => {
-                       
-                                return {
-                                    [x]: data[x].map((val) => {
-                                        //return { label: (val.value + ' (' + val.count + ')'), value: val.value };
-                                        const label = val.value ? val.value : 'No Data';
-                                        const value = val.value ? val.value : 'nullcheck';
-                                        const id = val.id ? val.id : 'nullcheck';
-                                        return { label: `${label} (${val.count})`, value: value, id: id , checked:false};
-                                    })
-                                }
-                            
-                        }).filter(Boolean) : [];//
-                        
-
-                        /*Srikanth Changes*/
-                        console.log('Processed Values:', JSON.stringify(values));
-                        let filteredFieldValues = values.map((x, ind) => {
-                            
-                            
-
-                            
-                            console.log('Processed selectedValue:', JSON.stringify(x));
-                            return {
-                                id: ind,
-                                filterField: Object.keys(x)[0],
-                                filterFieldApiName: Object.keys(x)[0],
-                                filteredFieldValue: Object.values(x)[0]
-                                    .sort((a, b) => {
-                                        const valueA = (a.value || '').trim().toLowerCase();
-                                        const valueB = (b.value || '').trim().toLowerCase();
-                                        if (valueA === 'nullcheck') return -1;
-                                        if (valueB === 'nullcheck') return 1;
-                                        return valueA.localeCompare(valueB); // Alphabetical for others
-                                    }),
-                                showValues: true, //making true to expand the filter options
-                                selectedValue: this.selectedFilters,
-                                icon: 'utility:chevrondown',
-                                
-                            };
-                        
-                        });
-                        console.log('Filtered Field Values (sorted by value):', JSON.stringify(filteredFieldValues));
-                        /*Srikanth Changes*/
-
-                        this._filteredFieldValues = [...filteredFieldValues];
-                        this.isLoadingFilter = false;
-                       
-                       // this.fetchDataAsync();
-        
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    
-    }
-    handleActions(event){
-        const parentFilter = event.currentTarget.dataset.action;
-        let selfilters=event.detail.value;
-        console.log('event.detail.selectedValues ', parentFilter);
-        
-        console.log('event.detail.selectedValues ', JSON.stringify(this._filteredFieldValues));
-        this.filters=[{
-            [parentFilter]:selfilters
-        }];
-        console.log('event.detail.selectedValues ', JSON.stringify(this.filters));
-        this.dispatchEvent(new CustomEvent('filterdata', {
-            detail: { value: this.filters }
-        }));
-
-        /*getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit , filters: JSON.stringify(this.filters)})
+        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters) })
             .then(result => {
                 //this.data = result;
+                console.log('result ', JSON.stringify(result));
                 let newData = result.map(item => {
                     let formattedDate = item.Estimated_Decision_Date__c;
     if (formattedDate) {
@@ -268,114 +160,24 @@ handleSearch(event) {
                 this.data = [];
                  this.isLoading = false;
                 console.error('Error fetching accounts', error);
-            }); */
-    
+            });
+    }
+    loadMoreData(event) {
+        if (this.allDataLoaded) {
+            event.target.isLoading = false; // stop spinner
+            return;
+        }
+        this.loadTechnologyDecision(true);
     }
 }
 
-
-/*Added on Feb 6th 2025*/
-.button-container {
-    text-align: right;
-     position: sticky;
-     bottom: 5px;
+.custom-container{
+	color : black;
 }
-/*Added on Feb 6th 2025*/
-
-.container {
-    position: absolute; /* position absolute and negative margin allows us to position our component */
-    background-color: white;
-}
-
-.filter-button {
-    top: 15rem;
-    z-index: 1000;
-    left: 0rem;
-    opacity: 60%;
-}
-
-.filter-button:hover {
-    opacity: 100%;
-}
-
-.background-white {
-    background-color: white;
-}
-
-.min-height-container {
-    min-height: 630px; /* Adjust this height as needed */
-    display: flex;
-    flex-direction: column;
-}
-.hidden {
-    display: none;
-}
-
-/* Add padding to create space for sub-checkboxes */
-.sub-option {
-    padding-left: 20px; /* Adjust the value as needed */
-}
-
-.sub-option .slds-checkbox {
-    margin-left: 5px; /* Optional: You can tweak this to match your design */
-}
-
-
-.sub-options-list {
-    margin-left: 2rem; /* Adjust as needed for proper spacing */
-}
-.sub-option {
-    padding-left: 1rem; /* Additional space between sub-options */
-}
-
-.slds-card {
-    padding-top: 0px;
-    /* padding-right: var(--slds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline, 0))); */
-    /* padding-bottom: var(--slds-c-card-spacing-block-end, var(--sds-c-card-spacing-block-end, var(--sds-c-card-spacing-block, 0))); */
-    /* padding-left: var(--slds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline, 0))); */
-    /* background: var(--slds-c-card-color-background, var(--sds-c-card-color-background, var(--slds-g-color-neutral-base-100, var(--lwc-cardColorBackground, rgb(255, 255, 255))))); */
-    border-width: 0px;
-    /* border-style: solid; */
-    /* border-color: var(--slds-c-card-color-border, var(--sds-c-card-color-border, var(--slds-g-color-border-base-1, var(--lwc-cardColorBorder, rgb(201, 201, 201))))); */
-    /* border-radius: var(--slds-c-card-radius-border, var(--sds-c-card-radius-border, var(--lwc-borderRadiusMedium, 0.25rem))); */
-    /* background-clip: padding-box; */
-    /* box-shadow: var(--slds-c-card-shadow, var(--sds-c-card-shadow, var(--lwc-cardShadow, 0 2px 2px 0 rgba(0, 0, 0, 0.10)))); */
-    /* color: var(--slds-c-card-text-color, var(--sds-c-card-text-color)); */
-}
-
-.slds-card__header {
-    padding-top: 0px;
-}
-
-.tab-container {  
- flex: 1;
-  overflow-y: auto;
-
-  
-}
-.customtable{
-  width:82.8%;
-  padding-left: 10px;
-  background-color: #b0c4de;
-  overflow-y: auto;
-  max-height: 100%;
-}
-.testclass{
-        --lwc-colorTextIconDefault: yellow;
-}
-.filterContainer{
-    max-height: 70vh;
-    
-}
-.truncate-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 10px;
-    display: inline-block;
-}
-.viewport {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+.slds-badge {
+    background-color: #f3f3f3;
+    color: #181818;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.25rem 0.75rem;
 }
