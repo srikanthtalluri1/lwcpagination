@@ -1,29 +1,29 @@
-Test Steps
+Display Key Fields
 
-Login as Contractor and navigate to the Decisions page.
+Validate that the highlight panel displays the following fields on the Decision record page:
 
-Verify only Approved decisions are visible.
+Decision Name
 
-Login as FTE and navigate to the Decisions page.
+Status
 
-Verify all accessible decisions are visible.
+Owner
 
-Perform sorting, filtering, and search on the datatable.
+Created Date
 
-Check lazy loading by scrolling down.
+Last Modified Date
 
-Attempt an action without permission or invalid status.
+Role-Based Button Visibility
 
-Expected Result
+Show Edit, Delete, and Clone buttons only to users with Edit permission on the Decision record.
 
-Contractors see only Approved decisions.
+Show View Details button to all users with read access.
 
-FTEs see all accessible decisions.
+Validate that System Admins see all buttons.
 
-Datatable shows columns: Name, Status, Decision Reason, Stage, Estimated Decision Date.
+Validate that Read-only users see no action buttons.
 
-Sorting, filtering, search, and lazy load work correctly.
+Dynamic Behavior
 
-Unauthorized actions are disabled.
+Ensure that field values refresh dynamically when record data is updated.
 
-Retry banner appears when errors occur.
+Ensure that button visibility updates automatically when a different user with different permissions logs in.
