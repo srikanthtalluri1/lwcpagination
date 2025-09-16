@@ -1,206 +1,125 @@
+<template>
+    <div class="slds-combobox_container">
+        <div class={dropdownClass}>
+            <!-- Input field -->
+            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                <input type="text" 
+                       class="slds-input slds-combobox__input" 
+                       placeholder="Select filters..." 
+                       value={searchKey}
+                       oninput={handleSearch}
+                       onclick={toggleDropdown}/>
+             <!-- Dropdown / Drop-up icon -->
+                <lightning-icon icon-name={iconName} 
+                                size="x-small" 
+                                class="slds-input__icon slds-input__icon_right">
+                </lightning-icon>
+
+            </div>
+
+            <!-- Dropdown -->
+            <template if:true={isDropdownOpen}>
+                <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid">
+                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                        <template for:each={filteredOptions} for:item="opt">
+                            <li key={opt.value} role="presentation" class="slds-listbox__item">
+                               <!-- <div class="slds-media slds-listbox__option slds-listbox__option_plain" role="option">
+                                    <label class="slds-checkbox">
+                                        <input type="checkbox" value={opt.value} checked={opt.checked} onchange={handleCheck}/>
+                                        <span class="slds-checkbox_faux slds-p-right_medium"></span>
+                                        <span style="padding-left: 10px;" class={opt.class}>{opt.label}</span>
+                                    </label> 
+                                </div> -->
+                                 <div class="slds-media slds-listbox__option slds-listbox__option_plain"
+                                     role="option"
+                                     onclick={handleSelect}
+                                     
+                                     data-value={opt.value}>
+                                    <span class={opt.class}>{opt.label}</span>
+                                </div>
+                            </li>
+                        </template>
+                        <template if:true={noResults}>
+                            <li class="slds-listbox__item">
+                                <span class="slds-p-around_small">No results found</span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
 
 
-public class TechnologyDecision_DataTableHandler {
-    public static Id userId = UserInfo.getUserId();
-    static final String OBJECT_NAME = 'TechnologyDecision__c';
-    static final String FIELDS_TO_BE_QUERIED_NEW = 'Id, Name, Status__c, Stage__c, Estimated_Decision_Date__c,Decision_Reason__c ';
-	 // Method to fetch Technology Decision
-    @AuraEnabled(cacheable=true)
-    public static List<TechnologyDecision__c> getTechnologyDecision(Integer offsetSize, Integer limitSize, String filters) {
-        try {
-            List<TechnologyDecision__c> decisionRecords;
-            String query =
-      					  'SELECT ' +
-      					   FIELDS_TO_BE_QUERIED_NEW +
-      					  'FROM ' +
-      					   OBJECT_NAME +
-      					   ' ';
-            string fieldApiName='';
-            system.debug('filters '+filters);
-            if (!String.isBlank(filters)) {
-          List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(filters);
-          
-          // To track if only NULL/nullcheck filters are present
-          Boolean onlyNullChecks = true;
-          system.debug('filtersList '+filtersList);
-         // system.debug('filtersList '+filtersList[0]);
-              
-          
-          if (filtersList.size() > 0) {              
-              //String filterQuery = ' AND (';
-              system.debug('checking here query '+query);
-              String filterQuery = (!query.contains(' WHERE ') ? ' WHERE (' : ' AND (');
-              system.debug('checking here'+filterQuery);
-            
-              Map<String, List<String>> fieldSpecificFilterValuesMap = new Map<String, List<String>>();
-              system.debug('checking here');
-              // Construct the filter query
-              for (Object filter : filtersList) {
-                  Map<String, Object> filterMap = (Map<String, Object>) filter;
-                  string jsonstring =JSON.serialize(filterMap.values());
-                  Boolean hasLetters = Pattern.compile('[a-zA-Z]').matcher(jsonstring).find();
-                  system.debug('checking here'+hasLetters);
-                  system.debug('checking here'+String.valueOf(filterMap.values()));
-                  system.debug('checking here'+JSON.serialize(filterMap.values()));
-                  system.debug('checking here'+filter);
-                   system.debug('checking here'+filterMap.keySet());
-                  if( hasLetters == true){
-                  for (String key : filterMap.keySet()) {
-                      if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
-                          List<Object> filterValuesList = (List<Object>) filterMap.get(key);
-                          system.debug('checking here');
-                          Set<String> stringFilterValues = new Set<String>();
-                          Boolean includeNull = false;
-                          
-                          // Loop through filter values
-                          for (Object value : filterValuesList) {
-                              //value='Approved';
-                              fieldApiName ='Status__c';
-                              system.debug('filter checking here ' +String.valueOf(value));
-                             
-                              if (String.valueOf(value) == 'nullcheck') {
-                                  includeNull = true; // Mark nullcheck
-                              }else if(String.valueOf(value) == 'No Data'){
-                                  includeNull = true; // Mark nullcheck
-                              }else {
-                                  stringFilterValues.add(String.valueOf(value)); // Add non-null values
-                                  onlyNullChecks = false; // There are other values besides nullcheck
-                              }
-                          }
-                          
-                          // Only process fields that have filter values (either non-null or nullcheck)
-                          if (!stringFilterValues.isEmpty() || includeNull) {
-                              
-                             
-                              
-                              /*Feb 15th Changes*/
-                             
-                              
-                             
-                              // Add the field condition to the query
-                              filterQuery += '(';
-                              
-                              if (includeNull && onlyNullChecks) {
-                                  // If only NULL checks are present for this field, do a NULL check
-                                  filterQuery += fieldApiName + ' = NULL';
-                              } else {
-                                  // If there are non-null values, create the IN condition
-                                  if (!stringFilterValues.isEmpty()) {
-                                      List<String> quotedValues = new List<String>();
-                                      for (String value : stringFilterValues) {
-                                          quotedValues.add('\'' + value + '\'');
-                                      }
-                                      String quotedValuesString = String.join(quotedValues, ', ');
-                                      filterQuery += fieldApiName + ' IN (' + quotedValuesString + ')';
-                                  }
-                                  
-                                  // Include NULL check if needed (OR between IN and NULL)
-                                  if (includeNull) {
-                                      if (!stringFilterValues.isEmpty()) {
-                                          filterQuery += ' OR ';
-                                      }
-                                      filterQuery += fieldApiName + ' = NULL';
-                                  }
-                              }
-                              
-                              // Close the condition for this field
-                              filterQuery += ')';
-                              filterQuery += ' AND ';
-                          }
-                      }
-                  }
-              }
-              }
-              // Clean up the final query (remove last AND and close parentheses)
-              system.debug('Check filterQuery '+filterQuery);
-              String lastChar = filterQuery.substring(filterQuery.length() - 1);
-              system.debug('Check filterQuery '+lastChar);
-              if(lastChar=='('){
-                  filterQuery='';
-              }else{
-              filterQuery = filterQuery.removeEnd(' AND ') + ') ';
-              }
-              system.debug('Check filterQuery After '+filterQuery);
-              query += filterQuery;
-              system.debug('Check query filterQuery After '+query);
-              
-          }
-      }
 
-            decisionRecords = Database.query(query);
-            return decisionRecords;
-        } catch (Exception ex) {
-            throw new AuraHandledException('Error fetching Accounts: ' + ex.getMessage());
-        }
-	}
-     //Added the fields that we are looking to have filter options. If the field from Relationship record use the formula field in the value and the label in the key
-  public static Map<String, String> fieldList = new Map<String, String>{
-    'Name' => 'Name',
-    'Status' => 'Status__c'
-  };
-    @AuraEnabled(cacheable=true)//Map<String, List<Object>>
-  public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy
-  ) {
-    try {
-      Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-     // Map<String, String> fieldLabel = getStagePicklistValues();
-      //Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
-      Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-      String condition = '';
-      if (allOrMy == 'mywaivers') {
-        condition += ' WHERE TechnologyDecision__r.OwnerId = \'' + userId + '\' ';
-      }
+import { LightningElement, track, api } from 'lwc';
 
-      Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
+export default class TechnologyDecisionCustomPick extends LightningElement {
 
-        system.debug('fieldApiName '+ fieldApiName);
-        String query = '';
-        string fieldApiNameString = string.join(fieldApiName,',');
-        system.debug('fieldApiNameString '+ fieldApiNameString);
-        if(fieldApiNameString.contains('Status')){
-            query = 'SELECT Status__c, COUNT(Id) ' +
-                    'FROM TechnologyDecision__c  ' + condition +
-                    ' GROUP BY Status__c';
-            results.put('Status', Database.query(query));
-        }
-        system.debug('results '+ results);
-
+    @track isDropdownOpen = false;
+    @track searchKey = '';
+    @track options = [
+        { label: 'Name', value: 'Name', checked: false, class: 'slds-form-element__label' },
+        { label: 'Status', value: 'Status', checked: false, class: 'slds-form-element__label' },
+        { label: 'Decision Reason', value: 'Decision Reason', checked: false, class: 'slds-form-element__label' }
         
-      
-        
-      for (String field : results.keySet()) {
-        List<Object> uniqueValues = new List<Object>();
-          /*Feb 15th Changes - 914*/
-          system.debug('field 75 '+ field);
-          if (fieldList.get(field) == 'Status__c') {
-              for (AggregateResult ar : results.get(field)) {
-                  system.debug('ar ===>>> '+ar);
-                  
-                   System.debug('uniqueValues '+(String) ar.get((fieldList.get(field))));
-                  Map<String, Object> uni = new Map<String, Object>();
-                 
-                  uni.put(
-                      'value',
-                      (String) ar.get((fieldList.get(field)))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0'));
-                  
-                  uniqueValues.add((Object) uni);
-              }
-                  
-                  System.debug('uniqueValues 90 '+uniqueValues);
-                 
-              }
-          fieldUniqueMap.put(field, uniqueValues);
-          }
-        
-      return fieldUniqueMap;
-    } catch (Exception e) {
-      System.debug('message' + e.getMessage());
-      System.debug('stack' + e.getStackTraceString());
-      throw new AuraHandledException(e.getMessage());
+    ];
+    
+
+
+    get dropdownClass() {
+        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
     }
-  }
+
+    get filteredOptions() {
+        if (!this.searchKey) return this.options;
+        return this.options.filter(opt =>
+            opt.label.toLowerCase().includes(this.searchKey.toLowerCase())
+        );
+    }
+    get iconName() {
+        return this.isDropdownOpen ? 'utility:up' : 'utility:down';
+    }
+
+    get noResults() {
+        return this.filteredOptions.length === 0;
+    }
+
+    toggleDropdown() {
+        this.isDropdownOpen = !this.isDropdownOpen;
+    }
+
+    handleSearch(event) {
+        this.searchKey = event.target.value;
+        this.isDropdownOpen = true;
+    }
+
+   handleSelect = (event) => {
+        const value = event.currentTarget.dataset.value;
+        console.log('value 44', value);
+        this.options = this.options.map(opt => {
+            if (opt.value === value) {
+                const isSelected = !opt.selected;
+                return { 
+                    ...opt, 
+                    selected: isSelected, 
+                    class: isSelected ? 'selected' : '' 
+                };
+            }
+            this.isDropdownOpen = true; 
+            return opt;
+        });
+                // Collect all selected values
+            const selectedValues = this.options
+                .filter(opt => opt.selected)
+                .map(opt => opt.value);
+            console.log('selectedValues ', JSON.stringify(selectedValues));
+            // Dispatch to parent
+            this.dispatchEvent(new CustomEvent('selectionchange', {
+                detail: { values: selectedValues }
+            }));
+       
+    }
+    
 }
