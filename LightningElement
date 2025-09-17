@@ -1,43 +1,22 @@
-<template>
-    <lightning-layout class="container slds-color__background_gray-2" vertical-align="stretch">
-        <lightning-layout-item size=3 class="custom-border-right">
-            
-          <c-technology-decision-data-filters onfilterdata={handlefilterdata}></c-technology-decision-data-filters>
+handleCreateWaiverRelationship(parentId) {
+    const objectName = this.relatingObjectApiName;
+    const form = this.template.querySelector(
+        `lightning-record-edit-form[data-object="${objectName}"]`
+    );
 
-        </lightning-layout-item>
-       
+    let ok = true;
+    const inputs = this.template.querySelectorAll(
+        `lightning-input-field[data-object="${objectName}"]`
+    );
+    inputs.forEach(el => { ok = el.reportValidity() && ok; });
 
-        <lightning-layout-item flexibility="auto">
-           <c-technology-decision-data-table></c-technology-decision-data-table>
-        </lightning-layout-item>
-    </lightning-layout>
-</template>
+    if (!ok) { this.isLoading = false; return; }
 
-import { LightningElement } from 'lwc';
-export default class TechnologyDecision_AppHomePage extends LightningElement {
-    filters;
-    handlefilterdata(event){
-        console.log('Data from child: ');
-         console.log('Data from child: ', event.detail.value);
-         this.filters= event.detail.value;
-         const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updatefilters(this.filters);
-        }
+    // set the parent Id into the relationship lookup input
+    const parentLookup = this.template.querySelector(
+        `lightning-input-field[field-name="${WAIVERREL_WAIVERID.fieldApiName}"][data-object="${objectName}"]`
+    );
+    if (parentLookup) parentLookup.value = parentId;
 
-    }
-
-}
-
-.container{
-	position: absolute;
-	left: 0%;
-	right: 0;
-	top: 0;
-	bottom: 0;
-	margin: -12px;
-	background-color: slds-color__background_gray-2;
-}
-.custom-border-right {
-  border-right: 15px solid #d0e6f9; /* light blue */
+    form.submit();
 }
