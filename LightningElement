@@ -1,22 +1,9 @@
-handleCreateWaiverRelationship(parentId) {
-    const objectName = this.relatingObjectApiName;
-    const form = this.template.querySelector(
-        `lightning-record-edit-form[data-object="${objectName}"]`
-    );
+Schema.SObjectType objType = Schema.getGlobalDescribe().get('Account');
+Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
+Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
 
-    let ok = true;
-    const inputs = this.template.querySelectorAll(
-        `lightning-input-field[data-object="${objectName}"]`
-    );
-    inputs.forEach(el => { ok = el.reportValidity() && ok; });
-
-    if (!ok) { this.isLoading = false; return; }
-
-    // set the parent Id into the relationship lookup input
-    const parentLookup = this.template.querySelector(
-        `lightning-input-field[field-name="${WAIVERREL_WAIVERID.fieldApiName}"][data-object="${objectName}"]`
-    );
-    if (parentLookup) parentLookup.value = parentId;
-
-    form.submit();
+String apiName = 'Industry'; // example API name
+if (fieldMap.containsKey(apiName)) {
+    String fieldLabel = fieldMap.get(apiName).getDescribe().getLabel();
+    System.debug('Field Label: ' + fieldLabel); // "Industry"
 }
