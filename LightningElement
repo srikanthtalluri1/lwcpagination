@@ -1,9 +1,584 @@
-Schema.SObjectType objType = Schema.getGlobalDescribe().get('Account');
-Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
+<template>
+    <template if:true={recordId}>
+    <div class="slds-page-header slds-page-header_record-home" style="padding-top: 4px;">
+        <div class="slds-page-header__row">
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:contact" size="medium"
+                            alternative-text="Contact"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body" style="line-height: 13px;">
+                        <span>{objectLabelName}</span>
+                        <span class="slds-page-header__title slds-truncate" title={recordName}>{recordName}</span>
+                        <span class="slds-page-header__title slds-truncate" title={waiverName}>{waiverName}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <!--<lightning-button-group>-->
+                            <div class="slds-button-group slds-grid slds-grid_align- slds-p-top_small">
+                                <lightning-button label="Edit" data-action="edit" onclick={handleActions} disabled={disableButton}>
+                                </lightning-button>
+                            
+                                <lightning-button variant="brand" label="Back To List View" data-action="close" onclick={handleClose}
+                                    class="slds-m-left_small slds-p-right_medium">
+                                </lightning-button>
+                            </div>
+                        <!--</lightning-button-group>-->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slds-page-header__row slds-page-header__row_gutters">
+            <div class="slds-page-header__col-details" style="padding-left: 2rem; padding-right: 2rem;"> <!-- Sri Added to adjust the width of div 30 April -->
+                <lightning-record-view-form record-id={recordId} object-api-name={objectApiName}>
+                    <ul class="slds-page-header__detail-row" style="padding-left: 12px;">
+                        <template for:each={fieldList} for:item="field" for:index="index">
+                            <li key={field} class="slds-page-header__detail-block">
+                                <lightning-output-field field-name={field}></lightning-output-field>
+                            </li>
+                        </template>
+                    </ul>
+                </lightning-record-view-form>
+            </div>
+        </div>
 
-String apiName = 'Industry'; // example API name
-if (fieldMap.containsKey(apiName)) {
-    String fieldLabel = fieldMap.get(apiName).getDescribe().getLabel();
-    System.debug('Field Label: ' + fieldLabel); // "Industry"
+        <div style="padding:0.8%; background-color: #b0c4de;">
+        </div>
+
+
+        <c-awp-custom-path record-id={recordId}></c-awp-custom-path>
+
+        <div style="padding:0.4%; background-color: #b0c4de;">
+        </div>
+
+    </div>
+
+    <template if:true={showEditRecordModal}>
+        <div class="slds-modal slds-fade-in-open slds-backdrop">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close this window" size="large"
+                        variant="bare-inverse" onclick={closeModal} class="slds-modal__close">
+                    </lightning-button-icon>
+                    <span class="slds-text-heading_medium">Edit Record </span>
+                </div>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-grid slds-wrap">
+                        <div class="slds-col">
+                            <c-waivers-create-record-page record-id={recordId} child-record-id={childRecordId}
+                                onclose={closeModal}></c-waivers-create-record-page>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-modal__footer">
+                    <!-- <lightning-button label="close" variant="brand" onclick={closeModal}>
+              </lightning-button> -->
+                </div>
+            </div>
+        </div>
+    </template>
+
+
+
+
+    
+    </template>
+</template>
+
+import { LightningElement, api, wire, track } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import fetchFields from '@salesforce/apex/AWP_WaiverHandlerClass.fetchFields';
+import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
+
+import DFP_Complete from '@salesforce/label/c.DFP_Complete';
+import DFP_Current from '@salesforce/label/c.DFP_Current';
+import DFP_Upcoming from '@salesforce/label/c.DFP_Upcoming';
+import pubsub from 'c/pubsub';
+import { getRecord } from 'lightning/uiRecordApi';
+const FIELDS = ['TechnologyDecision__c.Status__c','TechnologyDecision__c.Name'];
+
+
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import { getPicklistValues } from 'lightning/uiObjectInfoApi';
+import AWP_OBJECT from '@salesforce/schema/TechnologyDecision__c';
+import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
+export default class TechnologyDecisionHighlightPanel extends LightningElement {
+@api recordId;
+    @api objectApiName;
+    fieldSet='CompactPanelFieldSet';
+    @api get recordName() {
+        return this._name;
+    }
+    set recordName(value) {
+        if (value) {
+            this._name = value;
+        }
+    }
+    _name = '';
+    fieldList = [];
+    objectLabelName = '';
+    intervalId;
+    showEditRecordModal = false;
+
+    // For Dispatching custom event to notify the parent component
+    @api editClick;
+
+    @wire(getRelatedListRecords, {
+        parentRecordId: '$recordId',
+        relatedListId: 'TechnologyDecision__c',
+        fields: ['TechnologyDecision__c.Id']
+    })
+    wiredRecords({ error, data }) {
+        if (data) {
+            console.log('Checking line 51');
+            this.childRecords = data.records;
+        } else if (error) {
+            console.log(error);
+        }
+    }
+
+    connectedCallback() {
+        pubsub.subscribe('navigate', this.handleNavigate.bind(this));
+        this.fetchFieldsMeth();
+        console.log('Subscribed to navigate event');
+
+        pubsub.subscribe('saveSuccess', this.handleEditDisableButton.bind(this));
+        //pubsub.subscribe('saveSuccessEditEnable', this.handleEditEnableButton.bind(this));
+    }
+
+    /*Back To List View Changes*/
+    handleClose(){
+        let windowUrl = new URL(window.location.href);
+        console.log('windowUrl ',windowUrl);
+        let pathName= windowUrl.href;
+        let converstring = pathName.toString();
+        const result = converstring.slice(0, converstring.lastIndexOf("w"));
+        console.log('converstring close',converstring);
+        console.log('converstring close',result);
+        // window.location.replace(result);
+        window.history.pushState({}, '', result);
+                    if (window.PerformanceNavigationTiming) {
+            console.info('window.performance works fine on this browser');
+            
+            if (PerformanceNavigationTiming.type === 'reload') {
+                console.info('This page is reloaded');
+            } else {
+                console.info('This page is not reloaded');
+            }
+            }
+        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
+    }
+    /*Back To List View Changes*/
+
+    @track editStates;
+    handleEditDisableButton(event) {
+        console.log('event fired 60'+JSON.stringify(event));
+        const { recordIdVar, isDisabling } = event;
+        // Ensure edit states are maintained per record
+        if (!this.editStates) {
+            this.editStates = {}; // Initialize if not already done
+        }
+        this.editStates[recordIdVar] = isDisabling;
+        // Update the UI for the specific record
+        this.updateDisableEditStateForRecord(recordIdVar);
+        //this.disableButton = event;
+    }
+
+    updateDisableEditStateForRecord(recordIdVar) {
+        const isDisableEditing = this.editStates[recordIdVar] || false;
+        if (isDisableEditing) {
+            this.disableButton = true;
+        } else {
+            this.disableButton = false;
+        }
+    }
+
+    handleEditEnableButton(event) {
+        console.log('event fired 83 '+JSON.stringify(event));
+        const { recordIdVar, isEnabling } = event;
+        // Ensure edit states are maintained per record
+        if (!this.editStates) {
+            this.editStates = {}; // Initialize if not already done
+        }
+        this.editStates[recordIdVar] = isEnabling;
+        // Update the UI for the specific record
+        this.updateEnableEditStateForRecord(recordIdVar);
+        //this.disableButton = event;
+    }
+
+    updateEnableEditStateForRecord(recordIdVar) {
+        const isEnableEditing = this.editStates[recordIdVar] || false;
+        if (isEnableEditing) {
+            this.disableButton = false;
+        } else {
+            this.disableButton = true;
+        }
+    }
+
+    handleNavigate(event) {
+        console.log('event fired 77'+JSON.stringify(event));
+        const { recordId, objectApiName, fieldSet, editClick} = event;
+        this.recordId = recordId;
+        this.objectApiName = objectApiName;
+        this.fieldSet = fieldSet;
+        this.editClick = editClick;
+
+        console.log('this.editClick 111 '+this.editClick);
+        if (this.editClick) {
+            this.disableButton = true;
+        } else {
+            this.disableButton = false;
+        }
+
+        fetchFields({
+            recordId: this.recordId,
+            objectName: this.objectApiName,
+            fieldSetName: this.fieldSet
+        }).then(result => {
+            if (result) {
+                console.log('result 63'+JSON.stringify(result));
+                if (result.message && this.recordId) {
+                    this.showToast('Error', 'error', result.message);
+                    return;
+                }
+                // this.nameField = result.nameField;
+                this.fieldList = result.fieldsAPI;
+                console.log('this.fieldList 70'+JSON.stringify(this.fieldList));
+                this.objectLabelName = result.objectLabelName;
+                console.log('this.objectLabelName 72'+JSON.stringify(this.objectLabelName));
+            }
+        }).catch(error => {
+            if (error && error.body && error.body.message) {
+                this.showToast('Error', 'error', error.body.message);
+            }
+        });
+        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+
+
+        this.progressMeth();
+    }
+
+    fetchFieldsMeth() {
+        /*console.log('event fired 77' + JSON.stringify(event));
+        const { recordId, objectApiName, fieldSet } = event;
+        this.recordId = recordId;
+        this.objectApiName = objectApiName;
+        this.fieldSet = fieldSet;*/
+
+        fetchFields({
+            recordId: this.recordId,
+            objectName: this.objectApiName,
+            fieldSetName: this.fieldSet
+        }).then(result => {
+            if (result) {
+                console.log('result 63 ' + JSON.stringify(result));
+                if (result.message && this.recordId) {
+                    this.showToast('Error', 'error', result.message);
+                    return;
+                }
+                // this.nameField = result.nameField;
+                this.fieldList = result.fieldsAPI;
+                console.log('this.fieldList 70' + JSON.stringify(this.fieldList));
+                this.objectLabelName = result.objectLabelName;
+                console.log('this.objectLabelName 72' + JSON.stringify(this.objectLabelName));
+            }
+        }).catch(error => {
+            if (error && error.body && error.body.message) {
+                this.showToast('Error', 'error', error.body.message);
+            }
+        });
+        this.intervalId = setInterval(() => this.removeHorizontalClass(this), 1);
+
+
+        this.progressMeth();
+    }
+
+    disconnectedCallback() {
+        clearInterval(this.intervalId);
+    }
+    removeHorizontalClass() {
+        // this.loading = false;
+        this.template.querySelectorAll('lightning-output-field')?.forEach(x => {
+            x.classList.remove('slds-form-element_horizontal')
+        })
+    }
+
+    showToast(title, variant, message) {
+        const event = new ShowToastEvent({
+            title: title,
+            variant: variant,
+            message: message,
+        });
+        this.dispatchEvent(event);
+    }
+
+    disableButton = false;
+    handleActions(event) {
+        const actionName = event.target.dataset.action;
+        switch (actionName) {
+            case 'edit':
+                console.log('edit');
+                this.childRecordId = this.childRecords?.[0].id;
+                //this.showEditRecordModal = true;
+
+                // Dispatching custom event to notify the parent component
+                this.editClick = true;
+                const editEvent = new CustomEvent('editclick', {
+                    detail: { editClick: this.editClick }
+                });
+                //this.dispatchEvent(editEvent);
+
+                //pubsub.publish('editClick', false);
+                pubsub.publish('editClick', { recordId: this.recordId, isEditing: true });
+
+                console.log('this.disableButton 161 '+this.disableButton);
+                this.disableButton = true;
+
+                break;
+            default:
+                // Dispatching custom event to notify the parent component
+                this.editClick = false;
+                const editEvent1 = new CustomEvent('editclick', {
+                    detail: { editClick: this.editClick }
+                });
+                //this.dispatchEvent(editEvent1);
+                //pubsub.publish('editClick', true);
+                pubsub.publish('editClick', { recordId: this.recordId, isEditing: false });
+                break;
+        }
+    }
+
+    closeModal() {
+        this.showEditRecordModal = false;
+    }
+
+
+    /*Name Field on Highlights Panel*/
+    waiverName;
+    /*Name Field on Highlights Panel*/
+
+    @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
+    wiredRecord({ error, data }) {
+        if (data) {
+            console.log('data check 129 '+JSON.stringify(data));
+            console.log('data check 130 '+data.fields.Status__c.value);
+
+            /*Name Field on Highlights Panel*/
+            this.waiverName = data.fields.Name.value;
+            /*Name Field on Highlights Panel*/
+
+            this.currentStep = data.fields.Status__c.value; 
+            this.progressMeth(); // Call your progress method to update the steps
+        } else if (error) {
+            console.error('Error fetching record:', error);
+        }
+    }
+
+
+    @track stepList = '';
+    @wire(getObjectInfo, { objectApiName: AWP_OBJECT })
+    objectInfo;
+    @wire(getPicklistValues, { recordTypeId: '$objectInfo.data.defaultRecordTypeId', fieldApiName: STATUS_FIELD })
+    picklistValues({ error, data }) {
+        if (data) {
+            this.stepList = data.values.map(item => item.label).join(',');
+            this.progressMeth();
+            console.log('data check 284 '+JSON.stringify(this.stepList));
+        } else if (error) {
+            console.error('Error fetching picklist values: ', error);
+        }
+    }
+
+
+    @track currentTab = 'Due';
+    @track showModal = false;
+    @track modalMessage = '';
+    nextTab = '';
+    pendingTabEvent = null;
+
+    @api indicatorType = 'Path';
+    //@api indicatorType = 'horizontal';
+    //@api stepList=this.stepList1;//'Due,Pending,Approved,Saved';
+    @api currentStep='';
+    @api currentStepPercentage=0;
+    showTypeHorizontal;
+    pathProgress;
+    progressLabel;
+    label = {
+        DFP_Complete,
+        DFP_Current,
+        DFP_Upcoming
+    };
+    showTypeVertical;
+    showTypeVertNav;
+    showTypeHorizontal;
+    showTypePath;
+    showTypeBar;
+    showTypeRing;
+    stepsArray;
+    pathProgress;
+    stepPercent;
+    countTotalSteps;
+    countToCurrent;
+    progressLabel;
+
+
+    progressMeth(){
+        console.log('Running progressMeth with currentStep:', this.currentStep);
+
+        let indicatorDirty = this.indicatorType;
+        let indicatorClean = indicatorDirty.trim().toLowerCase();
+        let considerCurrentStepPercentage = false;
+        switch (indicatorClean) {
+            case 'path':
+                this.showTypePath = true;
+                break;
+            case 'horizontal':
+                this.showTypeHorizontal = true;
+                break;
+            default:
+                this.showTypePath = true;
+                this.showTypeHorizontal = true;
+                break; 
+        }        
+        // convert stepList from string of comma-separated values to an array
+        console.log('stepList check api '+JSON.stringify(this.stepList));
+        const stepListArray = this.stepList.split(',');
+        let countTotalSteps = stepListArray.length;
+        let stepsArrayTemp = [];
+        let afterCurrent = false;
+        let countToCurrent = 0;
+        let currentCount = 0;
+
+
+        if (!this.currentStep) {
+            console.warn('Current step is null or undefined. Marking all steps as Upcoming.');
+            // All steps should be marked as Upcoming
+            for (let i = 0; i < stepListArray.length; i++) {
+                let cleanArrayValue = stepListArray[i].trim();
+                stepsArrayTemp.push({
+                    label: cleanArrayValue,
+                    status: 'Upcoming',
+                    showCurrent: false,
+                    showComplete: false,
+                    showUpcoming: true,
+                });
+            }
+            this.stepsArray = stepsArrayTemp;
+        }
+        else {
+            for (let i = 0; i < stepListArray.length; i++) {
+                currentCount = i + 1;
+                let isFinalStep = false;
+                if (currentCount == countTotalSteps) {
+                    isFinalStep = true;
+                }
+                let cleanArrayValue = stepListArray[i].trim();
+                if (afterCurrent == false) {
+                    // this step might be Completed or Current
+                    if (cleanArrayValue == this.currentStep) {
+                        if (isFinalStep == true) {
+                            switch (indicatorClean) {
+                                default:
+                                    // this is the current step, but since it is the final one, it is marked as Complete instead
+                                    stepsArrayTemp.push({
+                                        'label': cleanArrayValue,
+                                        'status': 'Complete',
+                                        'showCurrent': false,
+                                        'showComplete': true,
+                                        'showFinalComplete': false,
+                                        'showUpcoming': false,
+                                        'finalStep': true
+                                    });
+                                    break;
+                            }
+                            countToCurrent++;
+                        }
+                        else {
+                            // this is the current step, but it is not the final one (or it's the final one for the vertnav indicator type)
+                            stepsArrayTemp.push({
+                                'label': cleanArrayValue,
+                                'status': 'Current',
+                                'showCurrent': true,
+                                'showComplete': false,
+                                'showUpcoming': false,
+                                'finalStep': false
+                            });
+                            // set afterCurrent to true,
+                            // so all subsequent steps
+                            // are marked as future
+                            afterCurrent = 'true';
+                            countToCurrent++;
+                        }
+                    }
+                    else {
+                        // this is a completed step
+                        stepsArrayTemp.push({
+                            'label': cleanArrayValue,
+                            'status': 'Complete',
+                            'showCurrent': false,
+                            'showComplete': true,
+                            'showUpcoming': false,
+                            'finalStep': isFinalStep
+                        });
+                        countToCurrent++;
+                    }
+                }
+                else {
+                    // this is an upcoming step
+                    stepsArrayTemp.push({
+                        'label': cleanArrayValue,
+                        'status': 'Upcoming',
+                        'showCurrent': false,
+                        'showComplete': false,
+                        'showUpcoming': true,
+                        'finalStep': false
+                    });
+                }
+            }
+
+
+
+            // set pathProgress to number of steps unless currentStepPercentage is set
+            if (considerCurrentStepPercentage == true) {
+                let percentProperty = this.currentStepPercentage;
+                if (percentProperty > 0) {
+                    this.pathProgress = percentProperty;
+                    this.stepPercent = percentProperty;
+                    let testPercent = percentProperty;
+                    // need a label property for the Bar indicator type that shows completion like "45% Complete"
+                    this.progressLabel = `${percentProperty}% ${this.label.DFP_Complete}`;
+                    // setting dynamic css width value for the Bar and Ring indicator types
+                    document.documentElement.style.setProperty('--value', percentProperty);
+                }
+                else {
+                    this.pathProgress = (((countToCurrent - 1) / (countTotalSteps - 1) * 100));
+                    // need a label property for the Bar indicator type that shows completion like "45% Complete"
+                    this.progressLabel = `${this.pathProgress}% ${this.label.DFP_Complete}`;
+                    // setting dynamic css width value for the Bar and Ring indicator types
+                    document.documentElement.style.setProperty('--value', this.pathProgress);
+                }
+            }
+            // indicator type is not a bar or ring
+            else {
+                this.pathProgress = (((countToCurrent - 1) / (countTotalSteps - 1) * 100));
+                // need a label property for the Horizontal indicator type that shows completion like "45% Complete"
+                this.progressLabel = `${this.pathProgress}% ${this.label.DFP_Complete}`;
+                // setting dynamic css width value for the Horizontal indicator type
+                document.documentElement.style.setProperty('--value', this.pathProgress);
+            }
+
+
+
+            this.stepsArray = stepsArrayTemp;
+        }
+    }
+}
+
+.custom-container{
+	color : black;
 }
