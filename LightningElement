@@ -1,123 +1,29 @@
- @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getRecordWithFieldSet(String recordId, String objectName, String fieldSetName) {
-        // Get describe info
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectName);
-        Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-        Map<String, Schema.FieldSet> fieldSetMap = objDescribe.fieldSets.getMap();
-        Schema.FieldSet fieldSet = fieldSetMap.get(fieldSetName);
+Add two read-only LWCs to the TechnologyDecision__c record page:
 
-        if (fieldSet == null) {
-            throw new AuraHandledException('Field Set not found: ' + fieldSetName);
-        }
+Approval tab → list related Decision_Approval__c records.
 
-        // Build dynamic SOQL
-        List<String> fields = new List<String>();
-        for (Schema.FieldSetMember f : fieldSet.getFields()) {
-            fields.add(f.getFieldPath());
-        }
+Acknowledgement tab → list related Decision_Acknowledgement__c records.
 
-        String soql = 'SELECT ' + String.join(fields, ',') +
-                      ' FROM ' + objectName +
-                      ' WHERE Id = :recordId LIMIT 1';
+Each list is filtered to the current Decision, shows key columns (including Actual Approver / Actual Acknowledger), supports sort/pagination, and respects sharing + CRUD/FLS.
 
-        SObject recordData = Database.query(soql);
+Acceptance Criteria
 
-        // Prepare response: key = API Name, value = field value
-        Map<String, Object> response = new Map<String, Object>();
-        for (Schema.FieldSetMember f : fieldSet.getFields()) {
-            response.put(f.getLabel(), recordData.get(f.getFieldPath()));
-        }
-        return response;
-    }
+Tabs render
+Given a Decision record page
+When I view it
+Then I see Approval and Acknowledgement tabs with components.
 
-import { LightningElement, api, wire, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import fetchFields from '@salesforce/apex/AWP_WaiverHandlerClass.fetchFields';
-import getRecordWithFieldSet from '@salesforce/apex/TechnologyDecision_DataTableHandler.getRecordWithFieldSet';
-import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
+Approvals scope
+Given I open Approval
+When data loads
+Then I see approvals for that Decision only, with columns: Date, Stage, Assigned To, Actual Approver, Comment.
 
-import DFP_Complete from '@salesforce/label/c.DFP_Complete';
-import DFP_Current from '@salesforce/label/c.DFP_Current';
-import DFP_Upcoming from '@salesforce/label/c.DFP_Upcoming';
-import pubsub from 'c/pubsub';
-import { getRecord } from 'lightning/uiRecordApi';
-const FIELDS = ['TechnologyDecision__c.Status__c','TechnologyDecision__c.Name'];
+Acknowledgements scope
+Given I open Acknowledgement
+When data loads
+Then I see acknowledgements for that Decision only, with columns: Date, Stage, Assigned To, Actual Acknowledger, Comment.
 
-
-import { getObjectInfo } from 'lightning/uiObjectInfoApi';
-import { getPicklistValues } from 'lightning/uiObjectInfoApi';
-import AWP_OBJECT from '@salesforce/schema/TechnologyDecision__c';
-import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
-export default class TechnologyDecisionHighlightPanel extends LightningElement {
-    @api recordId;
-    @api objectApiName;
-    fieldSet='DecisionField';
-    @api get recordName() {
-        return this._name;
-    }
-    set recordName(value) {
-        if (value) {
-            this._name = value;
-        }
-    }
-    _name = '';
-    fieldList = [];
-    objectLabelName = '';
-    intervalId;
-    showEditRecordModal = false;
-
-    // For Dispatching custom event to notify the parent component
-    @api editClick;
-
-    @wire(getRelatedListRecords, {
-        parentRecordId: '$recordId',
-        relatedListId: 'TechnologyDecision__c',
-        fields: ['TechnologyDecision__c.Id']
-    })
-    wiredRecords({ error, data }) {
-        if (data) {
-            console.log('Checking line 51');
-            this.childRecords = data.records;
-        } else if (error) {
-            console.log(error);
-        }
-    }
-
-    connectedCallback() {
-      //  pubsub.subscribe('navigate', this.handleNavigate.bind(this));
-       // this.fetchFieldsMeth();
-       // console.log('Subscribed to navigate event');
-
-       // pubsub.subscribe('saveSuccess', this.handleEditDisableButton.bind(this));
-        //pubsub.subscribe('saveSuccessEditEnable', this.handleEditEnableButton.bind(this));
-    }
-    
-    data = {};
-    error;
-
-    @wire(getRecordWithFieldSet, { recordId: '$recordId', objectName: '$objectApiName', fieldSetName: '$fieldSetName' })
-    wiredRecord({ data, error }) {
-        if (data) {
-            this.data = data;
-            this.error = undefined;
-        } else if (error) {
-            this.error = error;
-            this.data = {};
-        }
-    }
-
-   get fieldEntries() {
-    if (!this.data) {
-        return [];
-    }
-    // Convert the object to array of {key, label, value} for template
-    return Object.entries(this.data).map(([key, value]) => {
-        return {
-            key: key,
-            label: key,
-            value: value
-        };
-    });
-}
- 
-}
+Security enforced
+Given user permissions
+When a user lacks record/object/field access
+Then they cannot see the data or restricted fields (Apex runs with sharing + enforces CRUD/FLS).
