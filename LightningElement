@@ -1,29 +1,44 @@
-Add two read-only LWCs to the TechnologyDecision__c record page:
+<template>
+    <!-- Gray header -->
+    <div class="slds-page-header slds-page-header_record-home">
+        <div class="slds-page-header__row header-row">
+            <!-- Left side: Icon + Titles -->
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:contact" size="medium" alternative-text="Contact"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <span class="slds-text-body_regular">Technology Decision</span>
+                        <span class="slds-page-header__title slds-truncate" title={recordName}>{recordName}</span>
+                        <span class="slds-page-header__title slds-truncate" title={waiverName}>{waiverName}</span>
+                    </div>
+                </div>
+            </div>
 
-Approval tab → list related Decision_Approval__c records.
+            <!-- Right side: Buttons -->
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <div class="slds-button-group">
+                            <lightning-button label="Edit" data-action="edit" onclick={handleActions} disabled={disableButton}></lightning-button>
+                            <lightning-button variant="brand" label="Back To List View" data-action="close" onclick={handleClose} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-Acknowledgement tab → list related Decision_Acknowledgement__c records.
-
-Each list is filtered to the current Decision, shows key columns (including Actual Approver / Actual Acknowledger), supports sort/pagination, and respects sharing + CRUD/FLS.
-
-Acceptance Criteria
-
-Tabs render
-Given a Decision record page
-When I view it
-Then I see Approval and Acknowledgement tabs with components.
-
-Approvals scope
-Given I open Approval
-When data loads
-Then I see approvals for that Decision only, with columns: Date, Stage, Assigned To, Actual Approver, Comment.
-
-Acknowledgements scope
-Given I open Acknowledgement
-When data loads
-Then I see acknowledgements for that Decision only, with columns: Date, Stage, Assigned To, Actual Acknowledger, Comment.
-
-Security enforced
-Given user permissions
-When a user lacks record/object/field access
-Then they cannot see the data or restricted fields (Apex runs with sharing + enforces CRUD/FLS).
+    <!-- White highlight panel overlapping header -->
+    <div class="highlight-panel">
+        <div class="slds-grid slds-wrap">
+            <template for:each={fieldEntries} for:item="field">
+                <div key={field.key} class="slds-col slds-p-around_small">
+                    <span class="slds-text-title">{field.label}</span>
+                    <div class="slds-text-body_regular">{field.value}</div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
