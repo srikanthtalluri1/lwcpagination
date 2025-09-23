@@ -42,3 +42,119 @@
         </div>
     </div>
 </template>
+
+import { LightningElement, api, wire, track } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import getRecordWithFieldSet from '@salesforce/apex/TechnologyDecision_DataTableHandler.getRecordWithFieldSet';
+import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
+
+const FIELDS = ['TechnologyDecision__c.Status__c','TechnologyDecision__c.Name'];
+
+export default class TechnologyDecisionHighlightPanel extends LightningElement {
+    @api recordId;
+    @api objectApiName;
+    fieldSet='DecisionField';
+    @api get recordName() {
+        return this._name;
+    }
+    set recordName(value) {
+        if (value) {
+            this._name = value;
+        }
+    }
+    _name = '';
+    fieldList = [];
+    objectLabelName = '';
+    intervalId;
+    showEditRecordModal = false;
+
+    // For Dispatching custom event to notify the parent component
+    @api editClick;
+
+    @wire(getRelatedListRecords, {
+        parentRecordId: '$recordId',
+        relatedListId: 'TechnologyDecision__c',
+        fields: ['TechnologyDecision__c.Id']
+    })
+    wiredRecords({ error, data }) {
+        if (data) {
+            console.log('Checking line 51');
+            this.childRecords = data.records;
+        } else if (error) {
+            console.log(error);
+        }
+    }
+
+    connectedCallback() {
+      //  pubsub.subscribe('navigate', this.handleNavigate.bind(this));
+       // this.fetchFieldsMeth();
+       // console.log('Subscribed to navigate event');
+
+       // pubsub.subscribe('saveSuccess', this.handleEditDisableButton.bind(this));
+        //pubsub.subscribe('saveSuccessEditEnable', this.handleEditEnableButton.bind(this));
+    }
+    
+    data = {};
+    error;
+
+    @wire(getRecordWithFieldSet, { recordId: '$recordId', objectName: '$objectApiName', fieldSetName: '$fieldSet' })
+    wiredRecord({ data, error }) {
+         
+        if (data) {
+            this.data = data;
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.data = {};
+        }
+    }
+
+   get fieldEntries() {
+    if (!this.data) {
+        return [];
+    }
+    // Convert the object to array of {key, label, value} for template
+    return Object.entries(this.data).map(([key, value]) => {
+        console.log(key,'&&',value);
+        return {
+            key: key,
+            label: key,
+            value: value
+        };
+    });
+}
+ 
+}
+
+.slds-text-title {
+    font-weight: bold;
+    color: #444;
+}
+/* Make the first row a flex container for vertical centering */
+.header-row {
+    display: flex;
+    justify-content: space-between; /* left/right spacing */
+    align-items: center;            /* vertical centering */
+    padding: 1rem;                  /* optional padding for top row */
+}
+
+/* Remove extra padding/margin inside buttons */
+.slds-page-header__col-actions .slds-page-header__controls,
+.slds-page-header__col-actions .slds-page-header__control {
+    padding: 0;
+    margin: 0;
+}
+
+/* White highlight panel */
+.highlight-panel {
+    background-color: white;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+
+    /* Overlap effect so it looks like part of header */
+    position: relative;
+    top: -1.5rem; /* adjust overlap height */
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* subtle shadow */
+}
