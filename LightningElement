@@ -1,233 +1,119 @@
 <template>
-                    <div class="slds-page-header">
-                        <div class="slds-page-header__row">
-                            <div class="slds-page-header__col-title">
-                                <div class="slds-media">
-                                    <div class="slds-media__figure">
-                                        <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
-                                    </div>
-                                    <div class="slds-media__body">
-                                        <div class="slds-page-header__name">
-                                            <div class="slds-page-header__name-title">
-                                                <h1>
-                                                    <span>Technology Decision</span>
-                                                    <span class="slds-page-header__title slds-truncate"
-                                        title="Recently Viewed">{selectedDecisionLabel}</span>
-                                                </h1>
-                                            </div>
-                                        </div>
-                                    </div>
-                                  <!--  <template if:false={showRecord}>
-                                        <div class="slds-media__body" style="text-align-last: end;">
-                                            <div class="slds-page-header__name">
-                                                <div class="slds-page-header__name-title">
-                                                    <lightning-button variant="neutral" label="New" data-action="newrecord"
-                                                        onclick={handleActions}>
-                                                    </lightning-button> -->
-                                                    <!-- <div class="slds-col slds-var-p-left_small"> --> 
-                                                  <!--  <lightning-button class="slds-var-p-left_small" label="Share View"
-                                                        variant="brand" data-action="sharefilter" onclick={handleActions}>
-                                                    </lightning-button> -->
-                                                    <!-- </div> -->
-                                            <!--    </div>
-                                            </div>
-                                        </div>
-                                    </template> -->
+    <div class="slds-col slds-size_1-of-1">
+        <div class={dropdownClass}>
+            <!-- Input field -->
+            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                <input type="text" 
+                       class="slds-input slds-combobox__input " 
+                       placeholder="Select filters..." 
+                       value={searchKey}
+                       oninput={handleSearch}
+                       onclick={toggleDropdown}/>
+             <!-- Dropdown / Drop-up icon -->
+                <lightning-icon icon-name={iconName} 
+                                size="x-small" 
+                                class="slds-input__icon slds-input__icon_right">
+                </lightning-icon>
+
+            </div>
+
+            <!-- Dropdown -->
+            <template if:true={isDropdownOpen}>
+                <div class=" slds-dropdown_length-5 slds-dropdown_fluid">
+                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                        <template for:each={filteredOptions} for:item="opt">
+                            <li key={opt.value} role="presentation" class="slds-listbox__item">
+                              
+                                 <div class="slds-media slds-listbox__option slds-listbox__option_plain"
+                                     role="option"
+                                     onclick={handleSelect}
+                                     
+                                     data-value={opt.value}>
+                                    <span class={opt.class}>{opt.label}</span>
                                 </div>
-                                <div>
-                                    {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
-                                    {selectedDecisionLabel}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
-                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
-                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
-                            onrowaction={handleActions} oncustomtext={handleActions} enable-infinite-loading
-                            is-loading={isLoading} onloadmore={loadMoreData}> 
-                            ><!--key-field="Id"-->
-                        </c-custom-datatable-data-type-provider>
+                            </li>
+                        </template>
+                        <template if:true={noResults}>
+                            <li class="slds-listbox__item">
+                                <span class="slds-p-around_small">No results found</span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+        </div>
+    </div>
 </template>
 
 
 import { LightningElement, track, api } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-export default class TechnologyDecision_DataTable extends LightningElement {
 
-    @track data = [];
-    @track error;
-    @track sortBy;
-    @track sortDirection = 'asc';
-    @track isLoading = false;
-    @api filters;
-    @api selecteddecision ='mydecision';
-    @api searchfilters ;
-    totalRecords;
+export default class TechnologyDecisionCustomPick extends LightningElement {
 
-    // Pagination support
-    offset = 0;
-    limit = 5; // batch size
-    allDataLoaded = false;
-
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'recordLink', // URL field
-        type: 'url',
-        typeAttributes: {
-            label: { fieldName: 'Name' }, // Text shown in table
-            target: '_blank'               // Open in new tab
-        }
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
+    @track isDropdownOpen = false;
+    @track searchKey = '';
+    @track options = [
+        { label: 'Stage', value: 'Stage', checked: false, class: 'slds-form-element__label' },
+        { label: 'Status', value: 'Status', checked: false, class: 'slds-form-element__label' },
+        { label: 'Decision Reason', value: 'Decision Reason', checked: false, class: 'slds-form-element__label' }
+        
     ];
-    // Call Apex imperatively
-   
-    connectedCallback() {
-        this.loadTechnologyDecision();
+    
+
+
+    get dropdownClass() {
+        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
+    }
+
+    get filteredOptions() {
+        if (!this.searchKey) return this.options;
+        return this.options.filter(opt =>
+            opt.label.toLowerCase().includes(this.searchKey.toLowerCase())
+        );
+    }
+    get iconName() {
+        return this.isDropdownOpen ? 'utility:up' : 'utility:down';
+    }
+
+    get noResults() {
+        return this.filteredOptions.length === 0;
+    }
+
+    toggleDropdown() {
+        this.isDropdownOpen = !this.isDropdownOpen;
+    }
+
+    handleSearch(event) {
+        this.searchKey = event.target.value;
+        this.isDropdownOpen = true;
+    }
+
+   handleSelect = (event) => {
+        const value = event.currentTarget.dataset.value;
+        console.log('value 44', value);
+        this.options = this.options.map(opt => {
+            if (opt.value === value) {
+                const isSelected = !opt.selected;
+                return { 
+                    ...opt, 
+                    selected: isSelected, 
+                    class: isSelected ? 'selected' : '' 
+                };
+            }
+            this.isDropdownOpen = true; 
+            return opt;
+        });
+                // Collect all selected values
+            const selectedValues = this.options
+                .filter(opt => opt.selected)
+                .map(opt => opt.value);
+            console.log('selectedValues ', JSON.stringify(selectedValues));
+            // Dispatch to parent
+            this.dispatchEvent(new CustomEvent('selectionchange', {
+                detail: { values: selectedValues }
+            }));
        
     }
-    get selectedDecisionLabel() {
-        return this.selecteddecision === 'mydecision' ? 'My Decision' : 'All Decisions';
-    }
-     @api
-    updatefilters(filters) {
-        this.filters = filters;
-         console.log('filters 44 ', JSON.stringify(this.filters));
-         this.loadTechnologyDecision();
-    }
-    @api
-    updateslecteddecision(selecteddecision) {
-        this.selecteddecision = selecteddecision;
-         console.log('filters 44 ', this.selecteddecision);
-         this.loadTechnologyDecision();
-    }
-    @api
-    updatesearchfilters(searchfilters) {
-        this.searchfilters = searchfilters;
-         console.log('filters 44 ', this.searchfilters);
-         this.loadTechnologyDecision();
-    }
-   handleSort(event) {
-    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
-    let backendField = uiField;
-
-    // Map UI field to backend field
-    if (uiField === 'recordLink') {
-        backendField = 'Name';
-    } else if (uiField === 'statusStage') {
-        backendField = 'Status__c';
-    }
-
-    this.sortBy = backendField;   // used for sorting logic
-    this.sortByUi = uiField;      // used for UI arrow
-    this.sortDirection = event.detail.sortDirection;
-
-    let cloneData = [...this.data];
-
-    cloneData.sort((a, b) => {
-        let valA = a[backendField] ?? '';
-        let valB = b[backendField] ?? '';
-
-        // Numeric
-        if (!isNaN(valA) && !isNaN(valB)) {
-            valA = Number(valA);
-            valB = Number(valB);
-        }
-        // Dates
-        else if (this.isDate(valA) && this.isDate(valB)) {
-            valA = new Date(valA).getTime();
-            valB = new Date(valB).getTime();
-        }
-        // Strings
-        else {
-            valA = valA.toString().toLowerCase();
-            valB = valB.toString().toLowerCase();
-        }
-
-        return this.sortDirection === 'asc'
-            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
-            : (valA < valB ? 1 : valA > valB ? -1 : 0);
-    });
-
-    this.data = cloneData;
+    
 }
 
-  
-
-// Utility to detect valid date string
-isDate(val) {
-    return !isNaN(Date.parse(val));
-}
-
-    loadTechnologyDecision(isLoadMore = false) {
-        this.isLoading = true;
-
-        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters), allOrMy:this.selecteddecision, searchKey: this.searchfilters })
-            .then(result => {
-                this.totalRecords = result.decisionRecordsCount;
-                console.log('result ', JSON.stringify(result));
-                let newData = result.decisionRecords.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
-        }
-    }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view`, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-        };
-    });
-    console.log('data ', JSON.stringify(this.data));
-        if (isLoadMore) {
-                    this.data = [...this.data, ...newData];
-                } else {
-                    this.data = newData;
-                }
-
-                if (newData.length < this.limit) {
-                    this.allDataLoaded = true;
-                } else {
-                    this.offset += this.limit;
-                }
-
-                this.isLoading = false;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                 this.isLoading = false;
-                console.error('Error fetching accounts', error);
-            });
-    }
-    loadMoreData(event) {
-        if (this.allDataLoaded) {
-            event.target.isLoading = false; // stop spinner
-            return;
-        }
-        this.loadTechnologyDecision(true);
-    }
-}
