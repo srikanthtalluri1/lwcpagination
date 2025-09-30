@@ -1,119 +1,266 @@
 <template>
-    <div class="slds-col slds-size_1-of-1">
-        <div class={dropdownClass}>
-            <!-- Input field -->
-            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
-                <input type="text" 
-                       class="slds-input slds-combobox__input " 
-                       placeholder="Select filters..." 
-                       value={searchKey}
-                       oninput={handleSearch}
-                       onclick={toggleDropdown}/>
-             <!-- Dropdown / Drop-up icon -->
-                <lightning-icon icon-name={iconName} 
-                                size="x-small" 
-                                class="slds-input__icon slds-input__icon_right">
-                </lightning-icon>
+    <lightning-layout multiple-rows="true" class="tab-container " style="min-height: 100vh;" vertical-align="stretch">
+       <!-- <template if:true={showFilter}> -->
+             <lightning-layout-item padding="around-small"  class="slds-scrollable_y slds-color__background_gray-2" style="min-height: 100vh;"><!--size="12"-->
 
-            </div>
 
-            <!-- Dropdown -->
-            <template if:true={isDropdownOpen}>
-                <div class=" slds-dropdown_length-5 slds-dropdown_fluid">
-                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
-                        <template for:each={filteredOptions} for:item="opt">
-                            <li key={opt.value} role="presentation" class="slds-listbox__item">
-                              
-                                 <div class="slds-media slds-listbox__option slds-listbox__option_plain"
-                                     role="option"
-                                     onclick={handleSelect}
-                                     
-                                     data-value={opt.value}>
-                                    <span class={opt.class}>{opt.label}</span>
+                        <div class="button-container"><!--Added on Feb 6th 2025-->
+                            <lightning-button-icon-stateful icon-name="utility:filterList" selected={showFilter} size="medium"
+                                onclick={handleActions} variant="border-filled" data-action="showfiltertoggle">
+                            </lightning-button-icon-stateful>
+                        </div><!--Added on Feb 6th 2025-->
+                        
+                        <div class="slds-grid slds-wrap">
+                            <div class="slds-col slds-size_1-of-1 slds-p-top--x-small">
+                                <div class="slds-grid slds-wrap">
+                                    <lightning-input class="slds-col slds-size_1-of-1" name="search" label="Search"
+                                        type="search" onchange={handleReset} onkeyup={handleSearch} value={searchKey}>
+                                    </lightning-input>
+                                    <div style="margin-top: 10px;"></div> 
+
+                                    <lightning-combobox label="Filter by:" class="slds-col slds-size_1-of-1" title="Waivers List"
+                                        value={selectedWaiver} options={waiverOptions} onchange={handleWaiverChange}>
+                                    </lightning-combobox>
+                                    <!--Srikanth Change-->
+                                    <div class="slds-m-top_medium slds-col slds-size_1-of-1">
+                                    <c-technology-decision-custom-pick onselectionchange={handleActionsPicklist}></c-technology-decision-custom-pick>
+                                    </div>
                                 </div>
-                            </li>
+                            </div>
+                        </div>
+                        <div class="filterContainer">
+                            <div if:true={showFilterValues}>
+                            <lightning-input label="Search Filter" placeholder="Type to search..." onchange={handleFilterSearch}></lightning-input>
+                            <div if:true={showFilterValues} class="slds-card slds-p-top--medium" key={filteredFieldValue.id}
+                            for:each={filteredFieldValues} for:item="filteredFieldValue">
+                            <div class="slds-grid slds-align--spread slds-wrap">
+                               
+                                <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                                <lightning-button-icon class="slds-col slds-text-align--right"
+                                    icon-name={filteredFieldValue.icon} size="small" variant="bare" onclick={handleActions}
+                                    data-action="filterbyexpand" data-index={filteredFieldValue.id}></lightning-button-icon> 
+                               
+                            </div>
+                            <lightning-checkbox-group if:true={filteredFieldValue.showValues} class="slds-p-bottom_medium"
+                            name="filterValue" options={filteredFieldValue.filteredFieldValue}
+                            data-action={filteredFieldValue.filterFieldApiName} data-index={filteredFieldValue.id}
+                            onchange={handleActions} value={filteredFieldValue.selectedValue}
+                            key={filteredFieldValue.uniqueKey}>
+                        </lightning-checkbox-group>
+                         </div>
+                               
+                        
+                        </div>
+                        </div>
+                    
+
+
+                        <div class="slds-grid slds-wrap slds-grid--align-end slds-var-p-top_x-large slds-p-bottom_x-large">
+                            <div class="slds-col">
+                                <lightning-button label="Reset" variant="neutral" data-action="resetfilter"
+                                    onclick={handleActions}></lightning-button>
+                            </div>
+                            <div class="slds-col slds-var-p-left_small">
+                                <lightning-button label="Apply" variant="brand" data-action="applyfilter"
+                                    onclick={handleActions}></lightning-button>
+                            </div>
+                        </div>
+                        <template if:true={isLoadingFilter}>
+                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
                         </template>
-                        <template if:true={noResults}>
-                            <li class="slds-listbox__item">
-                                <span class="slds-p-around_small">No results found</span>
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-            </template>
-        </div>
-    </div>
-</template>
+                   
+            
+            </lightning-layout-item>
+       <!-- </template> -->
+    </lightning-layout>
+ </template>
 
-
-import { LightningElement, track, api } from 'lwc';
-
-export default class TechnologyDecisionCustomPick extends LightningElement {
-
-    @track isDropdownOpen = false;
-    @track searchKey = '';
-    @track options = [
-        { label: 'Stage', value: 'Stage', checked: false, class: 'slds-form-element__label' },
-        { label: 'Status', value: 'Status', checked: false, class: 'slds-form-element__label' },
-        { label: 'Decision Reason', value: 'Decision Reason', checked: false, class: 'slds-form-element__label' }
-        
-    ];
+import { LightningElement, track } from 'lwc';
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+import getUniqueValues from '@salesforce/apex/TechnologyDecision_DataTableHandler.getUniqueValues';
+export default class TechnologyDecisionDataFilters extends LightningElement {
+    searchKey;
+    isLoading;
+    currentPage;
+    rowOffSet;
+    records=[];
     
-
-
-    get dropdownClass() {
-        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
+    sortedBy;
+    sortedDirection;
+    @track selectedFilters;
+    @track selectedWaiver = 'mydecision';
+    @track _filteredFieldValues = [];
+    @track _filterOptions = [];
+    filters = [];
+    @track selectedFiltersdata = {}; 
+    get filteredFieldValues() {
+        console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
+        return this._filteredFieldValues;
+        }
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
     }
+    get waiverOptions() {
+        return [
+            { label: 'My Decisons', value: 'mydecision' },
+            { label: 'All Decisons', value: 'alldecision' }
+        ];
+    }
+   
+handleSearch(event) {
+        window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            //this.resetPaginationState();
+            this.currentPage = 1;
 
-    get filteredOptions() {
-        if (!this.searchKey) return this.options;
-        return this.options.filter(opt =>
-            opt.label.toLowerCase().includes(this.searchKey.toLowerCase())
-        );
-    }
-    get iconName() {
-        return this.isDropdownOpen ? 'utility:up' : 'utility:down';
-    }
+            /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
 
-    get noResults() {
-        return this.filteredOptions.length === 0;
-    }
-
-    toggleDropdown() {
-        this.isDropdownOpen = !this.isDropdownOpen;
-    }
-
-    handleSearch(event) {
-        this.searchKey = event.target.value;
-        this.isDropdownOpen = true;
-    }
-
-   handleSelect = (event) => {
-        const value = event.currentTarget.dataset.value;
-        console.log('value 44', value);
-        this.options = this.options.map(opt => {
-            if (opt.value === value) {
-                const isSelected = !opt.selected;
-                return { 
-                    ...opt, 
-                    selected: isSelected, 
-                    class: isSelected ? 'selected' : '' 
-                };
-            }
-            this.isDropdownOpen = true; 
-            return opt;
-        });
-                // Collect all selected values
-            const selectedValues = this.options
-                .filter(opt => opt.selected)
-                .map(opt => opt.value);
-            console.log('selectedValues ', JSON.stringify(selectedValues));
-            // Dispatch to parent
-            this.dispatchEvent(new CustomEvent('selectionchange', {
-                detail: { values: selectedValues }
-            }));
-       
-    }
-    
+             // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('searchkey', {
+                        detail: { value: this.searchKey }
+                    })
+                );
+        }, 300);
 }
+ handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        //this.resetPaginationState();
+        if(event.detail.value){
+        this.selectedWaiver = event.detail.value;
+        }
+        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
+        this.loading = true;
+        this.isFromhandleWaiverChange=true;
+        //this.handleFilterBy('resetfilter');
+        // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('decisiondata', {
+                        detail: { value: this.selectedWaiver }
+                    })
+                );
+    }
+    handleReset(event){
+        
+    }
+ resetPaginationState() {
+        this.isLoading = true;
+        this.sortedBy = 'Name';
+        this.sortedDirection = 'asc';
+    }
+    handleActionsPicklist(event){
+        const selectedValues = event.detail.values;
+      console.log('Selected values from child: ', JSON.stringify(selectedValues));
+
+      // you can store in a tracked property
+      this.selectedFilters = selectedValues;
+    
+        getUniqueValues({
+            fieldApiName: this.selectedFilters,
+            allOrMy: this.selectedWaiver
+        })
+        .then(data => {
+            console.log('Apex result 65 :', JSON.stringify(data));
+             
+                            
+                        const values = (data) ? Object.keys(data).map(x => {
+                       
+                                return {
+                                    [x]: data[x].map((val) => {
+                                        //return { label: (val.value + ' (' + val.count + ')'), value: val.value };
+                                        const label = val.value ? val.value : 'No Data';
+                                        const value = val.value ? val.value : 'nullcheck';
+                                        const id = val.id ? val.id : 'nullcheck';
+                                        return { label: `${label} (${val.count})`, value: value, id: id , checked:false};
+                                    })
+                                }
+                            
+                        }).filter(Boolean) : [];//
+                        
+
+                        /*Srikanth Changes*/
+                        console.log('Processed Values:', JSON.stringify(values));
+                        let filteredFieldValues = values.map((x, ind) => {
+                            
+                            
+
+                            
+                            console.log('Processed selectedValue:', JSON.stringify(x));
+                            return {
+                                id: ind,
+                                filterField: Object.keys(x)[0],
+                                filterFieldApiName: Object.keys(x)[0],
+                                filteredFieldValue: Object.values(x)[0]
+                                    .sort((a, b) => {
+                                        const valueA = (a.value || '').trim().toLowerCase();
+                                        const valueB = (b.value || '').trim().toLowerCase();
+                                        if (valueA === 'nullcheck') return -1;
+                                        if (valueB === 'nullcheck') return 1;
+                                        return valueA.localeCompare(valueB); // Alphabetical for others
+                                    }),
+                                showValues: true, //making true to expand the filter options
+                                selectedValue: this.selectedFilters,
+                                icon: 'utility:chevrondown',
+                                
+                            };
+                        
+                        });
+                        console.log('Filtered Field Values (sorted by value):', JSON.stringify(filteredFieldValues));
+                        /*Srikanth Changes*/
+
+                        this._filteredFieldValues = [...filteredFieldValues];
+                        this.isLoadingFilter = false;
+                       
+                       // this.fetchDataAsync();
+        
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    
+    }
+    handleActions(event){ 
+
+    // Will store { filterFieldApiName : [selectedValues] }
+
+        const apiName = event.target.dataset.action;   // filterFieldApiName
+        const values = event.detail.value;             // selected values array
+
+        if (values.length > 0) {
+            // keep only if something is selected
+            this.selectedFiltersdata = {
+                ...this.selectedFiltersdata,
+                [apiName]: values
+            };
+        } else {
+            // remove the key if nothing is selected
+            const { [apiName]: removed, ...rest } = this.selectedFiltersdata;
+            this.selectedFiltersdata = rest;
+        }
+        // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('filterdata', {
+                        detail: { value: this.selectedFiltersArray }
+                    })
+                );
+
+                console.log('Selected Filters Map:', JSON.stringify(this.selectedFiltersdata));
+                console.log('Selected Filters Array:', JSON.stringify(this.selectedFiltersArray));
+              
+            }
+     // Convert to array format [{ key, values }]
+   get selectedFiltersArray() {
+        return Object.keys(this.selectedFiltersdata).map(key => {
+            return { [key]: this.selectedFiltersdata[key] };
+        });
+    }
+
+}
+
 
