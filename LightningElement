@@ -1,48 +1,9 @@
-<template>
-    <lightning-layout class="container slds-color__background_gray-2" vertical-align="stretch">
-        <lightning-layout-item size=3 class="custom-border-right">
-            
-          <c-technology-decision-data-filters onfilterdata={handlefilterdata} ondecisiondata={handledecisiondata} onsearchkey={handlesearchkey}></c-technology-decision-data-filters>
+Users can see clear help text on all new fields.
 
-        </lightning-layout-item>
-       
+Help text on existing fields remains accurate and aligned with business rules.
 
-        <lightning-layout-item flexibility="auto">
-           <c-technology-decision-data-table></c-technology-decision-data-table>
-        </lightning-layout-item>
-    </lightning-layout>
-</template>
+Validation errors display when rules are violated.
 
-import { LightningElement } from 'lwc';
-export default class TechnologyDecision_AppHomePage extends LightningElement {
-    filters;
-    selecteddecision;
-    searchkey;
-    handlefilterdata(event){
-        console.log('Data from child: ');
-         console.log('Data from child: ', event.detail.value);
-         this.filters= event.detail.value;
-         const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updatefilters(this.filters);
-        }
+Required fields cannot be left blank at page level.
 
-    }
-    handledecisiondata(event){
-        this.selecteddecision=event.detail.value;
-        console.log('this.selecteddecision 17 ',this.selecteddecision);
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updateslecteddecision(this.selecteddecision);
-        }
-    }
-    handlesearchkey(event){
-        this.searchkey=event.detail.value;
-        console.log('this.selecteddecision 26 ',this.searchkey);
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updatesearchfilters(this.searchkey);
-        }
-    }
-
-}
+Relationship fields display correct metadata when referenced.
