@@ -1,9 +1,15 @@
-Users can see clear help text on all new fields.
+Open a Decision record page.
 
-Help text on existing fields remains accurate and aligned with business rules.
+Click on the Approval tab after data loads.
 
-Validation errors display when rules are violated.
+Click on the Acknowledgement tab after data loads.
 
-Required fields cannot be left blank at page level.
+Log in with a user who has restricted field/object permissions.
 
-Relationship fields display correct metadata when referenced.
+Approval and Acknowledgement tabs are displayed.
+
+Approvals are shown only for that Decision with columns: Date, Stage, Assigned To, Actual Approval Date.
+
+Acknowledgements are shown only for that Decision with columns: Date, Stage, Assigned To, Actual Acknowledger, Comment.
+
+User cannot see restricted data or fields.
