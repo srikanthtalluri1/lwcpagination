@@ -1,110 +1,95 @@
 <template>
-      <div class="full-height">
-    <lightning-layout class="container slds-color__background_gray-2" vertical-align="stretch">
-                 <!-- Toggle Button (always visible) -->
-        <div class={toggleBtnClass}>
-            <lightning-button-icon 
-                icon-name="utility:filterList"
-                alternative-text="Toggle Filter"
-                variant="border-filled" 
-                size="medium"
-                onclick={toggleFilterPanel}>
-            </lightning-button-icon>
-        </div>
-        
-         <template if:true={showFilter}>
-        <lightning-layout-item size=3 class="custom-border-right child-container">
-            
-          <c-technology-decision-data-filters onfilterdata={handlefilterdata} ondecisiondata={handledecisiondata} onsearchkey={handlesearchkey}
-          onhandlerestbuttonclick={handleTrigger}></c-technology-decision-data-filters>
-      
-        </lightning-layout-item>
-         </template>
-       
-
-        <lightning-layout-item flexibility="auto" class="child-container">
-           <c-technology-decision-data-table></c-technology-decision-data-table>
-        </lightning-layout-item>
-    </lightning-layout>
-      </div>
+	<div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center" style="display: flex;align-items: center;gap: 0.5rem;">
+		<template if:true={value.status}>
+			<div class="slds-truncate" style="flex: 1;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">
+				{value.status}
+			</div>
+		</template>
+		
+			<div class="truncate-badge-wrapper" title={value.stage} style="max-width: 100%; 
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;">
+				<span class="truncate-text custom-badge" style="display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+	background-color: #e3e5ed;
+	color: #080707; 
+	padding: 0.25rem 0.5rem; 
+	border-radius: 0.75rem; 
+	font-size: 0.75rem; 
+	font-weight: bold; ">
+	test
+                   {value.stage}
+                </span>
+			</div>
+		
+	</div>
 </template>
 
-import { LightningElement, track } from 'lwc';
-export default class TechnologyDecision_AppHomePage extends LightningElement {
-    filters;
-    selecteddecision;
-    searchkey;
-    @track showFilter = true;
-     get toggleBtnClass() {
-        return this.showFilter ? "toggle-btn right-of-filter" : "toggle-btn left-edge";
-    }
-    handlefilterdata(event){
-        console.log('Data from child: ');
-         console.log('Data from child: ', event.detail.value);
-         this.filters= event.detail.value;
-         const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updatefilters(this.filters);
+
+import { LightningElement } from 'lwc';
+import customStatusStageTemplate from './customStatusStageTemplate.html';
+export default class TechnologyDecision_CustomDataTable extends LightningElement {
+
+     static customTypes = {
+       
+        customStatusStage: {
+            template: customStatusStageTemplate,
+            standardCellLayout: true,
+            typeAttributes: [],
+            cellAttributes: {
+                class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
+            }
         }
-
-    }
-    handledecisiondata(event){
-        this.selecteddecision=event.detail.value;
-        console.log('this.selecteddecision 17 ',this.selecteddecision);
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updateslecteddecision(this.selecteddecision);
-        }
-    }
-    handlesearchkey(event){
-        this.searchkey=event.detail.value;
-        console.log('this.selecteddecision 26 ',this.searchkey);
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updatesearchfilters(this.searchkey);
-        }
-    }
-    handleTrigger(event){
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.handleResetButton();
-        }
-    }
-     toggleFilterPanel() {
-        this.showFilter = !this.showFilter;
-    }
+    };
 
 }
 
-.container{
-	position: absolute;
-	left: 0%;
-	right: 0;
-	top: 0;
-	bottom: 0;
-	/* margin: -12px; removes spaces from all side --> */
-	background-color: slds-color__background_gray-2;
-}
-.custom-border-right {
-  border-right: 15px solid #65b5fa; /* light blue */
-  
-  
+.slds-grid.slds-grid_align-spread {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Adjust the gap between status and badge */
 }
 
-/* Base style for toggle */
-.toggle-btn {
-    position: absolute;
-    top: 12px;
-    z-index: 100;
-	padding-bottom: 15px;
+.slds-truncate {
+    flex: 1; /* Ensures the status text takes up available space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* When filter is open → button sits at right edge of filter */
-.right-of-filter {
-    left: calc(25% - 60px); /* since filter is size=3 (≈ 25%) */
+.truncate-badge-wrapper {
+    max-width: 120px;  /* Adjust as needed */
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
 }
 
-/* When filter is closed → button at left edge of screen */
-.left-edge {
-    left: 12px;
+.truncate-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Custom badge styling */
+.custom-badge {
+    background-color: #e3e5ed; /* Light gray background */
+    color: #080707; /* Dark text color */
+    padding: 0.25rem 0.5rem; /* Adjust padding as needed */
+    border-radius: 0.75rem; /* Rounded corners */
+    font-size: 0.75rem; /* Adjust font size as needed */
+    font-weight: bold; /* Bold text */
+}
+
+.custom-container{
+	color : black;
 }
