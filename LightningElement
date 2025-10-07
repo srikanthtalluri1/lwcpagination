@@ -1,93 +1,29 @@
 <template>
-	<div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center" style="display: flex;align-items: center;gap: 0.5rem;">
-		<template if:true={value.status}>
-			<div class="slds-truncate" style="flex: 1;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">
-				{value.status}
-			</div>
-		</template>
-		
-			<div class="truncate-badge-wrapper" title={value.stage} style="max-width: 100%; 
-    display: inline-block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;">
-				<span class="truncate-text custom-badge" style="display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-	background-color: #e3e5ed;
-	color: #080707; 
-	padding: 0.25rem 0.5rem; 
-	border-radius: 0.75rem; 
-	font-size: 0.75rem; 
-	font-weight: bold; ">
-	test
-                   {value.stage}
-                </span>
-			</div>
-		
-	</div>
+    <lightning-spinner alternative-text="Opening Decision Management..." size="medium"></lightning-spinner>
 </template>
 
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__RecordAction</target>
+    </targets>
+    
+</LightningComponentBundle>
 
 import { LightningElement } from 'lwc';
-import customStatusStageTemplate from './customStatusStageTemplate.html';
-export default class TechnologyDecision_CustomDataTable extends LightningElement {
+import { NavigationMixin } from 'lightning/navigation'; // ✅ required import
 
-     static customTypes = {
-       
-        customStatusStage: {
-            template: customStatusStageTemplate,
-            standardCellLayout: true,
-            typeAttributes: [],
-            cellAttributes: {
-                class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center'
+export default class TechnologyDecisionNavigateToDecisionMg extends NavigationMixin(LightningElement) {
+    connectedCallback() {
+        // Automatically navigate when the quick action loads
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Decision_Management' // Must match your Lightning App Page API Name
             }
-        }
-    };
-
-}
-
-.slds-grid.slds-grid_align-spread {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* Adjust the gap between status and badge */
-}
-
-.slds-truncate {
-    flex: 1; /* Ensures the status text takes up available space */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.truncate-badge-wrapper {
-    max-width: 120px;  /* Adjust as needed */
-    display: inline-block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-}
-
-.truncate-text {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Custom badge styling */
-.custom-badge {
-    background-color: #e3e5ed; /* Light gray background */
-    color: #080707; /* Dark text color */
-    padding: 0.25rem 0.5rem; /* Adjust padding as needed */
-    border-radius: 0.75rem; /* Rounded corners */
-    font-size: 0.75rem; /* Adjust font size as needed */
-    font-weight: bold; /* Bold text */
+        });
+    }
 }
 
 .custom-container{
