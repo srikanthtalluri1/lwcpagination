@@ -1,153 +1,399 @@
 <template>
-    <div class="slds-col slds-size_1-of-1">
-        <!-- Required wrapper for SLDS dropdown -->
-        <div class="slds-combobox_container">
-            <div class={dropdownClass}
-                 role="combobox"
-                 aria-expanded={isDropdownOpen}
-                 aria-haspopup="listbox">
+    <lightning-layout multiple-rows class="tab-container" vertical-align="stretch">
+        <template if:true={showFilter}>
+            <lightning-layout-item size="12" padding="around-small" class="slds-color__background_gray-2">
+                
+                <!-- Search + Picklists -->
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                        <lightning-input class="slds-size_1-of-1"
+                            name="search" 
+                            label="Search"
+                            type="search" 
+                            onchange={handleReset} 
+                            onkeyup={handleSearch} 
+                            value={searchKey}>
+                        </lightning-input>
+                    </lightning-layout-item>
 
-                <!-- Input field -->
-                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
-                    <input type="text" 
-                           class="slds-input slds-combobox__input" 
-                           placeholder="Select filters..." 
-                           value={searchKey}
-                           oninput={handleSearch}
-                           onclick={toggleDropdown}/>
-                    <!-- Dropdown icon -->
-                    <lightning-icon icon-name={iconName} 
-                                    size="x-small" 
-                                    class="slds-input__icon slds-input__icon_right">
-                    </lightning-icon>
-                </div>
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                        <lightning-combobox 
+                            label="Filter by:" 
+                            class="slds-size_1-of-1" 
+                            title="Waivers List"
+                            value={selectedWaiver} 
+                            options={waiverOptions} 
+                            onchange={handleWaiverChange}>
+                        </lightning-combobox>
+                    </lightning-layout-item>
 
-                <!-- Dropdown -->
-                <template if:true={isDropdownOpen}>
-                    <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
-                        <ul class="slds-listbox slds-listbox_vertical" role="presentation">
-                            <template for:each={filteredOptions} for:item="opt">
-                                <li key={opt.value} role="presentation" class="slds-listbox__item">
-                                    <div class="slds-media slds-listbox__option slds-listbox__option_plain"
-                                         role="option"
-                                         onclick={handleSelect}
-                                         data-value={opt.value}>
-                                        <span class={opt.class}>{opt.label}</span>
-                                    </div>
-                                </li>
-                            </template>
-                            <template if:true={noResults}>
-                                <li class="slds-listbox__item">
-                                    <span class="slds-p-around_small">No results found</span>
-                                </li>
-                            </template>
-                        </ul>
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                        <c-technology-decision-custom-pick 
+                            class="slds-size_1-of-1"
+                            onselectionchange={handleActionsPicklist}>
+                        </c-technology-decision-custom-pick>
+                    </lightning-layout-item>
+                </lightning-layout>
+
+                <!-- Filter values -->
+                <template if:true={showFilterValues}>
+                    <lightning-input 
+                        class="slds-size_1-of-1 slds-m-top_medium"
+                        label="Search Filter" 
+                        placeholder="Type to search..." 
+                        onchange={handleFilterSearch}>
+                    </lightning-input>
+
+                    <div class="slds-card slds-m-top_small">
+                        <template for:each={filteredFieldValues} for:item="filteredFieldValue">
+                            <div key={filteredFieldValue.id} class="slds-m-bottom_small">
+                                <div class="slds-grid slds-align_absolute-center slds-p-around_x-small">
+                                    <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                                    <lightning-button-icon 
+                                        class="slds-col_bump-left"
+                                        icon-name={filteredFieldValue.icon} 
+                                        size="small" 
+                                        variant="bare" 
+                                        onclick={handleActions}
+                                        data-action="filterbyexpand" 
+                                        data-index={filteredFieldValue.id}>
+                                    </lightning-button-icon>
+                                </div>
+
+                                <lightning-checkbox-group if:true={filteredFieldValue.showValues}
+                                    class="slds-size_1-of-1"
+                                    name="filterValue" 
+                                    options={filteredFieldValue.filteredFieldValue}
+                                    data-action={filteredFieldValue.filterFieldApiName} 
+                                    data-index={filteredFieldValue.id}
+                                    onchange={handleActions} 
+                                    value={filteredFieldValue.selectedValue}
+                                    key={filteredFieldValue.uniqueKey}>
+                                </lightning-checkbox-group>
+                            </div>
+                        </template>
                     </div>
                 </template>
-            </div>
-        </div>
-    </div>
+
+                <!-- Reset button -->
+                <div class="slds-grid slds-grid_align-end slds-m-top_large">
+                    <lightning-button 
+                        label="Reset" 
+                        variant="neutral" 
+                        data-action="resetfilter"
+                        onclick={handleResetButton}>
+                    </lightning-button>
+                </div>
+
+                <!-- Spinner -->
+                <template if:true={isLoadingFilter}>
+                    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                </template>
+
+            </lightning-layout-item>
+        </template>
+    </lightning-layout>
 </template>
 
 import { LightningElement, track } from 'lwc';
-
-export default class TechnologyDecisionCustomPick extends LightningElement {
-    @track isDropdownOpen = false;
-    @track searchKey = '';
-    @track options = [
-        { label: 'Stage', value: 'Stage', selected: false, class: 'slds-form-element__label' },
-        { label: 'Status', value: 'Status', selected: false, class: 'slds-form-element__label' },
-        { label: 'Decision Reason', value: 'Decision Reason', selected: false, class: 'slds-form-element__label' }
-    ];
-
-    connectedCallback() {
-        window.addEventListener('click', this.handleOutsideClick);
-    }
-
-    disconnectedCallback() {
-        window.removeEventListener('click', this.handleOutsideClick);
-    }
-
-    handleOutsideClick = (event) => {
-        // If click happens outside this component, close dropdown
-        if (this.isDropdownOpen && !this.template.contains(event.target)) {
-            this.isDropdownOpen = false;
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+import getUniqueValues from '@salesforce/apex/TechnologyDecision_DataTableHandler.getUniqueValues';
+export default class TechnologyDecisionDataFilters extends LightningElement {
+    searchKey;
+    isLoading;
+    currentPage;
+    rowOffSet;
+    records=[];
+    
+    sortedBy;
+    sortedDirection;
+    @track selectedFilters;
+    @track selectedWaiver = 'mydecision';
+    @track _filteredFieldValues = [];
+    @track _filterOptions = [];
+    filters = [];
+    @track selectedFiltersdata = {};
+    @track showFilter = true; 
+    get filteredFieldValues() {
+        console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
+        return this._filteredFieldValues;
         }
-    };
-
-    get dropdownClass() {
-        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
     }
-
-    get filteredOptions() {
-        if (!this.searchKey) return this.options;
-        return this.options.filter(opt =>
-            opt.label.toLowerCase().includes(this.searchKey.toLowerCase())
-        );
+    get waiverOptions() {
+        return [
+            { label: 'My Decisons', value: 'mydecision' },
+            { label: 'All Decisons', value: 'alldecision' }
+        ];
     }
-
-    get iconName() {
-        return this.isDropdownOpen ? 'utility:up' : 'utility:down';
+   
+handleSearch(event) {
+       
+}
+ handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        //this.resetPaginationState();
+        if(event.detail.value){
+        this.selectedWaiver = event.detail.value;
+        }
+        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
+        this.loading = true;
+        this.isFromhandleWaiverChange=true;
+        //this.handleFilterBy('resetfilter');
+        // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('decisiondata', {
+                        detail: { value: this.selectedWaiver }
+                    })
+                );
     }
+    handleReset(event){
+        
+         window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        console.log('this.searchKey ',this.searchKey);
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            //this.resetPaginationState();
+            this.currentPage = 1;
 
-    get noResults() {
-        return this.filteredOptions.length === 0;
+            /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
+
+             // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('searchkey', {
+                        detail: { value: this.searchKey }
+                    })
+                );
+        }, 300);
     }
-
-    toggleDropdown(event) {
-        event.stopPropagation(); // prevent window click from firing
-        this.isDropdownOpen = !this.isDropdownOpen;
+ resetPaginationState() {
+        this.isLoading = true;
+        this.sortedBy = 'Name';
+        this.sortedDirection = 'asc';
     }
+    handleActionsPicklist(event){
+    const selectedValues = event.detail.values;
+    console.log('Selected values from child: ', JSON.stringify(selectedValues));
 
-    handleSearch(event) {
-        event.stopPropagation(); // prevent outside handler
-        this.searchKey = event.target.value;
-        this.isDropdownOpen = true;
-    }
+    this.selectedFilters = selectedValues;
 
-    handleSelect(event) {
-        event.stopPropagation(); // prevent close on selection (optional)
-        const value = event.currentTarget.dataset.value;
-        this.options = this.options.map(opt => {
-            if (opt.value === value) {
-                const isSelected = !opt.selected;
-                return { 
-                    ...opt, 
-                    selected: isSelected, 
-                    class: isSelected ? 'selected' : 'slds-form-element__label' 
-                };
-            }
-            return opt;
+    getUniqueValues({
+        fieldApiName: this.selectedFilters,
+        allOrMy: this.selectedWaiver
+    })
+    .then(data => {
+        console.log('Apex result :', JSON.stringify(data));
+        
+        const values = (data) ? Object.keys(data).map(x => {
+            return {
+                [x]: data[x].map((val) => {
+                    const label = val.value ? val.value : 'No Data';
+                    const value = val.value ? val.value : 'nullcheck';
+                    const id = val.id ? val.id : 'nullcheck';
+                    return { label: `${label} (${val.count})`, value: value, id: id};
+                })
+            };
+        }).filter(Boolean) : [];
+
+        let filteredFieldValues = values.map((x, ind) => {
+            const apiName = Object.keys(x)[0];
+            const options = Object.values(x)[0]
+                .sort((a, b) => {
+                    const valueA = (a.value || '').trim().toLowerCase();
+                    const valueB = (b.value || '').trim().toLowerCase();
+                    if (valueA === 'nullcheck') return -1;
+                    if (valueB === 'nullcheck') return 1;
+                    return valueA.localeCompare(valueB);
+                });
+
+            return {
+                id: ind,
+                filterField: apiName,
+                filterFieldApiName: apiName,
+                filteredFieldValue: options,
+                showValues: true,
+                // ✅ restore from saved selections
+                selectedValue: this.selectedFiltersdata[apiName] || [],
+                icon: 'utility:chevrondown',
+            };
         });
 
-        const selectedValues = this.options
-            .filter(opt => opt.selected)
-            .map(opt => opt.value);
+        console.log('Filtered Field Values:', JSON.stringify(filteredFieldValues));
 
-        this.dispatchEvent(new CustomEvent('selectionchange', {
-            detail: { values: selectedValues }
-        }));
+        this._filteredFieldValues = [...filteredFieldValues];
+        this.isLoadingFilter = false;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+    handleActions(event){ 
+    const apiName = event.target.dataset.action;   // filterFieldApiName
+    const values = event.detail.value;             // selected values array
+
+    if (values && values.length > 0) {
+        this.selectedFiltersdata = {
+            ...this.selectedFiltersdata,
+            [apiName]: values
+        };
+    } else {
+        const { [apiName]: removed, ...rest } = this.selectedFiltersdata;
+        this.selectedFiltersdata = rest;
     }
+
+    // ✅ Sync _filteredFieldValues so UI keeps checked items
+    this._filteredFieldValues = this._filteredFieldValues.map(f => {
+        if (f.filterFieldApiName === apiName) {
+            return { ...f, selectedValue: this.selectedFiltersdata[apiName] || [] };
+        }
+        return f;
+    });
+
+    // Dispatch clean array to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.selectedFiltersArray }
+        })
+    );
+
+    console.log('Selected Filters Map:', JSON.stringify(this.selectedFiltersdata));
+    console.log('Selected Filters Array:', JSON.stringify(this.selectedFiltersArray));
 }
 
-.slds-combobox__form-element {
-    min-height: 2.5rem;
+     // Convert to array format [{ key, values }]
+   get selectedFiltersArray() {
+        return Object.keys(this.selectedFiltersdata).map(key => {
+            return { [key]: this.selectedFiltersdata[key] };
+        });
+    }
+    handleResetButton(event){
+        this._filteredFieldValues=[];
+        this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
+    }
+    handlefilterToggle(event){
+         this.showFilter = !this.showFilter;  // toggle between true/false
+    }
+
+}
+
+/*Added on Feb 6th 2025*/
+.button-container {
+    text-align: right;
+     position: sticky;
+     bottom: 5px;
+}
+/*Added on Feb 6th 2025*/
+
+.container {
+    position: absolute; /* position absolute and negative margin allows us to position our component */
+    background-color: white;
+}
+
+.filter-button {
+    top: 15rem;
+    z-index: 1000;
+    left: 0rem;
+    opacity: 60%;
+}
+
+.filter-button:hover {
+    opacity: 100%;
+}
+
+.background-white {
+    background-color: white;
+}
+
+.min-height-container {
+    min-height: 630px; /* Adjust this height as needed */
     display: flex;
-    align-items: center;
+    flex-direction: column;
 }
-.slds-pill_container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
+.hidden {
+    display: none;
 }
-.slds-combobox_container {
-    width: 100% !important;   /* take full width of parent */
-    max-width: 100%;          /* responsive cap */
-    display: block;           /* ensures stretch inside flex/grid */
+
+/* Add padding to create space for sub-checkboxes */
+.sub-option {
+    padding-left: 20px; /* Adjust the value as needed */
 }
-.selected {
-    font-weight: bold;
-    background-color: #f3f3f3; /* optional highlight */
-    border-radius: 4px;
-    padding: 2px 6px;
+
+.sub-option .slds-checkbox {
+    margin-left: 5px; /* Optional: You can tweak this to match your design */
+}
+
+
+.sub-options-list {
+    margin-left: 2rem; /* Adjust as needed for proper spacing */
+}
+.sub-option {
+    padding-left: 1rem; /* Additional space between sub-options */
+}
+
+.slds-card {
+    padding-top: 0px;
+    /* padding-right: var(--slds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline-end, var(--sds-c-card-spacing-inline, 0))); */
+    /* padding-bottom: var(--slds-c-card-spacing-block-end, var(--sds-c-card-spacing-block-end, var(--sds-c-card-spacing-block, 0))); */
+    /* padding-left: var(--slds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline-start, var(--sds-c-card-spacing-inline, 0))); */
+    /* background: var(--slds-c-card-color-background, var(--sds-c-card-color-background, var(--slds-g-color-neutral-base-100, var(--lwc-cardColorBackground, rgb(255, 255, 255))))); */
+    border-width: 0px;
+    /* border-style: solid; */
+    /* border-color: var(--slds-c-card-color-border, var(--sds-c-card-color-border, var(--slds-g-color-border-base-1, var(--lwc-cardColorBorder, rgb(201, 201, 201))))); */
+    /* border-radius: var(--slds-c-card-radius-border, var(--sds-c-card-radius-border, var(--lwc-borderRadiusMedium, 0.25rem))); */
+    /* background-clip: padding-box; */
+    /* box-shadow: var(--slds-c-card-shadow, var(--sds-c-card-shadow, var(--lwc-cardShadow, 0 2px 2px 0 rgba(0, 0, 0, 0.10)))); */
+    /* color: var(--slds-c-card-text-color, var(--sds-c-card-text-color)); */
+}
+
+.slds-card__header {
+    padding-top: 0px;
+}
+
+.tab-containers {  
+ flex: 1;
+  
+  margin-top: 20px;
+
+  
+}
+.tab-container {
+    height: 100%;
+    overflow-y: auto;
+    margin-top: 20px;
+}
+.customtable{
+  width:82.8%;
+  padding-left: 10px;
+  background-color: #b0c4de;
+  overflow-y: auto;
+  max-height: 100%;
+}
+.testclass{
+        --lwc-colorTextIconDefault: yellow;
+}
+
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10px;
+    display: inline-block;
+}
+.viewport {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+/* child.css */
+.child-container {
+    flex: 1;                 /* take available space */
+    min-height: 0;           /* ⚠️ important so scroll works inside flex */
+    overflow-y: auto;        /* scroll only when needed */
 }
