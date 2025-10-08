@@ -1,112 +1,44 @@
-import { LightningElement, api, wire, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getRecordWithFieldSet from '@salesforce/apex/TechnologyDecision_DataTableHandler.getRecordWithFieldSet';
-import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
-import { NavigationMixin } from 'lightning/navigation'; // ✅ required import
+<template>
+    <!-- Gray header -->
+    <div class="slds-page-header slds-page-header_record-home">
+        <div class="slds-page-header__row header-row">
+            <!-- Left side: Icon + Titles -->
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:contact" size="medium" alternative-text="Contact"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <span class="slds-text-body_regular">Technology Decision</span>
+                        <span class="slds-page-header__title slds-truncate" title={recordName}>{recordName}</span>
+                        <span class="slds-page-header__title slds-truncate" title={waiverName}>{waiverName}</span>
+                    </div>
+                </div>
+            </div>
 
-const FIELDS = ['TechnologyDecision__c.Status__c','TechnologyDecision__c.Name'];
+            <!-- Right side: Buttons -->
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <div class="slds-button-group">
+                            <lightning-button label="Edit" data-action="edit" onclick={handleEdit} disabled={disableButton}></lightning-button>
+                            <lightning-button variant="brand" label="Back To List View" data-action="close" onclick={handleBackToListView} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-export default class TechnologyDecisionHighlightPanel extends NavigationMixin(LightningElement) {
-    @api recordId;
-    @api objectApiName;
-    fieldSet='DecisionField';
-    @api get recordName() {
-         console.log('this._name 14 ',this._name);
-        return this._name;
-    }
-    /*set recordName(value) {
-        if (value) {
-            this._name = value;
-        }
-    }*/
-    _name = '';
-    fieldList = [];
-    objectLabelName = '';
-    intervalId;
-    showEditRecordModal = false;
-
-    // For Dispatching custom event to notify the parent component
-    @api editClick;
-
-    @wire(getRelatedListRecords, {
-        parentRecordId: '$recordId',
-        relatedListId: 'TechnologyDecision__c',
-        fields: ['TechnologyDecision__c.Id']
-    })
-    wiredRecords({ error, data }) {
-        if (data) {
-            console.log('Checking line 51');
-            this.childRecords = data.records;
-        } else if (error) {
-            console.log(error);
-        }
-    }
-
-    connectedCallback() {
-      //  pubsub.subscribe('navigate', this.handleNavigate.bind(this));
-       // this.fetchFieldsMeth();
-       // console.log('Subscribed to navigate event');
-
-       // pubsub.subscribe('saveSuccess', this.handleEditDisableButton.bind(this));
-        //pubsub.subscribe('saveSuccessEditEnable', this.handleEditEnableButton.bind(this));
-    }
-    
-    data = {};
-    error;
-
-    @wire(getRecordWithFieldSet, { recordId: '$recordId', objectName: '$objectApiName', fieldSetName: '$fieldSet' })
-    wiredRecord({ data, error }) {
-         
-        if (data) {
-            this.data = data;
-            console.log('data 61 ', JSON.stringify(this.data));
-             // Loop through key-value pairs in the single record
-            Object.entries(this.data).forEach(([key, value]) => {
-               if(key=='TechnologyDecision Name'){
-            this._name=value;
-            console.log('this._name ',this._name);
-        }
-            });
-
-            this.error = undefined;
-        } else if (error) {
-            this.error = error;
-            this.data = {};
-        }
-    }
-
-   get fieldEntries() {
-    if (!this.data) {
-        return [];
-    }
-    // Convert the object to array of {key, label, value} for template
-    return Object.entries(this.data).map(([key, value]) => {
-        
-        console.log(key,'&&',value);
-        return {
-            key: key,
-            label: key,
-            value: value
-        };
-    });
-}
-handleBackToListView(event){
- this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: {
-                apiName: 'Decision_Management' // Must match your Lightning App Page API Name
-            }
-        });
-}
-handleEdit(event){
-    this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId: this.recordId,
-                objectApiName: 'Technology_Decision__c', // replace with your object API name
-                actionName: 'edit'
-            }
-        });
-}
- 
-}
+    <!-- White highlight panel overlapping header -->
+    <div class="highlight-panel">
+        <div class="slds-grid slds-wrap">
+            <template for:each={fieldEntries} for:item="field">
+                <div key={field.key} class="slds-col slds-p-around_small">
+                    <span class="slds-text-title">{field.label}</span>
+                    <div class="slds-text-body_regular">{field.value}</div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>s
