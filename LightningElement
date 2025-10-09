@@ -1,145 +1,35 @@
 <template>
-    <lightning-modal-header label="New Decision">
-        </lightning-modal-header>
-<lightning-modal-body>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision__c">
-        <!-- Always visible fields -->
-        <lightning-input-field field-name="Name" data-object="TechnologyDecision__c"></lightning-input-field>
-        <lightning-input-field field-name="Decision_Reason__c" data-object="TechnologyDecision__c" onchange={handleDecisionChange}></lightning-input-field>
-    </lightning-record-edit-form>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision_Relationship__c" >
-        <template if:true={showDomain}>
-            <lightning-input-field field-name="Requesting_Domain__c" data-object="TechnologyDecision_Relationship__c" required ></lightning-input-field>
-           
-        </template>
-
-        <!-- Conditionally render AnnualRevenue -->
-        <template if:true={showReqPlatform}>
-            <lightning-input-field field-name="Requesting_Platform__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-        <template if:true={showReqApplication}>
-            <lightning-input-field field-name="Requesting_Application__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-    </lightning-record-edit-form>
-</lightning-modal-body>
-<lightning-modal-footer>
-        <!-- Submit & Cancel buttons -->
-    <div class="slds-m-top_medium">
-        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
-    </div>
     
-</lightning-modal-footer>
+
+    <lightning-modal-body class="custom-modal-body">
+        <!-- Embed your existing LWC -->
+         <div class="inner-container">
+        <c-technology-decision-create-form
+            oncancel={handleCancel}
+            onsuccess={handleSuccess}>
+        </c-technology-decision-create-form>
+         </div>
+    </lightning-modal-body>
+
+    
 </template>
 
-import { LightningElement, track, api } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
 import LightningModal from 'lightning/modal';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-export default class TechnologyDecision_CreateForm extends LightningModal {
-    decisionReason = '';
-    isRequired;
-    errormsg = '';
-
-    handleDecisionChange(event) {
-        this.decisionReason = event.target.value;
-    }
-
-    get showDomain() {
-        return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-    }
-
-    get showReqPlatform() {
-        return ['Replace Platform', 'Existing Platform', 'Upgrade Platform', 'New Platform'].includes(this.decisionReason);
-    }
-
-    get showReqApplication() {
-        return ['Replace Application', 'Existing Application', 'Upgrade Application', 'New Application'].includes(this.decisionReason);
-    }
-
-    get required() {
-        this.isRequired =
-            ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason) ||
-            ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
-        return this.isRequired;
+export default class TechnologyDecisionModal extends LightningModal {
+    handleSuccess() {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Record created successfully!',
+                variant: 'success'
+            })
+        );
+        this.close('saved');
     }
 
     handleCancel() {
-        this.close('cancel');
-    }
-
-    handleSave() {
-        let isValid = true;
-
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            if (!el.reportValidity()) {
-                isValid = false;
-            }
-        });
-
-        if (!isValid) {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Missing Required Fields',
-                    message: 'Please fill in all required fields before saving.',
-                    variant: 'error'
-                })
-            );
-            return;
-        }
-
-        const decisionFields = {};
-        const relationFields = {};
-
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            if (el.dataset.object === 'TechnologyDecision__c') {
-                decisionFields[el.fieldName] = el.value;
-            }
-            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
-                relationFields[el.fieldName] = el.value;
-            }
-        });
-
-        createDecisionWithRelation({ decisionFields, relationFields })
-            .then(result => {
-                if (result.includes('DUPLICATES_DETECTED')) {
-                    this.errormsg = 'Decision with this name already exists.';
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error creating record',
-                            message: this.errormsg,
-                            variant: 'error'
-                        })
-                    );
-                    this.errormsg = '';
-                } else {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Record created successfully',
-                            variant: 'success'
-                        })
-                    );
-                    // Close modal first
-                    this.close('saved');
-
-                    // Then navigate
-                    window.open(`/lightning/r/TechnologyDecision__c/${result}/view`, '_self');
-                }
-            })
-            .catch(error => {
-                const message = error?.body?.message || 'Error creating record';
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error creating record',
-                        message,
-                        variant: 'error'
-                    })
-                );
-            });
+        this.close('cancelled');
     }
 }
-
