@@ -25,11 +25,11 @@
                                                     <lightning-button variant="neutral" label="New" data-action="newrecord"
                                                         onclick={openModal}>
                                                     </lightning-button>
-                                                    <!-- <div class="slds-col slds-var-p-left_small"> -->
+                                                    <!-- <div class="slds-col slds-var-p-left_small"> 
                                                     <lightning-button class="slds-var-p-left_small" label="Back To Listview"
                                                         variant="brand" data-action="sharefilter" onclick={handlebacktolistview}>
                                                     </lightning-button>
-                                                    <!-- </div> -->
+                                                   </div> -->
                                                 </div>
                                             </div>
                                         </div>
@@ -56,11 +56,11 @@
      </div>
 </template>
 
-
 import { LightningElement, track, api } from 'lwc';
 import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
 import { NavigationMixin } from 'lightning/navigation';
 import TechnologyDecisionModal from 'c/technologyDecisionModal';
+import technologyDecisionCreateForm from 'c/technologyDecisionCreateForm';
 import { refreshApex } from '@salesforce/apex';
 export default class TechnologyDecision_DataTable extends NavigationMixin(LightningElement) {
 
@@ -260,7 +260,7 @@ isDate(val) {
         });
     }
     async openModal() {
-        const result = await TechnologyDecisionModal.open({
+        const result = await technologyDecisionCreateForm.open({
             size: 'medium',
             description: 'Create a new Technology Decision',
             label: 'New Decision'
@@ -273,5 +273,6 @@ isDate(val) {
     }
 
 }
+
 
 
