@@ -1,147 +1,57 @@
 <template>
-    <lightning-modal-header label="New Decision">
-        </lightning-modal-header>
-<lightning-modal-body>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision__c">
-        <!-- Always visible fields -->
-        <lightning-input-field field-name="Name" data-object="TechnologyDecision__c"></lightning-input-field>
-        <lightning-input-field field-name="Decision_Reason__c" data-object="TechnologyDecision__c" onchange={handleDecisionChange}></lightning-input-field>
-    </lightning-record-edit-form>
-    <lightning-record-edit-form 
-        object-api-name="TechnologyDecision_Relationship__c" >
-        <template if:true={showDomain}>
-            <lightning-input-field field-name="Requesting_Domain__c" data-object="TechnologyDecision_Relationship__c" required ></lightning-input-field>
-           
-        </template>
-
-        <!-- Conditionally render AnnualRevenue -->
-        <template if:true={showReqPlatform}>
-            <lightning-input-field field-name="Requesting_Platform__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-        <template if:true={showReqApplication}>
-            <lightning-input-field field-name="Requesting_Application__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
-        </template>
-    </lightning-record-edit-form>
-</lightning-modal-body>
-<lightning-modal-footer>
-        <!-- Submit & Cancel buttons -->
-    <div class="slds-m-top_medium">
-        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
-    </div>
-    
-</lightning-modal-footer>
+     <div class="datatable-wrapper">
+                    <div class="slds-page-header">
+                        <div class="slds-page-header__row">
+                            <div class="slds-page-header__col-title">
+                                <div class="slds-media">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <div class="slds-page-header__name">
+                                            <div class="slds-page-header__name-title">
+                                                <h1>
+                                                    <span>Technology Decision</span>
+                                                    <span class="slds-page-header__title slds-truncate"
+                                        title="Recently Viewed">{selectedDecisionLabel}</span>
+                                                </h1>
+                                            </div>
+                                        </div>
+                                    </div>
+                            <template if:false={showRecord}>
+                                        <div class="slds-media__body" style="text-align-last: end;">
+                                            <div class="slds-page-header__name">
+                                                <div class="slds-page-header__name-title">
+                                                    <lightning-button variant="neutral" label="New" data-action="newrecord"
+                                                        onclick={openModal}>
+                                                    </lightning-button>
+                                                    <!-- <div class="slds-col slds-var-p-left_small"> 
+                                                    <lightning-button class="slds-var-p-left_small" label="Back To Listview"
+                                                        variant="brand" data-action="sharefilter" onclick={handlebacktolistview}>
+                                                    </lightning-button>
+                                                   </div> -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div>
+                                    {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
+                                    {selectedDecisionLabel}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="datatable-container">
+    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
+                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
+                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
+                            onrowaction={handleActions} oncustomtext={handleActions} 
+                            is-loading={isLoading} onloadmore={loadMoreData}> 
+                            ><!--key-field="Id"-->
+                        </c-custom-datatable-data-type-provider>
+                        </div>
+                    
+     </div>
 </template>
-
-
-import { LightningElement, track, api } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
-import LightningModal from 'lightning/modal';
-
-export default class TechnologyDecision_CreateForm extends LightningModal {
-    decisionReason = '';
-    isRequired;
-    errormsg = '';
-
-    handleDecisionChange(event) {
-        this.decisionReason = event.target.value;
-    }
-
-    get showDomain() {
-        return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
-    }
-
-    get showReqPlatform() {
-        return ['Replace Platform', 'Existing Platform', 'Upgrade Platform', 'New Platform'].includes(this.decisionReason);
-    }
-
-    get showReqApplication() {
-        return ['Replace Application', 'Existing Application', 'Upgrade Application', 'New Application'].includes(this.decisionReason);
-    }
-
-    get required() {
-        this.isRequired =
-            ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason) ||
-            ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
-        return this.isRequired;
-    }
-
-    handleCancel() {
-        this.close('cancel');
-    }
-
-    handleSave() {
-        let isValid = true;
-
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            if (!el.reportValidity()) {
-                isValid = false;
-            }
-        });
-
-        if (!isValid) {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Missing Required Fields',
-                    message: 'Please fill in all required fields before saving.',
-                    variant: 'error'
-                })
-            );
-            return;
-        }
-
-        const decisionFields = {};
-        const relationFields = {};
-
-        this.template.querySelectorAll('lightning-input-field').forEach(el => {
-            if (el.dataset.object === 'TechnologyDecision__c') {
-                decisionFields[el.fieldName] = el.value;
-            }
-            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
-                relationFields[el.fieldName] = el.value;
-            }
-        });
-
-        createDecisionWithRelation({ decisionFields, relationFields })
-            .then(result => {
-                if (result.includes('DUPLICATES_DETECTED')) {
-                    this.errormsg = 'Decision with this name already exists.';
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error creating record',
-                            message: this.errormsg,
-                            variant: 'error'
-                        })
-                    );
-                    this.errormsg = '';
-                } else {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Record created successfully',
-                            variant: 'success'
-                        })
-                    );
-                    // Close modal first
-                    this.close('saved');
-
-                    // Then navigate
-                    window.open(`/lightning/r/TechnologyDecision__c/${result}/view`, '_self');
-                }
-            })
-            .catch(error => {
-                const message = error?.body?.message || 'Error creating record';
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error creating record',
-                        message,
-                        variant: 'error'
-                    })
-                );
-            });
-    }
-}
-
-
