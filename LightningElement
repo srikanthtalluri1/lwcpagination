@@ -1,217 +1,145 @@
-import { LightningElement, track, api } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-import { NavigationMixin } from 'lightning/navigation';
-import TechnologyDecisionModal from 'c/technologyDecisionModal';
-import technologyDecisionCreateForm from 'c/technologyDecisionCreateForm';
-import { refreshApex } from '@salesforce/apex';
-export default class TechnologyDecision_DataTable extends NavigationMixin(LightningElement) {
+<template>
+    <lightning-modal-header label="New Decision">
+        </lightning-modal-header>
+<lightning-modal-body>
+    <lightning-record-edit-form 
+        object-api-name="TechnologyDecision__c">
+        <!-- Always visible fields -->
+        <lightning-input-field field-name="Name" data-object="TechnologyDecision__c"></lightning-input-field>
+        <lightning-input-field field-name="Decision_Reason__c" data-object="TechnologyDecision__c" onchange={handleDecisionChange}></lightning-input-field>
+    </lightning-record-edit-form>
+    <lightning-record-edit-form 
+        object-api-name="TechnologyDecision_Relationship__c" >
+        <template if:true={showDomain}>
+            <lightning-input-field field-name="Requesting_Domain__c" data-object="TechnologyDecision_Relationship__c" required ></lightning-input-field>
+           
+        </template>
 
-    @track data = [];
-    @track error;
-    @track sortBy;
-    @track sortDirection = 'asc';
-    @track isLoading = false;
-    @api filters;
-    @api selecteddecision ='mydecision';
-    @api searchfilters ;
-    totalRecords;
-
-    // Pagination support
-    offset = 0;
-    limit = 5; // batch size
-    allDataLoaded = false;
-
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'recordLink', // URL field
-        type: 'url',
-        typeAttributes: {
-            label: { fieldName: 'Name' }, // Text shown in table
-            target: '_self'               // Open in new tab
-        }
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
-    ];
-    // Call Apex imperatively
-   
-    connectedCallback() {
-        this.loadTechnologyDecision();
-       
-    }
-    get selectedDecisionLabel() {
-        return this.selecteddecision === 'mydecision' ? 'My Decision' : 'All Decisions';
-    }
-     @api
-    updatefilters(filters) {
-        this.filters = filters;
-         console.log('filters 44 ', JSON.stringify(this.filters));
-         this.loadTechnologyDecision();
-    }
-    @api
-    updateslecteddecision(selecteddecision) {
-        this.selecteddecision = selecteddecision;
-         console.log('filters 44 ', this.selecteddecision);
-         this.loadTechnologyDecision();
-    }
-    @api
-    updatesearchfilters(searchfilters) {
-        this.searchfilters = searchfilters;
-         console.log('filters 44 ', this.searchfilters);
-         this.loadTechnologyDecision();
-    }
-    @api
-    handleResetButton() {
-        this.searchfilters = '';
-        this.filters=[];
-        this.rowOffSet = 0;
+        <!-- Conditionally render AnnualRevenue -->
+        <template if:true={showReqPlatform}>
+            <lightning-input-field field-name="Requesting_Platform__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
+        </template>
+        <template if:true={showReqApplication}>
+            <lightning-input-field field-name="Requesting_Application__c" data-object="TechnologyDecision_Relationship__c" required={required}></lightning-input-field>
+        </template>
+    </lightning-record-edit-form>
+</lightning-modal-body>
+<lightning-modal-footer>
+        <!-- Submit & Cancel buttons -->
+    <div class="slds-m-top_medium">
+        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+        <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"> </lightning-button>
+    </div>
     
-         console.log('filters 44 ', this.searchfilters);
-         this.loadTechnologyDecision();
+</lightning-modal-footer>
+</template>
+
+import { LightningElement, track, api } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
+import LightningModal from 'lightning/modal';
+
+export default class TechnologyDecision_CreateForm extends LightningModal {
+    decisionReason = '';
+    isRequired;
+    errormsg = '';
+
+    handleDecisionChange(event) {
+        this.decisionReason = event.target.value;
     }
-   handleSort(event) {
-    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
-    let backendField = uiField;
 
-    // Map UI field to backend field
-    if (uiField === 'recordLink') {
-        backendField = 'Name';
-    } else if (uiField === 'statusStage') {
-        backendField = 'Status__c';
+    get showDomain() {
+        return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
     }
 
-    this.sortBy = backendField;   // used for sorting logic
-    this.sortByUi = uiField;      // used for UI arrow
-    this.sortDirection = event.detail.sortDirection;
-
-    let cloneData = [...this.data];
-
-    cloneData.sort((a, b) => {
-        let valA = a[backendField] ?? '';
-        let valB = b[backendField] ?? '';
-
-        // Numeric
-        if (!isNaN(valA) && !isNaN(valB)) {
-            valA = Number(valA);
-            valB = Number(valB);
-        }
-        // Dates
-        else if (this.isDate(valA) && this.isDate(valB)) {
-            valA = new Date(valA).getTime();
-            valB = new Date(valB).getTime();
-        }
-        // Strings
-        else {
-            valA = valA.toString().toLowerCase();
-            valB = valB.toString().toLowerCase();
-        }
-
-        return this.sortDirection === 'asc'
-            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
-            : (valA < valB ? 1 : valA > valB ? -1 : 0);
-    });
-
-    this.data = cloneData;
-}
-
-  
-
-// Utility to detect valid date string
-isDate(val) {
-    return !isNaN(Date.parse(val));
-}
-
-    loadTechnologyDecision(isLoadMore = false) {
-        this.isLoading = true;
-
-        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters), allOrMy:this.selecteddecision, searchKey: this.searchfilters })
-            .then(result => {
-                this.totalRecords = result.decisionRecordsCount;
-                console.log('result ', JSON.stringify(result));
-                let newData = result.decisionRecords.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
-        }
+    get showReqPlatform() {
+        return ['Replace Platform', 'Existing Platform', 'Upgrade Platform', 'New Platform'].includes(this.decisionReason);
     }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: `/lightning/r/TechnologyDecision__c/${item.Id}/view`, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-        };
-    });
-    console.log('data ', JSON.stringify(this.data));
-        if (isLoadMore) {
-                    this.data = [...this.data, ...newData];
-                } else {
-                    this.data = newData;
-                }
 
-                if (newData.length < this.limit) {
-                    this.allDataLoaded = true;
-                } else {
-                    this.offset += this.limit;
-                }
+    get showReqApplication() {
+        return ['Replace Application', 'Existing Application', 'Upgrade Application', 'New Application'].includes(this.decisionReason);
+    }
 
-                this.isLoading = false;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                 this.isLoading = false;
-                console.error('Error fetching accounts', error);
-            });
+    get required() {
+        this.isRequired =
+            ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason) ||
+            ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
+        return this.isRequired;
     }
-    loadMoreData(event) {
-        if (this.allDataLoaded) {
-            event.target.isLoading = false; // stop spinner
-            return;
-        }
-        this.loadTechnologyDecision(true);
+
+    handleCancel() {
+        this.close('cancel');
     }
-    handlebacktolistview(event){
-        const baseUrl = window.location.origin;
-        console.log(baseUrl);
-        let url =baseUrl+'lightning/n/Decision_Management';
-        this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: {
-                apiName: 'Decision_Management'  // Your Lightning App Page name
+
+    handleSave() {
+        let isValid = true;
+
+        this.template.querySelectorAll('lightning-input-field').forEach(el => {
+            if (!el.reportValidity()) {
+                isValid = false;
             }
         });
-    }
-    async openModal() {
-        const result = await technologyDecisionCreateForm.open({
-            size: 'medium',
-            description: 'Create a new Technology Decision',
-            label: 'New Decision'
+
+        if (!isValid) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Missing Required Fields',
+                    message: 'Please fill in all required fields before saving.',
+                    variant: 'error'
+                })
+            );
+            return;
+        }
+
+        const decisionFields = {};
+        const relationFields = {};
+
+        this.template.querySelectorAll('lightning-input-field').forEach(el => {
+            if (el.dataset.object === 'TechnologyDecision__c') {
+                decisionFields[el.fieldName] = el.value;
+            }
+            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
+                relationFields[el.fieldName] = el.value;
+            }
         });
 
-        if (result === 'saved') {
-            // Optional: refresh list view or Apex data
-            console.log('Decision created successfully, refresh data here.');
-        }
-    }
+        createDecisionWithRelation({ decisionFields, relationFields })
+            .then(result => {
+                if (result.includes('DUPLICATES_DETECTED')) {
+                    this.errormsg = 'Decision with this name already exists.';
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Error creating record',
+                            message: this.errormsg,
+                            variant: 'error'
+                        })
+                    );
+                    this.errormsg = '';
+                } else {
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Success',
+                            message: 'Record created successfully',
+                            variant: 'success'
+                        })
+                    );
+                    // Close modal first
+                    this.close('saved');
 
+                    // Then navigate
+                    window.open(`/lightning/r/TechnologyDecision__c/${result}/view`, '_self');
+                }
+            })
+            .catch(error => {
+                const message = error?.body?.message || 'Error creating record';
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error creating record',
+                        message,
+                        variant: 'error'
+                    })
+                );
+            });
+    }
 }
+
