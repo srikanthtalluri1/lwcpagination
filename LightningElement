@@ -1,35 +1,9 @@
-<template>
-    
+Left navigation width in Decision List View is adjusted to fit all filter names properly.
 
-    <lightning-modal-body class="custom-modal-body">
-        <!-- Embed your existing LWC -->
-         <div class="inner-container">
-        <c-technology-decision-create-form
-            oncancel={handleCancel}
-            onsuccess={handleSuccess}>
-        </c-technology-decision-create-form>
-         </div>
-    </lightning-modal-body>
+Filters display with a consistent minimum width across the left navigation.
 
-    
-</template>
+Filter collapse and expand functionality works correctly without layout issues.
 
-import LightningModal from 'lightning/modal';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+Data table in Decision List View does not show unnecessary horizontal scroll bars.
 
-export default class TechnologyDecisionModal extends LightningModal {
-    handleSuccess() {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Success',
-                message: 'Record created successfully!',
-                variant: 'success'
-            })
-        );
-        this.close('saved');
-    }
-
-    handleCancel() {
-        this.close('cancelled');
-    }
-}
+Horizontal scrolling appears only when data width exceeds visible area.
