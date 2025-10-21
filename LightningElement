@@ -1,14 +1,11 @@
- connectedCallback() {
-        this.isLoading = true;   // defensive: ensure it’s on
-    }
+Develop a custom Lightning record page for the Decision object replicating the existing standard Decision UI. The page should include the same sections, layout, and field details — including Decision Details, Acknowledgement, Approval, and History — providing a seamless and consistent user experience.
 
-renderedCallback() {
-    if (this.isLoading && !this._renderedOnce) {
-        this._renderedOnce = true;
-        // Stop spinner after the component's first render
-        requestAnimationFrame(() => { 
-            this.isLoading = false; 
-        });
-    }
-}
+Custom record page matches the layout and styling of the current standard Decision page.
 
+All existing fields and sections (Details, Acknowledgement, Approval, and History) are displayed correctly.
+
+Data shown matches the actual Decision record values.
+
+Page performance is optimized and loads without noticeable delay.
+
+User navigation and actions (edit, view, related lists) function as in the standard page.
