@@ -1,11 +1,168 @@
-Develop a custom Lightning record page for the Decision object replicating the existing standard Decision UI. The page should include the same sections, layout, and field details — including Decision Details, Acknowledgement, Approval, and History — providing a seamless and consistent user experience.
+<template>
+   <div class="slds-col slds-size_1-of-1">
+  <div class="slds-combobox_container">
+    <div class={dropdownClass}
+         role="combobox"
+         aria-expanded={isDropdownOpen}
+         aria-haspopup="listbox"
+         onclick={eatClicksInside}>  <!-- prevent bubbling to window -->
 
-Custom record page matches the layout and styling of the current standard Decision page.
+      <!-- Input field -->
+      <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+        <input type="text" 
+               class="slds-input slds-combobox__input" 
+               placeholder="Select filters..." 
+               value={searchKey}
+               oninput={handleSearch}
+               onclick={toggleDropdown}/>
+        <lightning-icon icon-name={iconName} size="x-small"
+                        class="slds-input__icon slds-input__icon_right">
+        </lightning-icon>
+      </div>
 
-All existing fields and sections (Details, Acknowledgement, Approval, and History) are displayed correctly.
+      <!-- Dropdown -->
+      <template if:true={isDropdownOpen}>
+        <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+          <ul class="slds-listbox slds-listbox_vertical" role="presentation">
 
-Data shown matches the actual Decision record values.
+            <!-- Select All -->
+            <li class="slds-listbox__item slds-border_bottom">
+              <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                <span class="slds-media__figure slds-listbox__option-icon">
+                  <lightning-input type="checkbox"
+                                   value="SelectAll"
+                                   class="select-all"
+                                   checked={isSelectAll}
+                                   onchange={onSelect}>
+                  </lightning-input>
+                </span>
+                <span class="slds-media__body">
+                  <span class="slds-truncate" title="Filters" style="font-weight:bold">Filters</span>
+                </span>
+              </div>
+            </li>
 
-Page performance is optimized and loads without noticeable delay.
+            <!-- Options -->
+            <template for:each={filteredOptions} for:item="opt">
+              <li key={opt.value} role="presentation" class="slds-listbox__item">
+                <div class="slds-media slds-listbox__option slds-listbox__option_plain"
+                     role="option"
+                     aria-selected={opt.selected}
+                     onclick={handleSelect}
+                     data-value={opt.value}>
+                  <span class={opt.class}>{opt.label}</span>
+                </div>
+              </li>
+            </template>
 
-User navigation and actions (edit, view, related lists) function as in the standard page.
+            <template if:true={noResults}>
+              <li class="slds-listbox__item">
+                <span class="slds-p-around_small">No results found</span>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+</template>
+
+import { LightningElement, track } from 'lwc';
+
+export default class TechnologyDecisionCustomPick extends LightningElement {
+       @track isDropdownOpen = false;
+    @track searchKey = '';
+    @track options = [
+        { label: 'Stage', value: 'Stage', selected: false, class: 'slds-form-element__label' },
+        { label: 'Status', value: 'Status', selected: false, class: 'slds-form-element__label' },
+        { label: 'Decision Reason', value: 'Decision Reason', selected: false, class: 'slds-form-element__label' }
+    ];
+
+    connectedCallback() {
+        window.addEventListener('click', this.handleOutsideClick);
+    }
+    disconnectedCallback() {
+        window.removeEventListener('click', this.handleOutsideClick);
+    }
+
+    // Keep any inside clicks from reaching window
+    eatClicksInside(e) { e.stopPropagation(); }
+
+    handleOutsideClick = (event) => {
+        // Close ONLY if the click is outside this component (shadow DOM safe)
+        const path = event.composedPath ? event.composedPath() : [];
+        if (path.includes(this.template.host)) return;
+        if (this.isDropdownOpen) this.isDropdownOpen = false;
+    };
+
+    get dropdownClass() {
+        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
+    }
+
+    get filteredOptions() {
+        if (!this.searchKey) return this.options;
+        const sk = this.searchKey.toLowerCase();
+        return this.options.filter(o => o.label.toLowerCase().includes(sk));
+    }
+
+    get iconName() { return this.isDropdownOpen ? 'utility:up' : 'utility:down'; }
+    get noResults() { return this.filteredOptions.length === 0; }
+
+    // Select All states
+    get isSelectAll() {
+        return this.options.length > 0 && this.options.every(o => o.selected);
+    }
+    get isIndeterminate() {
+        const any = this.options.some(o => o.selected);
+        return any && !this.isSelectAll;
+    }
+    renderedCallback() {
+        const selectAll = this.template.querySelector('lightning-input.select-all');
+        if (selectAll) selectAll.indeterminate = this.isIndeterminate;
+    }
+
+    toggleDropdown(event) {
+        event.stopPropagation();
+        this.isDropdownOpen = !this.isDropdownOpen;
+    }
+
+    handleSearch(event) {
+        event.stopPropagation();
+        this.searchKey = event.target.value;
+        this.isDropdownOpen = true; // keep open while typing
+    }
+
+    // Individual option click
+    handleSelect(event) {
+        event.stopPropagation();
+        const value = event.currentTarget.dataset.value;
+        this.options = this.options.map(o =>
+            o.value === value
+                ? { ...o, selected: !o.selected, class: !o.selected ? 'selected' : 'slds-form-element__label' }
+                : o
+        );
+        this.fireSelectionChange();
+        this.isDropdownOpen = true; // ensure it stays open after click
+    }
+
+    // Select All / Deselect All
+    onSelect(event) {
+        event.stopPropagation(); // don't bubble to window
+        const checked = event.target.checked;
+        this.options = this.options.map(o => ({
+            ...o,
+            selected: checked,
+            class: checked ? 'selected' : 'slds-form-element__label'
+        }));
+        this.fireSelectionChange();
+        this.isDropdownOpen = true; // stay open
+    }
+
+    fireSelectionChange() {
+        const selectedValues = this.options.filter(o => o.selected).map(o => o.value);
+        this.dispatchEvent(new CustomEvent('selectionchange', { detail: { values: selectedValues } }));
+    }
+
+}
+
