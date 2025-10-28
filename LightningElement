@@ -1,408 +1,376 @@
 <template>
-    <c-technology-decision-highlight-panel
-                record-id={recordId}   
-        oneditclicked={handleEditClicked}  lwc:ref="highlight">
-    </c-technology-decision-highlight-panel>
-    <div style="background-color: white;" lwc:ref="scrollContainer"><!--class="slds-card"-->
-
-        <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-        </template>
-           
-            <lightning-tabset active-tab-value={activeTabValue} class="slds-tabs_default" style="font-size: 1rem;font-weight: 700;background-color: white; max-height:100% overflow: auto; ">
-                <!-- Details Tab -->
-                <lightning-tab label="Details" value="waiver">
-                    <!-- Accordion Sections (open by default) -->
-                     <lightning-modal-body>
-                    <lightning-accordion allow-multiple-sections-open active-section-name={activeSections} class="fixdiv" onscroll={handleScroll} onsectiontoggle={handleToggle}>
-                        <!-- Waiver Detail Section with Two Columns -->
-                        <lightning-accordion-section label="Information" name="Information" class="custom-section-header" style="color: rgb(68, 68, 68);font-size: 0.75rem;">
-                                <template if:false={editClick}>
-                                    <lightning-record-view-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy" onload={handleLoad}>
-                                        <!-- Srikant Changes to made values in comfy display -->
-                                        <div class="slds-grid">
-                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
-                                                        <div class="underline ">
-                                                                <lightning-output-field field-name="Name" ></lightning-output-field>
-                                                        </div>
-                                                        <div class="underline">
-                                                                <lightning-output-field field-name="Decision_Reason__c"></lightning-output-field>
-                                                               
-                                                         </div>
-                                            </div> 
-                                          <!-- Column 2 -->
-                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
-                                                <div class="underline">
-                                                                <lightning-output-field field-name="Stage__c" >
-                                                                </lightning-output-field>
-                                                    </div>
-                                                    <div class="underline">
-                                                                <lightning-output-field field-name="Status__c" >
-                                                                </lightning-output-field>
-                                                    </div>
-                                                
-                                               
-                                            </div>
-                                     </div>   
-
-                                    </lightning-record-view-form>
-                                </template>
-                    
-                                <template if:true={editClick}>
-                                     <!-- Added by Srikant to migrate to record edit form -->
-                                    <lightning-record-edit-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy"
-                                        onsubmit={handleSubmitt} onsuccess={handleSuccess} onerror={handleError}>
-                                        <div class="slds-grid slds-wrap slds-theme_default">
-                                            <div class="slds-col slds-size_1-of-2">
-                                                <lightning-input-field field-name="Name" onchange={handlechangew} ></lightning-input-field>
-                                                <lightning-input-field field-name="Decision_Reason__c" onchange={handlechangew}></lightning-input-field>
-                                            </div>
-                                            <div class="slds-col slds-size_1-of-2">
-                                                <lightning-input-field field-name="Status__c" onchange={handlechangew} required={isrequired}></lightning-input-field>
-                                                <lightning-input-field field-name="Stage__c" onchange={handlechangew} required={isrequired}></lightning-input-field>
-                                             </div>
-                                        </div>
-                                    </lightning-record-edit-form>    
-                                </template>
-                            
-                        </lightning-accordion-section>
-                    
-                        <!-- Requesting Domain and Portfolio Section -->
-                        <lightning-accordion-section label="Additional details" name="additionaldetails" class="custom-section-header">
-                            <template if:false={editClick}>
-                                <lightning-record-view-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy">
-                                    <div class="slds-grid slds-wrap slds-theme_default">
-                                        <!-- Column 1 -->
-                                        <div class="slds-col slds-size_1-of-2">
-                                           <lightning-output-field field-name="Estimated_Decision_Date__c"></lightning-output-field> 
-                                           
-                                        </div>
-                                        <!-- Column 2 -->
-                                        <div class="slds-col slds-size_1-of-2">
-                                            <lightning-output-field field-name="TechnologyDecision_Relationship__c"></lightning-output-field>
-                                        </div>
+    <div class="slds-card card">
+        <template if:false={isEditform}> 
+    <!--  <div class="datatable-wrapper"> -->
+                    <div class="slds-page-header">
+                        <div class="slds-page-header__row">
+                            <div class="slds-page-header__col-title">
+                                <div class="slds-media">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
                                     </div>
-                                </lightning-record-view-form>
-                            </template>
-                           
-                            <template if:true={editClick}>
-                                <lightning-record-edit-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy" onerror={handleError}
-                                onsuccess={handleSuccess}>
-                                    <div class="slds-grid slds-wrap slds-theme_default">
-                                        <div class="slds-col slds-size_1-of-2">
-                                            <lightning-input-field field-name="Estimated_Decision_Date__c"></lightning-input-field>
-                                        </div>
-                                        <div class="slds-col slds-size_1-of-2">
-                                            <lightning-input-field field-name="TechnologyDecision_Relationship__c"></lightning-input-field>
-                                        </div>
-                                    </div>
-                                </lightning-record-edit-form>
-                            </template>
-                        </lightning-accordion-section>
-                    
-                        <!-- Affected Domain and Portfolio Section -->
-                        <lightning-accordion-section label="Stakeholders" name="Stakeholders" class="custom-section-header">
-                           
-                        </lightning-accordion-section>
-                    
-                        <!-- Standard Details Section -->
-                        <lightning-accordion-section label="Escalation details" name="standardDetails" class="custom-section-header">
-                           
-                        </lightning-accordion-section>
-                    </lightning-accordion>
-            </lightning-modal-body>
-                    <template if:true={isFooterShows}>
-                        <lightning-modal-footer  class="stickyfooter" style="bottom:157px;">
-                        <div class="slds-button-group slds-grid slds-grid_align-center">
-                            <lightning-button variant="brand" label="Save" onclick={handleSave} data-action="save" disabled={disablingButton}>
-                            </lightning-button>
-                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancelWaiver} data-action="cancel"
-                                disabled={disablingButton} ><!--class="slds-m-left_small"-->
-                            </lightning-button>
-                        </div>
-                        </lightning-modal-footer>
-                    </template>
-
-                </lightning-tab>
-
-                
-    <lightning-tab label="Acknowldgement" value="acknowdgement">
-                </lightning-tab>
-                <lightning-tab label="Approval" value="approval">
-                </lightning-tab>
-                <lightning-tab label="History" value="history" onactive={handleTabChange}>
-                    <!--Srikanth Changes-->
-                        <div class="slds-card">
-                            <template if:true={historyRecords}>
-                                <div class="custom-border-box slds-m-around_medium">
-                                    <div class="slds-card__header slds-grid">
-                                        <div class="slds-media slds-media_center slds-has-flexi-truncate">
-                                            <div class="slds-media__figure">
-                                                <lightning-icon icon-name="standard:approval" alternative-text="Approval" size="small">
-                                                </lightning-icon>
-                                            </div>
-                                            <div class="slds-media__body">
-                                                <h2 class="slds-card__header-title slds-truncate"
-                                                    title="AWP Architecture Waiver Form & Relationship History">
-                                                    AWP Architecture Waiver Form & Relationship History ({historyRecordsLength})
-                                                </h2>
+                                    <div class="slds-media__body">
+                                        <div class="slds-page-header__name">
+                                            <div class="slds-page-header__name-title">
+                                                <h1>
+                                                    <span>Technology Decision</span>
+                                                    <span class="slds-page-header__title slds-truncate"
+                                        title="Recently Viewed">{selectedDecisionLabel}</span>
+                                                </h1>
                                             </div>
                                         </div>
                                     </div>
-                                    <!--<div class="slds-grid slds-wrap">
-                                        <div class="slds-col slds-size_1-of-2">
-                                            <p>
-                                                <strong>{historyRecordsLength} items</strong>
-                                            </p>
+                            <template if:false={showRecord}>
+                                        <div class="slds-media__body" style="text-align-last: end;">
+                                            <div class="slds-page-header__name">
+                                                <div class="slds-page-header__name-title">
+                                                    <lightning-button variant="neutral" label="New" data-action="newrecord"
+                                                        onclick={openModal}>
+                                                    </lightning-button>
+                                                    <!-- <div class="slds-col slds-var-p-left_small"> 
+                                                    <lightning-button class="slds-var-p-left_small" label="Back To Listview"
+                                                        variant="brand" data-action="sharefilter" onclick={handlebacktolistview}>
+                                                    </lightning-button>
+                                                   </div> -->
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>-->
-                                    <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column="true"
-                                        class="custom-border">
-                                    </lightning-datatable>
+                                    </template>
                                 </div>
-                            </template>
+                                <div>
+                                    {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
+                                    {selectedDecisionLabel}
+                                </div>
+                            </div>
                         </div>
-
-                    <lightning-card><!--title="Waiver History"-->
-                        <!--<template if:true={historyRecords}>
-                            <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column>
-                            </lightning-datatable>
-                        </template>-->
-
-                        <template if:true={isLoading}>
-                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-                        </template>
-                    </lightning-card>
-                    <!--Srikanth Changes-->
-                </lightning-tab>
-                <lightning-tab label="Snapshot" value="snapshot">
-                </lightning-tab>
-
-            </lightning-tabset>
-        <!--</div>-->
-
-        <!-- Card Footer -->
-        <div class="slds-card__footer" style="background-color: white;">
-            <!--<p class="slds-text-title">Footer content can go here if needed.</p>-->
-        </div>
-
-    </div>
-
-   
-
-    
-
-
+                    </div>
+                     <div class="card-body">
+                    <div class="datatable-container">
+                        
+    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
+                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
+                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
+                            onrowaction={handleRowAction} oncustomtext={handleActions} 
+                            is-loading={isLoading} onloadmore={loadMoreData}> 
+                            ><!--key-field="Id"-->
+                        </c-custom-datatable-data-type-provider>
+                        </div>
+                     </div>
+        </template>
+        <template if:true={isEditform}>
+           <c-technology-decision-record-page
+        record-id={selectedRecordId}
+        edit-click={isEditMode}>
+    </c-technology-decision-record-page>
+        </template> 
+     </div>
 </template>
 
-import { LightningElement, api, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-export default class TechnologyDecision_RecordPage extends LightningElement {
-    @api recordId;
 
-    // ---------- UI state ----------
-    @api editClick = false;            // you can toggle this from an Edit button elsewhere
+import { LightningElement, track, api } from 'lwc';
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+import { NavigationMixin } from 'lightning/navigation';
+import TechnologyDecisionModal from 'c/technologyDecisionModal';
+import technologyDecisionCreateForm from 'c/technologyDecisionCreateForm';
+import { refreshApex } from '@salesforce/apex';
+export default class TechnologyDecision_DataTable extends NavigationMixin(LightningElement) {
+
+    @track data = [];
+    @track error;
+    @track sortBy;
+    @track sortDirection = 'asc';
     @track isLoading = false;
-    @track isFooterShow = true;         // shows the Save/Cancel footer
-    @track disablingButton = false;      // disables footer buttons during save
+    @api filters;
+    @api selecteddecision ='mydecision';
+    @api searchfilters ;
+    selectedRecordId;
+    totalRecords;
+    isEditMode=false;
+    isEditform;
 
-    // Tabs / accordion
-    activeTabValue = 'waiver';
-    activeSections = ['Information', 'additionaldetails'];
+    // Pagination support
+    offset = 0;
+    limit = 5; // batch size
+    allDataLoaded = false;
 
-    // History tab placeholders (wire up if you need)
-    historyRecords = [];
-    historyRecordsLength = 0;
-    columns = [];
-
-    // Example rule: make fields required only in edit mode
-    get isrequired() {
-        return this.editClick;
-    }
-    get isFooterShows(){
-        console.log('isFooterShow ', this.editClick);
-        return this.editClick;
-    }
-
-    // ---------- Handlers wired in your HTML ----------
-    handleLoad = () => {
-        // stop spinner when view form loads
-        this.isLoading = false;
-    };
-
-    handleScroll = () => {
-        // no-op; keep if you need sticky header logic
-    };
-
-    handleToggle = () => {
-        // no-op; keep if you want to track opened sections
-    };
-
-    handleTabChange = (evt) => {
-        // If you need to lazy-load history when it becomes active, do it here
-        // if (evt.target.value === 'history') { this.loadHistory(); }
-    };
-
-    // Fired by lightning-input-field onchange in edit mode
-    handlechangew = () => {
-        // show footer once user edits anything
-        this.isFooterShow = true;
-    };
-
-    // Your HTML calls onsubmit={handleSubmitt} in one place (typo).
-    // Handle both names so it “just works”.
-    handleSubmit = (event) => {
-        // We centrally manage save via handleSave (footer).
-        // Prevent any inner form’s default submit when user presses Enter.
-        event.preventDefault();
-    };
-    handleSubmitt = (event) => {
-        event.preventDefault();
-    };
-
-    // Success from any lightning-record-edit-form inside the accordion
-    pendingSaves = 0;
-    handleSuccess = (evt) => {
-        // one form finished saving
-        if (this.pendingSaves > 0) this.pendingSaves -= 1;
-
-        if (this.pendingSaves === 0) {
-            // all forms done
-            this.isLoading = false;
-            this.disablingButton = false;
-            this.isFooterShow = false;
-            this.editClick = false; // back to view mode
-            // Optional: fire a toast or refresh view, e.g.:
-            // this.dispatchEvent(new ShowToastEvent({ title: 'Saved', variant: 'success' }));
-            // ✅ Success toast
-      this.dispatchEvent(new ShowToastEvent({
-        title: 'Saved',
-        message: 'Record changes saved successfully.',
-        variant: 'success'
-      }));
-        // ensure child is rendered
-    
-
-    // ✅ await the child's refresh
-     this.refs?.highlight?.refreshdata?.();
-     
+    columns = [
+        { label: 'Name',
+        sortable: true,
+        fieldName: 'Name', // URL field
+       type: 'customText',
+        typeAttributes: {
+            // class: 'slds-text-link',
+            recordId: {
+                fieldName: 'Id'
+            }
+        },
+    },
+    {
+        label: 'Status(Stage)',
+        fieldName: 'statusStage',
+        sortable: true,
+        type: 'customStatusStage',
+        typeAttributes: {},
+        cellAttributes: {
+            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
         }
-    };
-
-    handleError = (evt) => {
-        // Any form error: re-enable UI
-        this.isLoading = false;
-        this.disablingButton = false;
-         const msg = evt?.detail?.message
-      || evt?.detail?.output?.errors?.[0]?.message
-      || 'Save failed. Please fix errors and try again.';
-
-    // ❗ Failure toast
-    this.dispatchEvent(new ShowToastEvent({
-      title: 'Save failed',
-      message: msg,
-      variant: 'error',
-      mode: 'sticky'
-    }));
-  };
+    },
+       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
+        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
+        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
+    ];
+    // Call Apex imperatively
+   
+    connectedCallback() {
+        this.loadTechnologyDecision();
+       
+    }
+    get selectedDecisionLabel() {
+        return this.selecteddecision === 'mydecision' ? 'My Decision' : 'All Decisions';
+    }
+     @api
+    updatefilters(filters) {
+        this.filters = filters;
+         console.log('filters 44 ', JSON.stringify(this.filters));
+         this.loadTechnologyDecision();
+    }
+    @api
+    updateslecteddecision(selecteddecision) {
+        this.selecteddecision = selecteddecision;
+         console.log('filters 44 ', this.selecteddecision);
+         this.loadTechnologyDecision();
+    }
+    @api
+    updatesearchfilters(searchfilters) {
+        this.searchfilters = searchfilters;
+         console.log('filters 44 ', this.searchfilters);
+         this.loadTechnologyDecision();
+    }
+    @api
+    handleResetButton() {
+        this.searchfilters = '';
+        this.filters=[];
+        this.rowOffSet = 0;
     
-
-    // ---------- Footer buttons ----------
-    handleSave = () => {
-        // Validate everything across ALL sections first
-        const inputs = this.template.querySelectorAll(
-            'lightning-input-field, lightning-input, lightning-combobox, lightning-textarea'
-        );
-
-        let allValid = true;
-        inputs.forEach((i) => {
-            // reportValidity() exists on all these primitives
-            if (typeof i.reportValidity === 'function') {
-                if (!i.reportValidity()) allValid = false;
-            }
-        });
-
-        if (!allValid) return;
-
-        // Find every edit form in the accordion and submit them
-        const forms = this.template.querySelectorAll('lightning-record-edit-form');
-
-        if (!forms || forms.length === 0) return;
-
-        this.isLoading = true;
-        this.disablingButton = true;
-        this.pendingSaves = forms.length;
-
-        // Submit each form; each will trigger handleSuccess/handleError
-        forms.forEach((form) => {
-            try {
-                // If you need to adjust fields before submit, you can pass a fields object:
-                // form.submit({ ...customizedFields });
-                form.submit();
-                this.isLoading = false;
-                this.editClick=false;
-            } catch (e) {
-                // if submit throws synchronously, treat as error for this form
-                this.handleError({ detail: { message: e?.message } });
-                this.isLoading = false;
-            }
-        });
-    };
-
-    handleCancelWaiver = () => {
-        // Reset edit mode without saving
-        this.editClick = false;
-        this.isFooterShow = false;
-        this.disablingButton = false;
-        this.isLoading = false;
-
-        // Clear unsaved UI errors/messages
-        const inputs = this.template.querySelectorAll(
-            'lightning-input-field, lightning-input, lightning-combobox, lightning-textarea'
-        );
-        inputs.forEach((i) => {
-            if (typeof i.setCustomValidity === 'function') {
-                i.setCustomValidity('');
-                i.reportValidity();
-            }
-        });
-    };
-
-    // ---------- Optional helpers ----------
-    // If you want a public method to flip to edit mode:
-    enterEdit() {
-        this.editClick = true;
-        this.isFooterShow = true;
+         console.log('filters 44 ', this.searchfilters);
+         this.loadTechnologyDecision();
     }
-    handleEditClicked(event) {
-        console.log('checking here 222');
-        const {  editClick } = event.detail;
-        // do your thing:
-       // this.selectedRecordId = recordId;
-        this.editClick = editClick;
-        this.disablingButton=false;
-        console.log('isEditMode ', this.isEditMode);
-        // e.g., open modal, switch tabs, load form, etc.
-        // this.showEditModal = true;
+   handleSort(event) {
+    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
+    let backendField = uiField;
+
+    // Map UI field to backend field
+    if (uiField === 'recordLink') {
+        backendField = 'Name';
+    } else if (uiField === 'statusStage') {
+        backendField = 'Status__c';
     }
+
+    this.sortBy = backendField;   // used for sorting logic
+    this.sortByUi = uiField;      // used for UI arrow
+    this.sortDirection = event.detail.sortDirection;
+
+    let cloneData = [...this.data];
+
+    cloneData.sort((a, b) => {
+        let valA = a[backendField] ?? '';
+        let valB = b[backendField] ?? '';
+
+        // Numeric
+        if (!isNaN(valA) && !isNaN(valB)) {
+            valA = Number(valA);
+            valB = Number(valB);
+        }
+        // Dates
+        else if (this.isDate(valA) && this.isDate(valB)) {
+            valA = new Date(valA).getTime();
+            valB = new Date(valB).getTime();
+        }
+        // Strings
+        else {
+            valA = valA.toString().toLowerCase();
+            valB = valB.toString().toLowerCase();
+        }
+
+        return this.sortDirection === 'asc'
+            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
+            : (valA < valB ? 1 : valA > valB ? -1 : 0);
+    });
+
+    this.data = cloneData;
 }
+
+  
+
+// Utility to detect valid date string
+isDate(val) {
+    return !isNaN(Date.parse(val));
+}
+
+    loadTechnologyDecision(isLoadMore = false) {
+        this.isLoading = true;
+
+        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters), allOrMy:this.selecteddecision, searchKey: this.searchfilters })
+            .then(result => {
+                this.totalRecords = result.decisionRecordsCount;
+                console.log('result ', JSON.stringify(result));
+                let newData = result.decisionRecords.map(item => {
+                    let formattedDate = item.Estimated_Decision_Date__c;
+    if (formattedDate) {
+        try {
+            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
+        } catch (e) {
+            formattedDate = item.Estimated_Decision_Date__c; // fallback
+        }
+    }
+    return {
+        ...item,
+        statusStage: {
+                        status: item.Status__c,
+                        stage: item.Stage__c
+                    },
+        recordLink: item.Id, // Construct record link
+        Estimated_Decision_Date__c: formattedDate
+        
+        };
+    });
+    console.log('data ', JSON.stringify(this.data));
+        if (isLoadMore) {
+                    this.data = [...this.data, ...newData];
+                } else {
+                    this.data = newData;
+                }
+
+                if (newData.length < this.limit) {
+                    this.allDataLoaded = true;
+                } else {
+                    this.offset += this.limit;
+                }
+
+                this.isLoading = false;
+                this.error = undefined;
+            })
+            .catch(error => {
+                this.error = error;
+                this.data = [];
+                 this.isLoading = false;
+                console.error('Error fetching accounts', error);
+            });
+    }
+    loadMoreData(event) {
+        if (this.allDataLoaded) {
+            event.target.isLoading = false; // stop spinner
+            return;
+        }
+        this.loadTechnologyDecision(true);
+    }
+    handlebacktolistview(event){
+        const baseUrl = window.location.origin;
+        console.log(baseUrl);
+        let url =baseUrl+'lightning/n/Decision_Management';
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Decision_Management'  // Your Lightning App Page name
+            }
+        });
+    }
+    async openModal() {
+        const result = await technologyDecisionCreateForm.open({
+            size: 'medium',
+            description: 'Create a new Technology Decision',
+            label: 'New Decision'
+        });
+
+        if (result === 'saved') {
+            // Optional: refresh list view or Apex data
+            console.log('Decision created successfully, refresh data here.');
+        }
+    }
+     
+    handleRowAction(event){
+        let id = event.detail.target.value;
+        console.log('jgfjg ', id);
+
+    }
+    handleActions(event){
+        this.recordId = event.detail.row.Id;
+         console.log('recordId is ', this.recordId);
+         this.isEditform=true;
+         this.selectedRecordId=this.recordId;
+         const evt = new CustomEvent('filtercheck', 
+                    {detail:{showFilter : false} });
+         this.dispatchEvent(evt);
+    }
+
+}
+
 
 .custom-container{
 	color : black;
 }
-.custom-section-header .slds-accordion__summary {
-    background-color: rgb(173, 216, 230); /* Choose your desired color */
-    padding: 0.5rem;
-    font-weight: bold;
-    color: #333; /* Darker text color for readability */
-    border-radius: 4px;
+.slds-badge {
+    background-color: #f3f3f3;
+    color: #181818;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.25rem 0.75rem;
 }
-.fixdiv{
-    overflow-y: auto;
-    max-height: 100vh;
+/* .datatable-container {
+    flex: 1;              
+    overflow-y: auto;     
+     
+    max-height: calc(100vh - 250px); 
+} */
+/* child.css */
+.child-container {
+    flex: 1;                 /* take available space */
+    min-height: 0;           /* ⚠️ important so scroll works inside flex */
+    overflow-y: auto;        /* scroll only when needed */
 }
-:host { 
-    --sds-c-accordion-summary-color-background: rgb(243, 242, 242);
-    --slds-c-modal-footer-color-background: rgba(176, 176, 176, 0.5);
+.outer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* take full height of viewport */
 }
+
+.datatable-wrapper {
+  flex: 1;         /* take all remaining space */
+  min-height: 0;   /* ⚠️ critical for scroll to work inside */
+  display: flex;
+  flex-direction: column;
+}
+:host {
+    display: block;
+    height: 100%;
+   
+    padding-left: var(--lwc-spacing-4, 1rem);
+    
+}
+
+:host .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--slds-g-color-surface-container-2, #f3f3f3);
+    border-radius: var(--slds-g-radius-border-2, 0.25rem) var(--slds-g-radius-border-2, 0.25rem) 0 0;
+}
+
+:host .card-body {
+    position: relative;
+    flex: 1;
+}
+
+:host .datatable-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+.datatable-container {
+    border-top: 1.1px solid #a9aaaa;
+    
+}
+
 
