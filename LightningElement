@@ -1,393 +1,138 @@
 <template>
-    <div class="slds-card card">
-        <template if:false={isEditform}> 
-    <!--  <div class="datatable-wrapper"> -->
-                    <div class="slds-page-header">
-                        <div class="slds-page-header__row">
-                            <div class="slds-page-header__col-title">
-                                <div class="slds-media">
-                                    <div class="slds-media__figure">
-                                        <lightning-icon icon-name="standard:opportunity" size="medium"></lightning-icon>
-                                    </div>
-                                    <div class="slds-media__body">
-                                        <div class="slds-page-header__name">
-                                            <div class="slds-page-header__name-title">
-                                                <h1>
-                                                    <span>Technology Decision</span>
-                                                    <span class="slds-page-header__title slds-truncate"
-                                        title="Recently Viewed">{selectedDecisionLabel}</span>
-                                                </h1>
-                                            </div>
-                                        </div>
-                                    </div>
-                            <template if:false={showRecord}>
-                                        <div class="slds-media__body" style="text-align-last: end;">
-                                            <div class="slds-page-header__name">
-                                                <div class="slds-page-header__name-title">
-                                                    <lightning-button variant="neutral" label="New" data-action="newrecord"
-                                                        onclick={openModal}>
-                                                    </lightning-button>
-                                                    <!-- <div class="slds-col slds-var-p-left_small"> 
-                                                    <lightning-button class="slds-var-p-left_small" label="Back To Listview"
-                                                        variant="brand" data-action="sharefilter" onclick={handlebacktolistview}>
-                                                    </lightning-button>
-                                                   </div> -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                                <div>
-                                    {totalRecords} items <span style="font-size: 5px; text-align: center">&#9679;</span> Filtered by
-                                    {selectedDecisionLabel}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="card-body">
-                    <div class="datatable-container">
-                        
-    <c-custom-datatable-data-type-provider class="slds-table_bordered" key-field="Waiver_Id__c" data={data}
-                            columns={columns} hide-checkbox-column show-row-number-column="true" sorted-by={sortByUi}
-                            sorted-direction={sortDirection} onsort={handleSort} row-number-offset={rowNumberOffset}
-                            onrowaction={handleRowAction} oncustomtext={handleActions} 
-                            is-loading={isLoading} onloadmore={loadMoreData}> 
-                            ><!--key-field="Id"-->
-                        </c-custom-datatable-data-type-provider>
-                        </div>
-                     </div>
-        </template>
-        <template if:true={isEditform}>
-           <c-technology-decision-record-page
-        record-id={selectedRecordId}
-        edit-click={isEditMode}>
-    </c-technology-decision-record-page>
-        </template> 
-     </div>
+      <div class="full-height">
+    <lightning-layout class="container" vertical-align="stretch">
+                 <!-- Toggle Button (always visible) -->
+        <div class={toggleBtnClass}>
+            <lightning-button-icon 
+                icon-name="utility:filterList"
+                alternative-text="Toggle Filter"
+                variant="border-filled" 
+                size="medium"
+                onclick={toggleFilterPanel}>
+            </lightning-button-icon>
+        </div>
+        
+         <template if:true={showFilter}>
+        <lightning-layout-item size=2 class="custom-border-right child-container">
+            
+          <c-technology-decision-data-filters onfilterdata={handlefilterdata} ondecisiondata={handledecisiondata} onsearchkey={handlesearchkey}
+          onhandlerestbuttonclick={handleTrigger}></c-technology-decision-data-filters>
+      
+        </lightning-layout-item>
+         </template>
+       
+
+        <lightning-layout-item flexibility="auto" class="child-container">
+           <c-technology-decision-data-table onfiltercheck={handlefilterCheck}></c-technology-decision-data-table>
+        </lightning-layout-item>
+    </lightning-layout>
+      </div>
 </template>
 
-import { LightningElement, track, api } from 'lwc';
-import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
-import { NavigationMixin } from 'lightning/navigation';
-import TechnologyDecisionModal from 'c/technologyDecisionModal';
-import technologyDecisionCreateForm from 'c/technologyDecisionCreateForm';
-import { refreshApex } from '@salesforce/apex';
-export default class TechnologyDecision_DataTable extends NavigationMixin(LightningElement) {
-
-    @track data = [];
-    @track error;
-    @track sortBy;
-    @track sortDirection = 'asc';
-    @track isLoading = false;
-    @api filters;
-    @api selecteddecision ='mydecision';
-    @api searchfilters ;
-    selectedRecordId;
-    totalRecords;
-    isEditMode=false;
-    isEditform;
-
-    // Pagination support
-    offset = 0;
-    limit = 5; // batch size
-    allDataLoaded = false;
-
-    columns = [
-        { label: 'Name',
-        sortable: true,
-        fieldName: 'Name', // URL field
-       type: 'customText',
-        typeAttributes: {
-            // class: 'slds-text-link',
-            recordId: {
-                fieldName: 'Id'
-            }
-        },
-    },
-    {
-        label: 'Status(Stage)',
-        fieldName: 'statusStage',
-        sortable: true,
-        type: 'customStatusStage',
-        typeAttributes: {},
-        cellAttributes: {
-            class: 'slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-truncate'
-        }
-    },
-       // { label: 'Status', fieldName: 'Status__c',sortable: true, type: 'badge' },
-        { label: 'Estimated Decision Date', fieldName: 'Estimated_Decision_Date__c',sortable: true, type: 'text' },
-        { label: 'Reason', fieldName: 'Decision_Reason__c', type: 'text',sortable: true }
-    ];
-    // Call Apex imperatively
-   
+import { LightningElement, track } from 'lwc';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import NoHeader from '@salesforce/resourceUrl/NoHeader';
+export default class TechnologyDecision_AppHomePage extends LightningElement {
+    filters;
+    selecteddecision;
+    searchkey;
+    @track showFilter = true;
+     get toggleBtnClass() {
+        return this.showFilter ? "toggle-btn right-of-filter" : "toggle-btn left-edge";
+    }
     connectedCallback() {
-        this.loadTechnologyDecision();
-       
+        loadStyle(this, NoHeader);
     }
-    get selectedDecisionLabel() {
-        return this.selecteddecision === 'mydecision' ? 'My Decision' : 'All Decisions';
-    }
-     @api
-    updatefilters(filters) {
-        this.filters = filters;
-         console.log('filters 44 ', JSON.stringify(this.filters));
-         this.loadTechnologyDecision();
-    }
-    @api
-    updateslecteddecision(selecteddecision) {
-        this.selecteddecision = selecteddecision;
-         console.log('filters 44 ', this.selecteddecision);
-         this.loadTechnologyDecision();
-    }
-    @api
-    updatesearchfilters(searchfilters) {
-        this.searchfilters = searchfilters;
-         console.log('filters 44 ', this.searchfilters);
-         this.loadTechnologyDecision();
-    }
-    @api
-    handleResetButton() {
-        this.searchfilters = '';
-        this.filters=[];
-        this.rowOffSet = 0;
-    
-         console.log('filters 44 ', this.searchfilters);
-         this.loadTechnologyDecision();
-    }
-   handleSort(event) {
-    const uiField = event.detail.fieldName;   // column fieldName (e.g. recordLink, statusStage, etc.)
-    let backendField = uiField;
-
-    // Map UI field to backend field
-    if (uiField === 'recordLink') {
-        backendField = 'Name';
-    } else if (uiField === 'statusStage') {
-        backendField = 'Status__c';
-    }
-
-    this.sortBy = backendField;   // used for sorting logic
-    this.sortByUi = uiField;      // used for UI arrow
-    this.sortDirection = event.detail.sortDirection;
-
-    let cloneData = [...this.data];
-
-    cloneData.sort((a, b) => {
-        let valA = a[backendField] ?? '';
-        let valB = b[backendField] ?? '';
-
-        // Numeric
-        if (!isNaN(valA) && !isNaN(valB)) {
-            valA = Number(valA);
-            valB = Number(valB);
-        }
-        // Dates
-        else if (this.isDate(valA) && this.isDate(valB)) {
-            valA = new Date(valA).getTime();
-            valB = new Date(valB).getTime();
-        }
-        // Strings
-        else {
-            valA = valA.toString().toLowerCase();
-            valB = valB.toString().toLowerCase();
+    handlefilterdata(event){
+        console.log('Data from child: ');
+         console.log('Data from child: ', event.detail.value);
+         this.filters= event.detail.value;
+         const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updatefilters(this.filters);
         }
 
-        return this.sortDirection === 'asc'
-            ? (valA > valB ? 1 : valA < valB ? -1 : 0)
-            : (valA < valB ? 1 : valA > valB ? -1 : 0);
-    });
-
-    this.data = cloneData;
-}
-
-  
-
-// Utility to detect valid date string
-isDate(val) {
-    return !isNaN(Date.parse(val));
-}
-
-    loadTechnologyDecision(isLoadMore = false) {
-        this.isLoading = true;
-
-        getTechnologyDecision({ offsetSize: this.offset, limitSize: this.limit, filters: JSON.stringify(this.filters), allOrMy:this.selecteddecision, searchKey: this.searchfilters })
-            .then(result => {
-                this.totalRecords = result.decisionRecordsCount;
-                console.log('result ', JSON.stringify(result));
-                let newData = result.decisionRecords.map(item => {
-                    let formattedDate = item.Estimated_Decision_Date__c;
-    if (formattedDate) {
-        try {
-            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
-        } catch (e) {
-            formattedDate = item.Estimated_Decision_Date__c; // fallback
+    }
+    handledecisiondata(event){
+        this.selecteddecision=event.detail.value;
+        console.log('this.selecteddecision 17 ',this.selecteddecision);
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updateslecteddecision(this.selecteddecision);
         }
     }
-    return {
-        ...item,
-        statusStage: {
-                        status: item.Status__c,
-                        stage: item.Stage__c
-                    },
-        recordLink: item.Id, // Construct record link
-        Estimated_Decision_Date__c: formattedDate
-        
-        };
-    });
-    console.log('data ', JSON.stringify(this.data));
-        if (isLoadMore) {
-                    this.data = [...this.data, ...newData];
-                } else {
-                    this.data = newData;
-                }
-
-                if (newData.length < this.limit) {
-                    this.allDataLoaded = true;
-                } else {
-                    this.offset += this.limit;
-                }
-
-                this.isLoading = false;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error;
-                this.data = [];
-                 this.isLoading = false;
-                console.error('Error fetching accounts', error);
-            });
-    }
-    loadMoreData(event) {
-        if (this.allDataLoaded) {
-            event.target.isLoading = false; // stop spinner
-            return;
-        }
-        this.loadTechnologyDecision(true);
-    }
-    handlebacktolistview(event){
-        const baseUrl = window.location.origin;
-        console.log(baseUrl);
-        let url =baseUrl+'lightning/n/Decision_Management';
-        this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: {
-                apiName: 'Decision_Management'  // Your Lightning App Page name
-            }
-        });
-    }
-    async openModal() {
-        const result = await technologyDecisionCreateForm.open({
-            size: 'medium',
-            description: 'Create a new Technology Decision',
-            label: 'New Decision'
-        });
-
-        if (result === 'saved') {
-            // Optional: refresh list view or Apex data
-            console.log('Decision created successfully, refresh data here.');
+    handlesearchkey(event){
+        this.searchkey=event.detail.value;
+        console.log('this.selecteddecision 26 ',this.searchkey);
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updatesearchfilters(this.searchkey);
         }
     }
-     
-    handleRowAction(event){
-        let id = event.detail.target.value;
-        console.log('jgfjg ', id);
-
+    handleTrigger(event){
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.handleResetButton();
+        }
     }
-    handleActions(event){
-        this.recordId = event.detail.row.Id;
-         console.log('recordId is ', this.recordId);
-         this.isEditform=true;
-         this.selectedRecordId=this.recordId;
-         const evt = new CustomEvent('filtercheck', 
-                    {detail:{showFilter : false} });
-         this.dispatchEvent(evt);
-         let windowUrl = new URL(window.location.href);
-            console.log('windowUrl View ', windowUrl);
-
-            const baseUrl = window.location.origin;
-            let currentHref = windowUrl.href.toString();
-            let finalUrl = '';
-
-            if (currentHref.includes('a1mHo')) {
-                // Remove the last segment and append recordId
-                const trimmed = currentHref.slice(0, currentHref.lastIndexOf("/"));
-                finalUrl = `${trimmed}/${this.recordId}`;
-            } else {
-                // Append '/w/' + recordId
-                finalUrl = `${currentHref}/w/${this.recordId}`;
-            }
-
-            console.log('finalUrl ', finalUrl);
-            window.history.pushState({}, '', finalUrl);
-
+     toggleFilterPanel() {
+        this.showFilter = !this.showFilter;
+    }
+    handlefilterCheck(event){
+        console.log('event.detail ', event.detail);
+        this.showFilter = event.detail.showFilter;
     }
 
 }
 
+.container{
+	position: absolute;
+	left: 0%;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	 margin: -2px; /*removes spaces from all side --> 
+	background-color: slds-color__background_gray-2; */
+}
+.custom-border-right {
+  margin-left: 10px; 
 
-.custom-container{
-	color : black;
+} 
+
+/* Base style for toggle */
+.toggle-btn {
+    position: absolute;
+    top: 2px;
+    z-index: 100;
+    padding-left: 25px;
+	
 }
-.slds-badge {
-    background-color: #f3f3f3;
-    color: #181818;
-    font-weight: 600;
-    border-radius: 12px;
-    padding: 0.25rem 0.75rem;
+
+/* When filter is open → button sits at right edge of filter */
+.right-of-filter {
+    left: calc(12.5%); /* since filter is size=3 (≈ 25%) */
 }
-/* .datatable-container {
-    flex: 1;              
-    overflow-y: auto;     
-     
-    max-height: calc(100vh - 250px); 
+
+/* When filter is closed → button at left edge of screen */
+.left-edge {
+    left: 0px;
+	top: 93px;
+}
+/* :host {
+    overflow-x: hidden;
 } */
-/* child.css */
-.child-container {
-    flex: 1;                 /* take available space */
-    min-height: 0;           /* ⚠️ important so scroll works inside flex */
-    overflow-y: auto;        /* scroll only when needed */
-}
-.outer-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* take full height of viewport */
+.slds-page-header.flexipageHeader {
+    display: none;
 }
 
-.datatable-wrapper {
-  flex: 1;         /* take all remaining space */
-  min-height: 0;   /* ⚠️ critical for scroll to work inside */
-  display: flex;
-  flex-direction: column;
+.slds-template_default {
+    padding: 0rem;
 }
 :host {
-    display: block;
-    height: 100%;
-   
-    padding-left: var(--lwc-spacing-4, 1rem);
-    
+  /* position: fixed; */
+  /* top: 100px;
+  left: 0;
+  right: 0;
+  bottom: 0; */
+  overflow: hidden;
 }
-
-:host .card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: var(--slds-g-color-surface-container-2, #f3f3f3);
-    border-radius: var(--slds-g-radius-border-2, 0.25rem) var(--slds-g-radius-border-2, 0.25rem) 0 0;
-}
-
-:host .card-body {
-    position: relative;
-    flex: 1;
-}
-
-:host .datatable-container {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-}
-.datatable-container {
-    border-top: 1.1px solid #a9aaaa;
-    
-}
-
