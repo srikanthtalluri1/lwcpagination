@@ -1,46 +1,140 @@
 <template>
-    <!-- Gray header -->
-    <div class="slds-page-header slds-page-header_record-home">
-        <div class="slds-page-header__row header-row">
-            <!-- Left side: Icon + Titles -->
-            <div class="slds-page-header__col-title">
-                <div class="slds-media">
-                    <div class="slds-media__figure">
-                        <lightning-icon icon-name="standard:contact" size="medium" alternative-text="Contact"></lightning-icon>
-                    </div>
-                    <div class="slds-media__body">
-                        <span class="slds-text-body_regular">Technology Decision</span>
-                        <span class="slds-page-header__title slds-truncate" title={recordName}>{recordName}</span>
-                        <span class="slds-page-header__title slds-truncate" title={waiverName}>{waiverName}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right side: Buttons -->
-            <div class="slds-page-header__col-actions">
-                <div class="slds-page-header__controls">
-                    <div class="slds-page-header__control">
-                        <div class="slds-button-group">
-                            <lightning-button label="Edit" data-action="edit" onclick={handleEdit} disabled={disableButton}></lightning-button>
-                            <lightning-button variant="brand" label="Back To List View" data-action="close" onclick={handleBackToListView} class="slds-m-left_small"></lightning-button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="full-height">
+    <lightning-layout class="container" vertical-align="stretch">
+                 <!-- Toggle Button (always visible) -->
+      <template if:true={showToggle}>
+        <div class={toggleBtnClass}>
+            <lightning-button-icon 
+                icon-name="utility:filterList"
+                alternative-text="Toggle Filter"
+                variant="border-filled" 
+                size="medium"
+                onclick={toggleFilterPanel}>
+            </lightning-button-icon>
         </div>
-    </div>
+        
+         <template if:true={showFilter}>
+        <lightning-layout-item size=2 class="custom-border-right child-container">
+            
+          <c-technology-decision-data-filters onfilterdata={handlefilterdata} ondecisiondata={handledecisiondata} onsearchkey={handlesearchkey}
+          onhandlerestbuttonclick={handleTrigger}></c-technology-decision-data-filters>
+      
+        </lightning-layout-item>
+         </template>
+      </template>
 
-    <!-- White highlight panel overlapping header -->
-    <div class="highlight-panel">
-        <div class="slds-grid slds-wrap">
-            <template for:each={fieldEntries} for:item="field">
-                <div key={field.key} class="slds-col slds-p-around_small">
-                    <span class="slds-text-title">{field.label}</span>
-                    <div class="slds-text-body_regular">{field.value}</div>
-                </div>
-            </template>
-        </div>
-    </div>
+        <lightning-layout-item flexibility="auto" class="child-container">
+           <c-technology-decision-data-table onfiltercheck={handlefilterCheck}></c-technology-decision-data-table>
+        </lightning-layout-item>
+    </lightning-layout>
+      </div>
 </template>
 
+import { LightningElement, track } from 'lwc';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import NoHeader from '@salesforce/resourceUrl/NoHeader';
+export default class TechnologyDecision_AppHomePage extends LightningElement {
+    filters;
+    selecteddecision;
+    searchkey;
+    showToggle=true;
+    @track showFilter = true;
+     get toggleBtnClass() {
+        return this.showFilter ? "toggle-btn right-of-filter" : "toggle-btn left-edge";
+    }
+    connectedCallback() {
+        loadStyle(this, NoHeader);
+    }
+    handlefilterdata(event){
+        console.log('Data from child: ');
+         console.log('Data from child: ', event.detail.value);
+         this.filters= event.detail.value;
+         const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updatefilters(this.filters);
+        }
+
+    }
+    handledecisiondata(event){
+        this.selecteddecision=event.detail.value;
+        console.log('this.selecteddecision 17 ',this.selecteddecision);
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updateslecteddecision(this.selecteddecision);
+        }
+    }
+    handlesearchkey(event){
+        this.searchkey=event.detail.value;
+        console.log('this.selecteddecision 26 ',this.searchkey);
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updatesearchfilters(this.searchkey);
+        }
+    }
+    handleTrigger(event){
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.handleResetButton();
+        }
+    }
+     toggleFilterPanel() {
+        this.showFilter = !this.showFilter;
+    }
+    handlefilterCheck(event){
+        console.log('event.detail ', event.detail);
+        this.showToggle = event.detail.showFilter;
+    }
+
+}
+.container{
+	position: absolute;
+	left: 0%;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	 margin: -2px; /*removes spaces from all side --> 
+	background-color: slds-color__background_gray-2; */
+}
+.custom-border-right {
+  margin-left: 10px; 
+
+} 
+
+/* Base style for toggle */
+.toggle-btn {
+    position: absolute;
+    top: 2px;
+    z-index: 100;
+    padding-left: 25px;
+	
+}
+
+/* When filter is open → button sits at right edge of filter */
+.right-of-filter {
+    left: calc(12.5%); /* since filter is size=3 (≈ 25%) */
+}
+
+/* When filter is closed → button at left edge of screen */
+.left-edge {
+    left: 0px;
+	top: 93px;
+}
+/* :host {
+    overflow-x: hidden;
+} */
+.slds-page-header.flexipageHeader {
+    display: none;
+}
+
+.slds-template_default {
+    padding: 0rem;
+}
+:host {
+  /* position: fixed; */
+  /* top: 100px;
+  left: 0;
+  right: 0;
+  bottom: 0; */
+  overflow: hidden;
+}
 
