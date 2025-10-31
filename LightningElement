@@ -1,353 +1,436 @@
-/**
-* @File Name : TechnologyDecision_DataTableHandler.cls
-* @Description :
-* @Author :
-* @Last Modified By :
-* @Last Modified On : September 11, 2025
-* @Modification Log :
-*==============================================================================
-* Ver | Date | Author | Modification
-*==============================================================================
-* 1.0 | September 11, 2025 |   | Initial Version
-**/
+<template>
+    <c-technology-decision-highlight-panel
+                record-id={recordId}   
+        oneditclicked={handleEditClicked}  lwc:ref="highlight">
+    </c-technology-decision-highlight-panel>
+    <div style="background-color: white;" lwc:ref="scrollContainer"><!--class="slds-card"-->
 
-public class TechnologyDecision_DataTableHandler {
-    public static Id userId = UserInfo.getUserId();
-    static final String OBJECT_NAME = 'TechnologyDecision__c';
-    static final String FIELDS_TO_BE_QUERIED_NEW = 'Id, Name, Status__c, Stage__c, Estimated_Decision_Date__c,Decision_Reason__c, TechnologyDecision_Relationship__c  ';
-	 // Method to fetch Technology Decision
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getTechnologyDecision(Integer offsetSize, Integer limitSize, String filters, string allOrMy, string searchKey) {
-        try {
-            List<TechnologyDecision__c> decisionRecords;
-            Map<String, Object> result = new Map<String, Object>();
-            Integer decisionRecordsCount = 0;
-            String query =
-      					  'SELECT ' +
-      					   FIELDS_TO_BE_QUERIED_NEW +
-      					  'FROM ' +
-      					   OBJECT_NAME +
-      					   ' ';
-         String countQuery = 'SELECT COUNT()' + 'FROM ' + OBJECT_NAME + ' ';
-    /*  countQuery += (!countQuery.contains('WHERE')
-        ? ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' '
-        : ' AND Waiver_Id__r.OwnerId = \'' + userId + '\' ');
-    } */
-              //Search logic
-    if (String.isNotBlank(searchKey)) {
-      String textFilter = '\'%' + searchKey + '%\'';
-      if (!query.contains('WHERE')) {
-        query += ' WHERE ';
-        countQuery += ' WHERE ';
-      } else {
-        query += ' AND ';
-        countQuery += ' AND ';
-      }
-      query = buildSearchTerm(query, textFilter);
-        countQuery = buildSearchTerm(countQuery, textFilter);
-        system.debug('Checking Search Key '+ query );
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+           
+            <lightning-tabset active-tab-value={activeTabValue} class="slds-tabs_default" style="font-size: 1rem;font-weight: 700;background-color: white; max-height:100% overflow: auto; ">
+                <!-- Details Tab -->
+                <lightning-tab label="Details" value="waiver">
+                    <!-- Accordion Sections (open by default) -->
+                     <lightning-modal-body>
+                    <lightning-accordion allow-multiple-sections-open active-section-name={activeSections} class="fixdiv" onscroll={handleScroll} onsectiontoggle={handleToggle}>
+                        <!-- Waiver Detail Section with Two Columns -->
+                        <lightning-accordion-section label="Information" name="Information" class="custom-section-header" style="color: rgb(68, 68, 68);font-size: 0.75rem;">
+                                <template if:false={editClick}>
+                                    <lightning-record-view-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy" onload={handleLoad}>
+                                        <!-- Srikant Changes to made values in comfy display -->
+                                        <div class="slds-grid">
+                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
+                                                        <div class="underline ">
+                                                                <lightning-output-field field-name="Name" ></lightning-output-field>
+                                                        </div>
+                                                        <div class="underline">
+                                                                <lightning-output-field field-name="Decision_Reason__c"></lightning-output-field>
+                                                               
+                                                         </div>
+                                            </div> 
+                                          <!-- Column 2 -->
+                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
+                                                <div class="underline">
+                                                                <lightning-output-field field-name="Stage__c" >
+                                                                </lightning-output-field>
+                                                    </div>
+                                                    <div class="underline">
+                                                                <lightning-output-field field-name="Status__c" >
+                                                                </lightning-output-field>
+                                                    </div>
+                                                
+                                               
+                                            </div>
+                                     </div>   
+
+                                    </lightning-record-view-form>
+                                </template>
+                    
+                                <template if:true={editClick}>
+                                     <!-- Added by Srikant to migrate to record edit form -->
+                                    <lightning-record-edit-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy"
+                                        onsubmit={handleSubmitt} onsuccess={handleSuccess} onerror={handleError}>
+                                        <div class="slds-grid slds-wrap slds-theme_default">
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input-field field-name="Name" onchange={handlechangew} ></lightning-input-field>
+                                                <lightning-input-field field-name="Decision_Reason__c" onchange={handlechangew}></lightning-input-field>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input-field field-name="Status__c" onchange={handlechangew} required={isrequired}></lightning-input-field>
+                                                <lightning-input-field field-name="Stage__c" onchange={handlechangew} required={isrequired}></lightning-input-field>
+                                             </div>
+                                        </div>
+                                    </lightning-record-edit-form>    
+                                </template>
+                            
+                        </lightning-accordion-section>
+                    
+                        <!-- Requesting Domain and Portfolio Section -->
+                        <lightning-accordion-section label="Additional details" name="additionaldetails" class="custom-section-header">
+                            <template if:false={editClick}>
+                                <lightning-record-view-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy">
+                                    <div class="slds-grid slds-wrap slds-theme_default">
+                                        <!-- Column 1 -->
+                                        <div class="slds-col slds-size_1-of-2">
+                                           <lightning-output-field field-name="Estimated_Decision_Date__c"></lightning-output-field> 
+                                           
+                                        </div>
+                                        <!-- Column 2 -->
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-output-field field-name="TechnologyDecision_Relationship__c"></lightning-output-field>
+                                        </div>
+                                    </div>
+                                </lightning-record-view-form>
+                            </template>
+                           
+                            <template if:true={editClick}>
+                                <lightning-record-edit-form record-id={recordId} object-api-name="TechnologyDecision__c" density="comfy" onerror={handleError}
+                                onsuccess={handleSuccess}>
+                                    <div class="slds-grid slds-wrap slds-theme_default">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Estimated_Decision_Date__c"></lightning-input-field>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="TechnologyDecision_Relationship__c"></lightning-input-field>
+                                        </div>
+                                    </div>
+                                </lightning-record-edit-form>
+                            </template>
+                        </lightning-accordion-section>
+                    
+                        <!-- Affected Domain and Portfolio Section -->
+                        <lightning-accordion-section label="Stakeholders" name="Stakeholders" class="custom-section-header">
+                              <lightning-record-view-form record-id={re} object-api-name="TechnologyDecision__c" density="comfy" onload={handleLoad}>
+                                        <!-- Srikant Changes to made values in comfy display -->
+                                        <div class="slds-grid">
+                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
+                                                        <div class="underline ">
+                                                                <lightning-output-field field-name="Name" ></lightning-output-field>
+                                                        </div>
+                                                        <div class="underline">
+                                                                <lightning-output-field field-name="Decision_Reason__c"></lightning-output-field>
+                                                               
+                                                         </div>
+                                            </div> 
+                                          <!-- Column 2 -->
+                                            <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
+                                                <div class="underline">
+                                                                <lightning-output-field field-name="Stage__c" >
+                                                                </lightning-output-field>
+                                                    </div>
+                                                    <div class="underline">
+                                                                <lightning-output-field field-name="Status__c" >
+                                                                </lightning-output-field>
+                                                    </div>
+                                                
+                                               
+                                            </div>
+                                     </div>   
+
+                                    </lightning-record-view-form>
+                        </lightning-accordion-section>
+                    
+                        <!-- Standard Details Section -->
+                        <lightning-accordion-section label="Escalation details" name="standardDetails" class="custom-section-header">
+                           
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+            </lightning-modal-body>
+                    <template if:true={isFooterShows}>
+                        <lightning-modal-footer  class="stickyfooter" style="bottom:157px;">
+                        <div class="slds-button-group slds-grid slds-grid_align-center">
+                            <lightning-button variant="brand" label="Save" onclick={handleSave} data-action="save" disabled={disablingButton}>
+                            </lightning-button>
+                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancelWaiver} data-action="cancel"
+                                disabled={disablingButton} ><!--class="slds-m-left_small"-->
+                            </lightning-button>
+                        </div>
+                        </lightning-modal-footer>
+                    </template>
+
+                </lightning-tab>
+
+                
+    <lightning-tab label="Acknowldgement" value="acknowdgement">
+                </lightning-tab>
+                <lightning-tab label="Approval" value="approval">
+                </lightning-tab>
+                <lightning-tab label="History" value="history" onactive={handleTabChange}>
+                    <!--Srikanth Changes-->
+                        <div class="slds-card">
+                            <template if:true={historyRecords}>
+                                <div class="custom-border-box slds-m-around_medium">
+                                    <div class="slds-card__header slds-grid">
+                                        <div class="slds-media slds-media_center slds-has-flexi-truncate">
+                                            <div class="slds-media__figure">
+                                                <lightning-icon icon-name="standard:approval" alternative-text="Approval" size="small">
+                                                </lightning-icon>
+                                            </div>
+                                            <div class="slds-media__body">
+                                                <h2 class="slds-card__header-title slds-truncate"
+                                                    title="AWP Architecture Waiver Form & Relationship History">
+                                                    AWP Architecture Waiver Form & Relationship History ({historyRecordsLength})
+                                                </h2>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--<div class="slds-grid slds-wrap">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <p>
+                                                <strong>{historyRecordsLength} items</strong>
+                                            </p>
+                                        </div>
+                                    </div>-->
+                                    <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column="true"
+                                        class="custom-border">
+                                    </lightning-datatable>
+                                </div>
+                            </template>
+                        </div>
+
+                    <lightning-card><!--title="Waiver History"-->
+                        <!--<template if:true={historyRecords}>
+                            <lightning-datatable key-field="id" data={historyRecords} columns={columns} hide-checkbox-column>
+                            </lightning-datatable>
+                        </template>-->
+
+                        <template if:true={isLoading}>
+                            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                        </template>
+                    </lightning-card>
+                    <!--Srikanth Changes-->
+                </lightning-tab>
+                <lightning-tab label="Snapshot" value="snapshot">
+                </lightning-tab>
+
+            </lightning-tabset>
+        <!--</div>-->
+
+        <!-- Card Footer -->
+        <div class="slds-card__footer" style="background-color: white;">
+            <!--<p class="slds-text-title">Footer content can go here if needed.</p>-->
+        </div>
+
+    </div>
+
+
+
+</template>
+
+import { LightningElement, api, track } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+export default class TechnologyDecision_RecordPage extends LightningElement {
+    @api recordId;
+
+    // ---------- UI state ----------
+    @api editClick = false;            // you can toggle this from an Edit button elsewhere
+    @track isLoading = false;
+    @track isFooterShow = true;         // shows the Save/Cancel footer
+    @track disablingButton = false;
+    @api relationshipId;      // disables footer buttons during save
+
+    // Tabs / accordion
+    activeTabValue = 'waiver';
+    activeSections = ['Information', 'additionaldetails'];
+
+    // History tab placeholders (wire up if you need)
+    historyRecords = [];
+    historyRecordsLength = 0;
+    columns = [];
+
+    // Example rule: make fields required only in edit mode
+    get isrequired() {
+        return this.editClick;
     }
-            string fieldApiName='';
-            system.debug('filters '+filters);
-            if (!String.isBlank(filters)) {
-          List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(filters);
-          
-          // To track if only NULL/nullcheck filters are present
-          Boolean onlyNullChecks = true;
-          system.debug('filtersList '+filtersList);
-         // system.debug('filtersList '+filtersList[0]);
-              
-          
-          if (filtersList.size() > 0) {              
-              //String filterQuery = ' AND (';
-              system.debug('checking here query '+query);
-              String filterQuery = (!query.contains(' WHERE ') ? ' WHERE (' : ' AND (');
-              system.debug('checking here'+filterQuery);
-            
-              Map<String, List<String>> fieldSpecificFilterValuesMap = new Map<String, List<String>>();
-              system.debug('checking here');
-              // Construct the filter query
-              for (Object filter : filtersList) {
-                  Map<String, Object> filterMap = (Map<String, Object>) filter;
-                  string jsonstring =JSON.serialize(filterMap.values());
-                  Boolean hasLetters = Pattern.compile('[a-zA-Z]').matcher(jsonstring).find();
-                  system.debug('checking here'+hasLetters);
-                  system.debug('checking here'+String.valueOf(filterMap.values()));
-                  system.debug('checking here'+JSON.serialize(filterMap.values()));
-                  system.debug('checking here'+filter);
-                   system.debug('checking here'+filterMap.keySet());
-                  if( hasLetters == true){
-                  for (String key : filterMap.keySet()) {
-                      system.debug('checking here'+ key);
-                      if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
-                          List<Object> filterValuesList = (List<Object>) filterMap.get(key);
-                          system.debug('checking here'+ key);
-                           List<String> apiNames = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', key);
-                              fieldApiName =apiNames[0];
-                          system.debug('checking here'+ filterValuesList);
-                          Set<String> stringFilterValues = new Set<String>();
-                          Boolean includeNull = false;
-                          
-                          // Loop through filter values
-                          for (Object value : filterValuesList) {
-                              system.debug('checking here'+ value);
-                              //value='Approved';
-                             
-                              system.debug('filter checking here ' +String.valueOf(value));
-                             
-                              if (String.valueOf(value) == 'nullcheck') {
-                                  includeNull = true; // Mark nullcheck
-                              }else if(String.valueOf(value) == 'No Data'){
-                                  includeNull = true; // Mark nullcheck
-                              }else {
-                                  stringFilterValues.add(String.valueOf(value)); // Add non-null values
-                                  onlyNullChecks = false; // There are other values besides nullcheck
-                              }
-                          }
-                          
-                          // Only process fields that have filter values (either non-null or nullcheck)
-                          if (!stringFilterValues.isEmpty() || includeNull) {
-                              
-                             
-                              
-                              /*Feb 15th Changes*/
-                             
-                              
-                             
-                              // Add the field condition to the query
-                              filterQuery += '(';
-                              
-                              if (includeNull && onlyNullChecks) {
-                                  // If only NULL checks are present for this field, do a NULL check
-                                  filterQuery += fieldApiName + ' = NULL';
-                              } else {
-                                  // If there are non-null values, create the IN condition
-                                  if (!stringFilterValues.isEmpty()) {
-                                      List<String> quotedValues = new List<String>();
-                                      for (String value : stringFilterValues) {
-                                          quotedValues.add('\'' + value + '\'');
-                                      }
-                                      String quotedValuesString = String.join(quotedValues, ', ');
-                                      filterQuery += fieldApiName + ' IN (' + quotedValuesString + ')';
-                                  }
-                                  
-                                  // Include NULL check if needed (OR between IN and NULL)
-                                  if (includeNull) {
-                                      if (!stringFilterValues.isEmpty()) {
-                                          filterQuery += ' OR ';
-                                      }
-                                      filterQuery += fieldApiName + ' = NULL';
-                                  }
-                              }
-                              
-                              // Close the condition for this field
-                              filterQuery += ')';
-                              filterQuery += ' AND ';
-                          }
-                      }
-                  }
-              }
-              }
-              // Clean up the final query (remove last AND and close parentheses)
-              system.debug('Check filterQuery '+filterQuery);
-              String lastChar = filterQuery.substring(filterQuery.length() - 1);
-              system.debug('Check filterQuery '+lastChar);
-              if(lastChar=='('){
-                  filterQuery='';
-              }else{
-              filterQuery = filterQuery.removeEnd(' AND ') + ') ';
-              }
-              system.debug('Check filterQuery After '+filterQuery);
-              query += filterQuery;
-              countQuery += filterQuery;
-              system.debug('Check query filterQuery After '+query);
-              system.debug('Check query filterQuery After '+countQuery);
-              
-          }
-      }
-   //Add for All or My waivers
-    if (allOrMy == 'mydecision') {
-      query += (!query.contains('WHERE')
-        ? ' WHERE OwnerId = \'' + userId + '\' '
-        : ' AND OwnerId = \'' + userId + '\' ');
-         countQuery += (!countQuery.contains('WHERE')
-        ? ' WHERE OwnerId = \'' + userId + '\' '
-        : ' AND OwnerId = \'' + userId + '\' ');
+    get isFooterShows(){
+        console.log('isFooterShow ', this.editClick);
+        return this.editClick;
     }
-            system.debug('query '+query);
-            decisionRecords = Database.query(query);
-            decisionRecordsCount = Database.countQuery(countQuery);
-            system.debug('decisionRecordsCount '+decisionRecordsCount);
-            result.put('decisionRecords', decisionRecords);
-    		result.put('decisionRecordsCount', decisionRecordsCount);
-            return result;
-        } catch (Exception ex) {
-            throw new AuraHandledException('Error fetching Accounts: ' + ex.getMessage());
+
+    // ---------- Handlers wired in your HTML ----------
+    handleLoad = () => {
+        // stop spinner when view form loads
+        this.isLoading = false;
+    };
+
+    handleScroll = () => {
+        // no-op; keep if you need sticky header logic
+    };
+
+    handleToggle = () => {
+        // no-op; keep if you want to track opened sections
+    };
+
+    handleTabChange = (evt) => {
+        // If you need to lazy-load history when it becomes active, do it here
+        // if (evt.target.value === 'history') { this.loadHistory(); }
+    };
+
+    // Fired by lightning-input-field onchange in edit mode
+    handlechangew = () => {
+        // show footer once user edits anything
+        this.isFooterShow = true;
+    };
+
+    // Your HTML calls onsubmit={handleSubmitt} in one place (typo).
+    // Handle both names so it “just works”.
+    handleSubmit = (event) => {
+        // We centrally manage save via handleSave (footer).
+        // Prevent any inner form’s default submit when user presses Enter.
+        event.preventDefault();
+    };
+    handleSubmitt = (event) => {
+        event.preventDefault();
+    };
+
+    // Success from any lightning-record-edit-form inside the accordion
+    pendingSaves = 0;
+    handleSuccess = (evt) => {
+        // one form finished saving
+        if (this.pendingSaves > 0) this.pendingSaves -= 1;
+
+        if (this.pendingSaves === 0) {
+            // all forms done
+            this.isLoading = false;
+            this.disablingButton = false;
+            this.isFooterShow = false;
+            this.editClick = false; // back to view mode
+            // Optional: fire a toast or refresh view, e.g.:
+            // this.dispatchEvent(new ShowToastEvent({ title: 'Saved', variant: 'success' }));
+            // ✅ Success toast
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Saved',
+        message: 'Record changes saved successfully.',
+        variant: 'success'
+      }));
+        // ensure child is rendered
+    
+
+    // ✅ await the child's refresh
+     this.refs?.highlight?.refreshdata?.();
+     
         }
-	}
-     //Added the fields that we are looking to have filter options. If the field from Relationship record use the formula field in the value and the label in the key
-  public static Map<String, String> fieldList = new Map<String, String>{
-    'Decision Reason' => 'Decision_Reason__c',
-    'Status' => 'Status__c',
-        'Stage' => 'Stage__c'
+    };
+
+    handleError = (evt) => {
+        // Any form error: re-enable UI
+        this.isLoading = false;
+        this.disablingButton = false;
+         const msg = evt?.detail?.message
+      || evt?.detail?.output?.errors?.[0]?.message
+      || 'Save failed. Please fix errors and try again.';
+
+    // ❗ Failure toast
+    this.dispatchEvent(new ShowToastEvent({
+      title: 'Save failed',
+      message: msg,
+      variant: 'error',
+      mode: 'sticky'
+    }));
   };
-       private static String buildSearchTerm(String query, String searchKey) {
-    query +=
-      '( Name LIKE ' +
-      searchKey +
-        'OR Stage__c   LIKE ' +
-      searchKey +
-        'OR Status__c   LIKE ' +
-      searchKey +
-        'OR Decision_Reason__c    LIKE ' +
-      searchKey +
-      ' ) ';
-    return query;
-  }
-    @AuraEnabled(cacheable=true)//Map<String, List<Object>>
-  public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy
-  ) {
-    try {
-      Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-     // Map<String, String> fieldLabel = getStagePicklistValues();
-      //Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
-      Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-      String condition = '';
-      if (allOrMy == 'mydecision') {
-        condition += ' WHERE OwnerId = \'' + userId + '\' ';
-      }
-
-      Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
-
-        system.debug('fieldApiName '+ fieldApiName);
-        String query = '';
-        string fieldApiNameString = string.join(fieldApiName,',');
-        system.debug('fieldApiNameString '+ fieldApiNameString);
-        if(fieldApiNameString.contains('Status')){
-            query = 'SELECT Status__c, COUNT(Id) ' +
-                    'FROM TechnologyDecision__c  ' + condition +
-                    ' GROUP BY Status__c';
-            results.put('Status', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Decision Reason')){
-            query = 'SELECT Decision_Reason__c, COUNT(Id) ' +
-                    'FROM TechnologyDecision__c  ' + condition +
-                    ' GROUP BY Decision_Reason__c';
-            results.put('Decision Reason', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Stage')){
-            query = 'SELECT Stage__c, COUNT(Id) ' +
-                    'FROM TechnologyDecision__c  ' + condition +
-                    ' GROUP BY Stage__c';
-            results.put('Stage', Database.query(query));
-        }
-        system.debug('results '+ results);
-
-        
-      
-        
-      for (String field : results.keySet()) {
-        List<Object> uniqueValues = new List<Object>();
-          /*Feb 15th Changes - 914*/
-          system.debug('field 75 '+ field);
-          
-              for (AggregateResult ar : results.get(field)) {
-                  system.debug('ar ===>>> '+ar);
-                  
-                   System.debug('uniqueValues '+(String) ar.get((fieldList.get(field))));
-                  Map<String, Object> uni = new Map<String, Object>();
-                 
-                  uni.put(
-                      'value',
-                      (String) ar.get((fieldList.get(field)))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0'));
-                  
-                  uniqueValues.add((Object) uni);
-              }
-                  
-                  System.debug('uniqueValues 90 '+uniqueValues);
-                 
-              
-          fieldUniqueMap.put(field, uniqueValues);
-          }
-        
-      return fieldUniqueMap;
-    } catch (Exception e) {
-      System.debug('message' + e.getMessage());
-      System.debug('stack' + e.getStackTraceString());
-      throw new AuraHandledException(e.getMessage());
-    }
-  }
-
     
-    // Wrapper to return Field Set details
-    public class ReturnWP {
-        @AuraEnabled public List<String> apiNames { get; set; }
-        @AuraEnabled public List<String> labels   { get; set; }
-    }
 
-
-@AuraEnabled(cacheable=true)
-public static Map<String, Object> getRecordWithFieldSet(
-    String recordId, String objectName, String fieldSetName
-) {
-    // Get describe info
-    Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectName);
-    Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-    Map<String, Schema.FieldSet> fieldSetMap = objDescribe.fieldSets.getMap();
-    Schema.FieldSet fieldSet = fieldSetMap.get(fieldSetName);
-
-    if (fieldSet == null) {
-        throw new AuraHandledException('Field Set not found: ' + fieldSetName);
-    }
-
-    // Build dynamic SOQL
-    List<String> fields = new List<String>();
-    for (Schema.FieldSetMember f : fieldSet.getFields()) {
-        fields.add(f.getFieldPath());
-    }
-
-    String soql = 'SELECT ' + String.join(fields, ',') +
-                  ' FROM ' + objectName +
-                  ' WHERE Id = :recordId LIMIT 1';
-    System.debug('SOQL: ' + soql);
-    SObject recordData = Database.query(soql);
-
-    // Prepare response: key = Label, value = field value (or fallback)
-    Map<String, Object> response = new Map<String, Object>();
-    for (Schema.FieldSetMember f : fieldSet.getFields()) {
-        Object rawValue = recordData.get(f.getFieldPath());
-        response.put(
-            f.getLabel(),
-            rawValue != null ? rawValue : '' // always include field
+    // ---------- Footer buttons ----------
+    handleSave = () => {
+        // Validate everything across ALL sections first
+        const inputs = this.template.querySelectorAll(
+            'lightning-input-field, lightning-input, lightning-combobox, lightning-textarea'
         );
+
+        let allValid = true;
+        inputs.forEach((i) => {
+            // reportValidity() exists on all these primitives
+            if (typeof i.reportValidity === 'function') {
+                if (!i.reportValidity()) allValid = false;
+            }
+        });
+
+        if (!allValid) return;
+
+        // Find every edit form in the accordion and submit them
+        const forms = this.template.querySelectorAll('lightning-record-edit-form');
+
+        if (!forms || forms.length === 0) return;
+
+        this.isLoading = true;
+        this.disablingButton = true;
+        this.pendingSaves = forms.length;
+
+        // Submit each form; each will trigger handleSuccess/handleError
+        forms.forEach((form) => {
+            try {
+                // If you need to adjust fields before submit, you can pass a fields object:
+                // form.submit({ ...customizedFields });
+                form.submit();
+                this.isLoading = false;
+                this.editClick=false;
+            } catch (e) {
+                // if submit throws synchronously, treat as error for this form
+                this.handleError({ detail: { message: e?.message } });
+                this.isLoading = false;
+            }
+        });
+    };
+
+    handleCancelWaiver = () => {
+        // Reset edit mode without saving
+        this.editClick = false;
+        this.isFooterShow = false;
+        this.disablingButton = false;
+        this.isLoading = false;
+
+        // Clear unsaved UI errors/messages
+        const inputs = this.template.querySelectorAll(
+            'lightning-input-field, lightning-input, lightning-combobox, lightning-textarea'
+        );
+        inputs.forEach((i) => {
+            if (typeof i.setCustomValidity === 'function') {
+                i.setCustomValidity('');
+                i.reportValidity();
+            }
+        });
+    };
+
+    // ---------- Optional helpers ----------
+    // If you want a public method to flip to edit mode:
+    enterEdit() {
+        this.editClick = true;
+        this.isFooterShow = true;
     }
-    return response;
+    handleEditClicked(event) {
+        console.log('checking here 222');
+        const {  editClick } = event.detail;
+        // do your thing:
+       // this.selectedRecordId = recordId;
+        this.editClick = editClick;
+        this.disablingButton=false;
+        console.log('isEditMode ', this.isEditMode);
+        // e.g., open modal, switch tabs, load form, etc.
+        // this.showEditModal = true;
+    }
+}
+.custom-container{
+	color : black;
+}
+.custom-section-header .slds-accordion__summary {
+    background-color: rgb(173, 216, 230); /* Choose your desired color */
+    padding: 0.5rem;
+    font-weight: bold;
+    color: #333; /* Darker text color for readability */
+    border-radius: 4px;
+}
+.fixdiv{
+    overflow-y: auto;
+    max-height: 100vh;
+}
+:host { 
+    --sds-c-accordion-summary-color-background: rgb(243, 242, 242);
+    --slds-c-modal-footer-color-background: rgba(176, 176, 176, 0.5);
+}
+.underline {
+    border-bottom: var(--lwc-borderWidthThin,4px) solid var(--lwc-colorBorder,rgb(221, 219, 218));
 }
 
-    
-	public static List<String> getApiNamesFromLabels(String objectApiName, String labelName) {
-        List<String> matchingApiNames = new List<String>();
-        
-        // Get describe for the object
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
-        Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-        
-        // Get all fields
-        Map<String, Schema.SObjectField> fields = objDescribe.fields.getMap();
-        
-        for (String apiName : fields.keySet()) {
-            Schema.DescribeFieldResult fieldDesc = fields.get(apiName).getDescribe();
-            
-            // Compare the label
-            if (fieldDesc.getLabel() == labelName) {
-                matchingApiNames.add(apiName);
-            }
-        }
-        
-        return matchingApiNames;
-    }
-}
+
