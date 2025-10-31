@@ -1,21 +1,14 @@
- async fetchRecordData() {
+  @AuraEnabled(cacheable=true)
+    public static TechnologyDecision__c getDecisionRecord(Id recordId) {
         try {
-            const data = await getRecord({ recordId: this.recordId, fields: FIELDS });
-            console.log('AwpCustomPath data', JSON.stringify(data));
-
-            this.stageValue = data.fields.Stage__c.displayValue;
-            this.currentStep = data.fields.Status__c.displayValue;
-
-            // Call your existing progress method
-            this.progressMeth();
-
-        } catch (error) {
-            console.error('Error fetching record:', error);
+            TechnologyDecision__c decision = [
+                SELECT Id, Name, Stage__c, Status__c
+                FROM TechnologyDecision__c
+                WHERE Id = :recordId
+                LIMIT 1
+            ];
+            return decision;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error fetching record: ' + e.getMessage());
         }
     }
-
-    progressMeth() {
-        // your existing logic here
-        console.log('progress method triggered');
-    }
-}
