@@ -1,14 +1,18 @@
-Add Stage-Status Tree Filter for Waiver Records
+:host {
+  --td-brand: #1a73e8;
+  --td-brand-hover: #174ea6;
+  --td-brand-bg: #e8f0fe;
+}
 
-Description:
-Implement a tree-style filter for the Waiver list view allowing users to filter records based on combined Stage and Status values. For example, “Draft → Pending” and “Approved → Complete.” The filter should dynamically display hierarchical options (Stage as parent, Status as child) to improve data exploration and usability.
+/* colors for the button itself */
+.tdBtn {
+  --slds-c-button-icon-color-foreground: var(--td-brand);
+  --slds-c-button-icon-color-foreground-hover: var(--td-brand-hover);
+  --slds-c-button-icon-color-background: var(--td-brand-bg);
+  --slds-c-button-icon-color-border: var(--td-brand);
+}
 
-Acceptance Criteria:
-
-User can view Stage and Status in a tree-structured filter.
-
-Selecting a parent (Stage) expands related Status options.
-
-Records refresh based on selected Stage/Status combination.
-
-Filter supports multiple selections and resets correctly.
+/* color for the inner SVG icon */
+.tdIcon {
+  --slds-c-icon-color-foreground: var(--td-brand);
+}
