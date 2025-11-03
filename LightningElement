@@ -1,13 +1,3 @@
-@wire(getRecord, { recordId: '$recordId', fields: FIELDS })
-    wiredRecord({ error, data }) {
-        if (data) {
-            const status = data.fields.Status__c.value;
-            this.showAdditionaldetails = (status === 'Draft');
-           
-            this.showInformation = (status === 'Pending');
-        } else if (error) {
-            console.error('Error fetching record:', error);
-            this.showAdditionaldetails = false;
-            showInformationthi
-        }
-    }
+import { getRecord } from 'lightning/uiRecordApi';
+import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
+const FIELDS = [STATUS_FIELD];
