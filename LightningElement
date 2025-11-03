@@ -1,18 +1,39 @@
-:host {
-  --td-brand: #1a73e8;
-  --td-brand-hover: #174ea6;
-  --td-brand-bg: #e8f0fe;
+<lightning-button-icon-stateful 
+                icon-name="utility:chevronleft"
+                selected={isFilterActive}
+                alternative-text="Toggle Filter"
+                variant="border-filled" 
+                size="small"
+                onclick={toggleFilterPanel}>
+            </lightning-button-icon-stateful>
+
+
+ @track isFilterActive = true;
+
+  toggleFilterPanel(event) {
+        this.showFilter = !this.showFilter;
+        this.isFilterActive = !this.isFilterActive;
+         event.currentTarget.blur();
+        // Optional: if you have a sidebar/panel to show/hide
+        const filterPanel = this.template.querySelector('.filter-panel');
+        if (filterPanel) {
+            filterPanel.classList.toggle('slds-hide', !this.isFilterActive);
+        }
+    
+    }
+
+/* Default border-filled gives light gray/blue. Add deeper blue if needed */
+.lightning-button-icon-stateful[aria-pressed="true"] {
+    background-color: #0070d2; /* Salesforce blue */
+    border-color: #0070d2;
+    color: white;
 }
 
-/* colors for the button itself */
-.tdBtn {
-  --slds-c-button-icon-color-foreground: var(--td-brand);
-  --slds-c-button-icon-color-foreground-hover: var(--td-brand-hover);
-  --slds-c-button-icon-color-background: var(--td-brand-bg);
-  --slds-c-button-icon-color-border: var(--td-brand);
+.lightning-button-icon-stateful[aria-pressed="false"] {
+    background-color: white;
+    color: #444;
 }
-
-/* color for the inner SVG icon */
-.tdIcon {
-  --slds-c-icon-color-foreground: var(--td-brand);
+lightning-button-icon-stateful:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
