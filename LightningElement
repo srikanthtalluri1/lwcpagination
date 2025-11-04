@@ -1,3 +1,6 @@
-import { getRecord } from 'lightning/uiRecordApi';
-import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
-const FIELDS = [STATUS_FIELD];
+ handleLoad = () => {
+        // stop spinner when view form loads
+         setTimeout(() => {
+        this.isLoading = false;
+    }, 1000);
+    };
