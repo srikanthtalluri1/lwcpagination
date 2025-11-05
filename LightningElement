@@ -1,12 +1,8 @@
-this.windowUrl = new URL(window.location.href);
-          let pathName= this.windowUrl.pathname;
-        let converstring = pathName.toString();
-        console.log('converstring ',converstring);
-        let resultstring = converstring.substring(converstring.lastIndexOf("/")+1);
-        console.log('resultstring ',resultstring);
-        this.recordId=resultstring;
-        if(resultstring.includes('a1mH')){
-            this.selectedRecordId = resultstring;
-            this.isEditform=true;
-            this.fireShowfilterEvent();
-        }
+ fireShowfilterEvent(){
+         const evt = new CustomEvent('filtercheck', 
+                    {detail:{showFilter : false} });
+         this.dispatchEvent(evt);
+         this.hasPadding = !this.hasPadding;
+          // Toggle a class on the host element itself
+        this.template.host.classList.toggle('no-padding', !this.hasPadding);
+    }
