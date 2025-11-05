@@ -1,8 +1,12 @@
- fireShowfilterEvent(){
-         const evt = new CustomEvent('filtercheck', 
-                    {detail:{showFilter : false} });
-         this.dispatchEvent(evt);
-         this.hasPadding = !this.hasPadding;
-          // Toggle a class on the host element itself
-        this.template.host.classList.toggle('no-padding', !this.hasPadding);
+  let statusValue = event.target.value;
+        // Make stage required only if Status = Approve
+        this.decisionrequired = (statusValue === 'Draft');
+
+renderedCallback() {
+        // Ensure accordion sections open after render
+        const accordion = this.template.querySelector('lightning-accordion');
+        
+            accordion.activeSectionName = this.activeSections;
+           
+        
     }
