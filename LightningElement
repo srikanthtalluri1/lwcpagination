@@ -8,3 +8,5 @@
         this.searchKey = '';
         this.isDropdownOpen = false;
     }
+
+ this.template.querySelector('c-technology-decision-custom-pick').reset();
