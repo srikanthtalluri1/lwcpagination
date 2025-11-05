@@ -1,12 +1,1 @@
-  let statusValue = event.target.value;
-        // Make stage required only if Status = Approve
-        this.decisionrequired = (statusValue === 'Draft');
-
-renderedCallback() {
-        // Ensure accordion sections open after render
-        const accordion = this.template.querySelector('lightning-accordion');
-        
-            accordion.activeSectionName = this.activeSections;
-           
-        
-    }
+required={decisionrequired}
