@@ -28,10 +28,10 @@ private class technologyDecision_CreateFormHelpers_Test {
         ) {
             if (!exists('TechnologyDecision_Relationship__c')) return null;
             Map<String, Object> f = new Map<String, Object>{
-                'Requesting_Domain__c' => domainId,
-                'Requesting_Technology__c' => techId,
+                'Requesting_Domain__c'      => domainId,
+                'Requesting_Technology__c'  => techId,
                 'Requesting_Application__c' => appId,
-                'Requesting_Platform__c' => platformId
+                'Requesting_Platform__c'    => platformId
             };
             if (extra != null) f.putAll(extra);
             return upsertDyn('TechnologyDecision_Relationship__c', f);
@@ -47,20 +47,19 @@ private class technologyDecision_CreateFormHelpers_Test {
             return upsertDyn('TechnologyDecision_Approval__c', f);
         }
 
-        // Create Domain/App/Platform/Platform Contact dynamically if they exist
-        static Id makeDomain(Map<String,Object> f) { return upsertDyn('TPM_Domain__c', f); }
-        static Id makeApp(Map<String,Object> f) { return upsertDyn('TPM_App__c', f); }
+        // Domain/App/Platform/Platform Contact dynamically (if exist)
+        static Id makeDomain(Map<String,Object> f)   { return upsertDyn('TPM_Domain__c', f); }
+        static Id makeApp(Map<String,Object> f)      { return upsertDyn('TPM_App__c', f); }
         static Id makePlatform(Map<String,Object> f) { return upsertDyn('TPM_Platform__c', f); }
         static Id makePlatformContact(Map<String,Object> f) { return upsertDyn('TPM_Platform_Contact__c', f); }
 
-        // Create an "Employee" (whatever the lookup is) — best guess: AWP_Employee__c
+        // An "Employee" record (adjust object api if needed)
         static Id makeEmployee(String name) {
             if (!exists('AWP_Employee__c')) return null;
             return upsertDyn('AWP_Employee__c', new Map<String,Object>{ 'Name' => name });
         }
 
         static void injectPerms(List<String> names) {
-            // Your class exposes static permissionSetNames; set them directly:
             for (String n : names) {
                 if (!technologyDecision_CreateFormHelpers.permissionSetNames.contains(n)) {
                     technologyDecision_CreateFormHelpers.permissionSetNames.add(n);
@@ -69,48 +68,70 @@ private class technologyDecision_CreateFormHelpers_Test {
         }
     }
 
-    // Optional seam usage (if you added getLoginUserEmpId + @TestVisible override)
+    // Optional seam usage (safe even if seam not present in prod class)
     static void setLoginEmp(Id empId) {
         try {
             technologyDecision_CreateFormHelpers.TEST_loginUserEmpIdOverride = empId;
         } catch (Exception e) {
-            // If you didn't add the seam, ignore; test still runs with neutral branches.
+            // If seam not added, ignore; tests still run (fewer branches may execute)
         }
+    }
+
+    // ---------- TOP-LEVEL HELPER (moved out of test method) ----------
+    // Build a TechnologyDecision__c for reAssignUsersList tests
+    private static Id mkTD(
+        Id relId, Id empTA, Id empBO, Id empAO, Id empTF,
+        String reason, String stage, Boolean taAck, Boolean boAck, Boolean aoAck, Boolean secAck
+    ) {
+        Map<String,Object> f = new Map<String,Object>{
+            'Name'                              => 'TD-' + reason + '-' + stage,
+            'Decision_Reason__c'                => reason,
+            'Stage__c'                          => stage,
+            'Status__c'                         => (stage == 'Pending Approval with Tech Fellow' ? 'Acknowledged' : 'Draft'),
+            'TechnologyDecision_Relationship__c'=> relId,
+            'Requesting_Technical_Architect__c' => empTA,
+            'Requesting_Business_Owner__c'      => empBO,
+            'Requesting_Application_Owner__c'   => empAO,
+            'Requesting_Tech_Fellow__c'         => empTF,
+            'TA_Acknowledged__c'                => taAck,
+            'BO_Acknowledged__c'                => boAck,
+            'AO_Acknowledged__c'                => aoAck,
+            'Security_Review_Acknowledged__c'   => secAck
+        };
+        return TDTestData.makeDecision(f);
     }
 
     // ------------- TESTS -------------
 
     @IsTest
     static void test_createDecisionWithRelation_success() {
-        // Prepare minimal related records
         Id domainId = TDTestData.makeDomain(new Map<String,Object>{ 'Name' => 'Payments' });
         Id appId    = TDTestData.makeApp(new Map<String,Object>{ 'Name' => 'Core App' });
         Id platId   = TDTestData.makePlatform(new Map<String,Object>{ 'Name' => 'Core Platform' });
 
-        // relation input fields
         Map<String, Object> relationFields = new Map<String, Object>{
-            'Requesting_Domain__c'     => domainId,
-            'Requesting_Application__c'=> appId,
-            'Requesting_Platform__c'   => platId
+            'Requesting_Domain__c'      => domainId,
+            'Requesting_Application__c' => appId,
+            'Requesting_Platform__c'    => platId
         };
 
         Map<String, Object> decisionFields = new Map<String, Object>{
-            'Name'        => 'TD-001',
-            'Why__c'      => 'Save Cost',
-            'What__c'     => 'Adopt New Tool',
-            'Value__c'    => 'High',
-            'Stage__c'    => 'Saved',
-            'Status__c'   => 'Draft'
+            'Name'      => 'TD-001',
+            'Why__c'    => 'Save Cost',
+            'What__c'   => 'Adopt New Tool',
+            'Value__c'  => 'High',
+            'Stage__c'  => 'Saved',
+            'Status__c' => 'Draft'
         };
 
-        // Call
         String idStr = technologyDecision_CreateFormHelpers.createDecisionWithRelation(decisionFields, relationFields);
         System.assertNotEquals(null, idStr, 'Decision Id should be returned');
 
-        // Verify relation got back-reference set
         if (TDTestData.exists('TechnologyDecision_Relationship__c')) {
             TechnologyDecision_Relationship__c rel =
-                [SELECT Id, Decison_Id__c FROM TechnologyDecision_Relationship__c WHERE Decison_Id__c = :Id.valueOf(idStr) LIMIT 1];
+                [SELECT Id, Decison_Id__c
+                 FROM TechnologyDecision_Relationship__c
+                 WHERE Decison_Id__c = :Id.valueOf(idStr) LIMIT 1];
             System.assertNotEquals(null, rel, 'Relation should point to the Decision');
         }
     }
@@ -118,11 +139,9 @@ private class technologyDecision_CreateFormHelpers_Test {
     @IsTest
     static void test_getDecisionRecord() {
         Id tdId = TDTestData.makeDecision(new Map<String,Object>{
-            'Name' => 'TD-READ',
-            'Stage__c' => 'Saved',
-            'Status__c'=> 'Draft'
+            'Name' => 'TD-READ', 'Stage__c' => 'Saved', 'Status__c'=> 'Draft'
         });
-        if (tdId == null) Test.skip('TechnologyDecision__c not present in this org');
+        if (tdId == null) return;
 
         TechnologyDecision__c got = technologyDecision_CreateFormHelpers.getDecisionRecord(tdId);
         System.assertEquals(tdId, got.Id, 'Should fetch same record');
@@ -132,39 +151,27 @@ private class technologyDecision_CreateFormHelpers_Test {
     static void test_validateRequiredFieldsOnDecision_allStages() {
         // Saved: Missing Why/What/Value -> expect message
         Id tdSaved = TDTestData.makeDecision(new Map<String,Object>{
-            'Name' => 'TD-SAVED',
-            'Stage__c' => 'Saved',
-            'Status__c'=> 'Draft'
+            'Name' => 'TD-SAVED', 'Stage__c' => 'Saved', 'Status__c'=> 'Draft'
         });
-        if (tdSaved == null) Test.skip('TechnologyDecision__c not present in this org');
+        if (tdSaved == null) return;
 
         String msg1 = technologyDecision_CreateFormHelpers.validateRequiredFieldsOnDecision(String.valueOf(tdSaved));
         System.assert(msg1 != null && msg1.contains('required field'), 'Should flag required fields for Saved');
 
-        // Preparing Decision: Check research fields
+        // Preparing Decision: research fields required
         Id tdPrep = TDTestData.makeDecision(new Map<String,Object>{
-            'Name' => 'TD-PREP',
-            'Stage__c' => 'Preparing Decision',
-            'Status__c'=> 'Draft',
-            'Why__c'   => 'Why ok',
-            'What__c'  => 'What ok',
-            'Value__c' => 'Value ok'
+            'Name' => 'TD-PREP', 'Stage__c' => 'Preparing Decision', 'Status__c'=> 'Draft',
+            'Why__c' => 'Y', 'What__c' => 'W', 'Value__c' => 'V'
         });
         String msg2 = technologyDecision_CreateFormHelpers.validateRequiredFieldsOnDecision(String.valueOf(tdPrep));
         System.assert(msg2 != null && msg2.contains('Security Review'), 'Should flag research fields for Preparing Decision');
 
-        // Security Review: Check security fields
+        // Security Review: security fields required
         Id tdSec = TDTestData.makeDecision(new Map<String,Object>{
-            'Name' => 'TD-SEC',
-            'Stage__c' => 'Security Review',
-            'Status__c'=> 'Draft',
-            'Why__c'   => 'Why ok',
-            'What__c'  => 'What ok',
-            'Value__c' => 'Value ok',
-            'Research_Notes__c'   => 'notes',
-            'Research_Link__c'    => 'http://x',
-            'Decision_Summary__c' => 'sum',
-            'Decision_Notes__c'   => 'notes'
+            'Name' => 'TD-SEC', 'Stage__c' => 'Security Review', 'Status__c'=> 'Draft',
+            'Why__c'=>'Y','What__c'=>'W','Value__c'=>'V',
+            'Research_Notes__c' => 'n','Research_Link__c' => 'http://x',
+            'Decision_Summary__c' => 's','Decision_Notes__c' => 'n'
         });
         String msg3 = technologyDecision_CreateFormHelpers.validateRequiredFieldsOnDecision(String.valueOf(tdSec));
         System.assert(msg3 != null && msg3.contains('Security Review Acknowledgement'), 'Should flag security fields for Security Review');
@@ -172,22 +179,16 @@ private class technologyDecision_CreateFormHelpers_Test {
 
     @IsTest
     static void test_fetchButtonPermissions_with_and_without_perms() {
-        // Prepare employee lookups and inject as "logged-in emp"
         Id emp = TDTestData.makeEmployee('Logged In Emp');
         setLoginEmp(emp);
 
-        // Inject RW permission so branches run
         TDTestData.injectPerms(new List<String>{ 'TPM_Read_Write' });
 
-        // Create a minimal TD with fields used by the logic
         Id tdId = TDTestData.makeDecision(new Map<String,Object>{
-            'Name' => 'TD-BUTTONS',
-            'Stage__c' => 'Saved',
-            'Status__c'=> 'Draft',
-            'Requesting_Technical_Architect__c' => emp,
-            'Requestor__c' => emp
+            'Name' => 'TD-BUTTONS', 'Stage__c' => 'Saved', 'Status__c'=> 'Draft',
+            'Requesting_Technical_Architect__c' => emp, 'Requestor__c' => emp
         });
-        if (tdId == null) Test.skip('TechnologyDecision__c not present in this org');
+        if (tdId == null) return;
 
         technologyDecision_CreateFormHelpers.ButtonPermissions bp =
             technologyDecision_CreateFormHelpers.fetchButtonPermissions(String.valueOf(tdId));
@@ -198,122 +199,110 @@ private class technologyDecision_CreateFormHelpers_Test {
         // Now simulate no perms
         technologyDecision_CreateFormHelpers.permissionSetNames.clear();
         bp = technologyDecision_CreateFormHelpers.fetchButtonPermissions(String.valueOf(tdId));
-        // With no RW, most should be false except edit
         System.assertEquals(true, bp.edit, 'Edit remains enabled even without named perms');
     }
 
-    // Each action in submitApprovalComments exercised in separate sub-tests
     @IsTest
     static void test_submitApprovalComments_fullMatrix() {
         Id empTA = TDTestData.makeEmployee('TA');
         Id empBO = TDTestData.makeEmployee('BO');
         Id empAO = TDTestData.makeEmployee('AO');
         Id empTF = TDTestData.makeEmployee('TechFellow');
-        setLoginEmp(empTA); // default “logged in” for most steps
+        setLoginEmp(empTA);
 
-        // Give approval/security team perms so some branches can execute
         TDTestData.injectPerms(new List<String>{
-            'TPM_Read_Write',
-            'TPM_TD_SecurityReviewTeam',
-            'CTO_Tech_Fellows'
+            'TPM_Read_Write','TPM_TD_SecurityReviewTeam','CTO_Tech_Fellows'
         });
 
         Id tdId = TDTestData.makeDecision(new Map<String,Object>{
             'Name' => 'TD-APPROVAL',
-            'Stage__c' => 'Saved',
-            'Status__c'=> 'Draft',
+            'Stage__c' => 'Saved', 'Status__c'=> 'Draft',
             'Requestor__c' => empTA,
             'Requesting_Technical_Architect__c' => empTA,
-            'Requesting_Business_Owner__c' => empBO,
-            'Requesting_Application_Owner__c' => empAO,
-            'Requesting_Tech_Fellow__c' => empTF
+            'Requesting_Business_Owner__c'      => empBO,
+            'Requesting_Application_Owner__c'   => empAO,
+            'Requesting_Tech_Fellow__c'         => empTF
         });
-        if (tdId == null) Test.skip('TechnologyDecision__c not present in this org');
+        if (tdId == null) return;
 
-        // 1) Preparing Decision Comment – TA transitions to Preparing Decision
+        // 1) Preparing Decision Comment
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'prep', 'Preparing Decision Comment', null));
-
-        // Refresh
-        TechnologyDecision__c td = [SELECT Id, Stage__c, Status__c, TA_Acknowledged__c, BO_Acknowledged__c, AO_Acknowledged__c,
-                                    Security_Review_Acknowledged__c FROM TechnologyDecision__c WHERE Id = :tdId];
+        TechnologyDecision__c td =
+            [SELECT Id, Stage__c FROM TechnologyDecision__c WHERE Id = :tdId];
         System.assertEquals('Preparing Decision', td.Stage__c);
 
-        // 2) Acknowledgement Comment – move to Security Review / pending acks
+        // 2) Acknowledgement Comment
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'ack now', 'Acknowledgement Comment', null));
         td = [SELECT Id, Stage__c FROM TechnologyDecision__c WHERE Id = :tdId];
-        System.assert(td.Stage__c.contains('Security') || td.Stage__c.contains('Pending'), 'Should route into security review/TA pending');
+        System.assert(td.Stage__c.contains('Security') || td.Stage__c.contains('Pending'),
+                      'Should route into security review/TA pending');
 
-        // 3) Security Review Acknowledge path (as security reviewer)
-        setLoginEmp(empTA); // keep TA for now; security team branch relies on perm list
+        // 3) Security Review Acknowledge path
+        setLoginEmp(empTA);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'sec-ack', 'Acknowledge Comment', null));
 
-        // 4) BO acknowledge (switch logged-in to BO)
+        // 4) BO acknowledge
         setLoginEmp(empBO);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'bo-ack', 'Acknowledge Comment', null));
 
-        // 5) AO acknowledge (switch logged-in to AO)
+        // 5) AO acknowledge
         setLoginEmp(empAO);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'ao-ack', 'Acknowledge Comment', null));
 
-        // At this point it should have queued Pending Approval with Tech Fellow
+        // Should be pending TF approval now
         td = [SELECT Id, Stage__c, Status__c FROM TechnologyDecision__c WHERE Id = :tdId];
         System.assert(td.Stage__c.contains('Pending Approval'), 'Should be pending approval with Tech Fellow');
 
-        // 6) Approve Comment (as Tech Fellow)
+        // 6) Approve
         setLoginEmp(empTF);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'approve it', 'Approve Comment', null));
+        td = [SELECT Id, Stage__c FROM TechnologyDecision__c WHERE Id = :tdId];
+        System.assertEquals('Complete', td.Stage__c);
 
-        td = [SELECT Id, Stage__c, Status__c FROM TechnologyDecision__c WHERE Id = :tdId];
-        System.assertEquals('Complete', td.Stage__c, 'After approval stage should be Complete');
-
-        // 7) Reject Comment (simulate from TF on Acknowledged status)
-        // Reset to an acknowledged state quickly for rejection flow
-        update new TechnologyDecision__c(
-            Id = tdId, Status__c = 'Acknowledged', Stage__c = 'Pending Approval with Tech Fellow'
-        );
+        // 7) Reject (reset to Acknowledged)
+        update new TechnologyDecision__c(Id = tdId, Status__c = 'Acknowledged', Stage__c = 'Pending Approval with Tech Fellow');
         setLoginEmp(empTF);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'nope', 'Reject Comment', null));
 
-        // 8) Retire Comment (when Approved)
+        // 8) Retire (when Approved)
         update new TechnologyDecision__c(Id = tdId, Status__c = 'Approved', Stage__c = 'Complete');
-        setLoginEmp(empTA); // TA retires
+        setLoginEmp(empTA);
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'retire', 'Retire Comment', null));
 
-        // 9) Withdraw Comment (any non-approved)
+        // 9) Withdraw
         update new TechnologyDecision__c(Id = tdId, Status__c = 'Draft', Stage__c = 'Preparing Decision');
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'withdraw', 'Withdraw Comment', null));
 
-        // 10) Send Back Comment (from Draft and from Acknowledged)
+        // 10) Send Back (Draft then Acknowledged)
         update new TechnologyDecision__c(Id = tdId, Status__c = 'Draft', Stage__c = 'Security Review');
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'sendback', 'Send Back Comment', null));
-
         update new TechnologyDecision__c(Id = tdId, Status__c = 'Acknowledged', Stage__c = 'Pending Approval with Tech Fellow');
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'sendback2', 'Send Back Comment', null));
 
-        // 11) Recall Comment (from Draft or Acknowledged)
+        // 11) Recall
         update new TechnologyDecision__c(Id = tdId, Status__c = 'Draft', Stage__c = 'Security Review');
         System.assertEquals(true,
             technologyDecision_CreateFormHelpers.submitApprovalComments(tdId, 'recall', 'Recall Comment', null));
 
-        // 12) Reassign Comment (different reassign targets)
+        // 12) Reassign
         update new TechnologyDecision__c(
             Id = tdId,
             Stage__c = 'Preparing Decision',
             Requesting_Technical_Architect__c = empTA,
-            Requesting_Business_Owner__c = empBO,
-            Requesting_Application_Owner__c = empAO,
-            Requesting_Tech_Fellow__c = empTF
+            Requesting_Business_Owner__c      = empBO,
+            Requesting_Application_Owner__c   = empAO,
+            Requesting_Tech_Fellow__c         = empTF
         );
         setLoginEmp(empTA);
         System.assertEquals(true,
@@ -322,24 +311,21 @@ private class technologyDecision_CreateFormHelpers_Test {
 
     @IsTest
     static void test_reAssignUsersList_allReasons() {
-        // Build domain/app/platform so method can mine delegates if objects exist
         Id domainId = TDTestData.makeDomain(new Map<String,Object>{
             'Name' => 'Retail',
-            'Additional_IT_Architect_1__c' => UserInfo.getUserId(),
+            'Additional_IT_Architect_1__c'       => UserInfo.getUserId(),
             'Additional_Business_Sponsor_User_1__c' => UserInfo.getUserId()
         });
         Id appId = TDTestData.makeApp(new Map<String,Object>{
             'Name' => 'WealthApp',
-            'IT_Architect_Delegate_1__c' => UserInfo.getUserId(),
-            'Business_Owner_Delegate_1__c' => UserInfo.getUserId(),
+            'IT_Architect_Delegate_1__c'      => UserInfo.getUserId(),
+            'Business_Owner_Delegate_1__c'    => UserInfo.getUserId(),
             'Application_Owner_Delegate_1__c' => UserInfo.getUserId()
         });
         Id platformId = TDTestData.makePlatform(new Map<String,Object>{ 'Name' => 'PLT' });
 
-        // Relation
         Id relId = TDTestData.makeRelation(domainId, null, appId, platformId, null);
 
-        // Create “employee” Ids
         Id empTA = TDTestData.makeEmployee('TA2');
         Id empBO = TDTestData.makeEmployee('BO2');
         Id empAO = TDTestData.makeEmployee('AO2');
@@ -347,49 +333,29 @@ private class technologyDecision_CreateFormHelpers_Test {
 
         setLoginEmp(empTA);
 
-        // Helper to create decision with reason + stage flags
-        Id mkTD(String reason, String stage, Boolean taAck, Boolean boAck, Boolean aoAck, Boolean secAck) {
-            Map<String,Object> f = new Map<String,Object>{
-                'Name' => 'TD-' + reason + '-' + stage,
-                'Decision_Reason__c' => reason,
-                'Stage__c' => stage,
-                'Status__c'=> (stage == 'Pending Approval with Tech Fellow' ? 'Acknowledged' : 'Draft'),
-                'TechnologyDecision_Relationship__c' => relId,
-                'Requesting_Technical_Architect__c' => empTA,
-                'Requesting_Business_Owner__c' => empBO,
-                'Requesting_Application_Owner__c' => empAO,
-                'Requesting_Tech_Fellow__c' => empTF,
-                'TA_Acknowledged__c' => taAck,
-                'BO_Acknowledged__c' => boAck,
-                'AO_Acknowledged__c' => aoAck,
-                'Security_Review_Acknowledged__c' => secAck
-            };
-            return TDTestData.makeDecision(f);
-        }
-
-        // New Technology family
-        Id tdNew = mkTD('New Technology', 'Preparing Decision', false, false, false, false);
+        Id tdNew = mkTD(relId, empTA, empBO, empAO, empTF,
+                        'New Technology', 'Preparing Decision', false, false, false, false);
         if (tdNew != null) {
             Map<String,String> m = technologyDecision_CreateFormHelpers.reAssignUsersList(String.valueOf(tdNew));
-            System.assertNotEquals(null, m, 'Should return a map (may be empty if objects missing)');
+            System.assertNotEquals(null, m, 'Map should be returned (may be empty)');
         }
 
-        // Existing/Replace App family
-        Id tdApp = mkTD('Existing Application', 'Security Review', true, false, false, false);
+        Id tdApp = mkTD(relId, empTA, empBO, empAO, empTF,
+                        'Existing Application', 'Security Review', true, false, false, false);
         if (tdApp != null) {
             Map<String,String> m = technologyDecision_CreateFormHelpers.reAssignUsersList(String.valueOf(tdApp));
             System.assertNotEquals(null, m);
         }
 
-        // Pending Approval with Tech Fellow
-        Id tdPA = mkTD('Existing Technology', 'Pending Approval with Tech Fellow', true, true, true, true);
+        Id tdPA  = mkTD(relId, empTA, empBO, empAO, empTF,
+                        'Existing Technology', 'Pending Approval with Tech Fellow', true, true, true, true);
         if (tdPA != null) {
             Map<String,String> m = technologyDecision_CreateFormHelpers.reAssignUsersList(String.valueOf(tdPA));
             System.assertNotEquals(null, m);
         }
 
-        // Replace Platform family
-        Id tdPlat = mkTD('Replace Platform', 'Preparing Decision', false, false, false, false);
+        Id tdPlat = mkTD(relId, empTA, empBO, empAO, empTF,
+                         'Replace Platform', 'Preparing Decision', false, false, false, false);
         if (tdPlat != null) {
             Map<String,String> m = technologyDecision_CreateFormHelpers.reAssignUsersList(String.valueOf(tdPlat));
             System.assertNotEquals(null, m);
