@@ -1,15 +1,160 @@
-Test classes must be created for the following Apex components:
+@IsTest
+private class TechnologyDecision_DataTableHandler_Tests {
+    // Helper to create TechnologyDecision__c test records
+    private static List<TechnologyDecision__c> makeTDs() {
+        List<TechnologyDecision__c> rows = new List<TechnologyDecision__c>();
+        // Approved + with various Stage/Decision_Reason combinations
+        rows.add(new TechnologyDecision__c(
+            Name = 'Alpha TD',
+            Status__c = 'Approved',
+            Stage__c = 'Initiated',
+            Decision_Reason__c = 'Cost',
+            Forecast_Decision_Date__c = Date.today().addDays(10)
+        ));
+        rows.add(new TechnologyDecision__c(
+            Name = 'Bravo TD',
+            Status__c = 'Approved',
+            Stage__c = 'Review',
+            Decision_Reason__c = null, // to exercise nullcheck
+            Forecast_Decision_Date__c = Date.today().addDays(20)
+        ));
+        rows.add(new TechnologyDecision__c(
+            Name = 'Charlie TD',
+            Status__c = 'Approved',
+            Stage__c = 'Final',
+            Decision_Reason__c = 'Risk',
+            Forecast_Decision_Date__c = Date.today().addDays(30)
+        ));
+        // Non-Approved (should be excluded when RO filter is applied)
+        rows.add(new TechnologyDecision__c(
+            Name = 'Delta TD',
+            Status__c = 'Draft',
+            Stage__c = 'Initiated',
+            Decision_Reason__c = 'Scope'
+        ));
+        insert rows;
+        return rows;
+    }
 
-TechnologyDecision_CreateFormHelper
+    @IsTest
+    static void test_getTechnologyDecision_basic_and_search() {
+        List<TechnologyDecision__c> rows = makeTDs();
 
-TechnologyDecision_DataTableHandler
+        Test.startTest();
+        // No filters, all decisions (not 'mydecision' to avoid AWP_Utility dependency)
+        Map<String, Object> res1 = TechnologyDecision_DataTableHandler.getTechnologyDecision(
+            0, 200, null, 'alldecision', null
+        );
+        Test.stopTest();
 
-TechnologyDecisionTrigger
+        System.assertNotEquals(null, res1, 'Result map should not be null');
+        Integer total1 = (Integer) res1.get('decisionRecordsCount');
+        List<TechnologyDecision__c> data1 = (List<TechnologyDecision__c>) res1.get('decisionRecords');
+        // Only the 3 Approved should be returned because of the RO path applying Status__c = 'Approved'
+        System.assertEquals(3, total1, 'Expected only Approved rows to be counted');
+        System.assertEquals(3, data1.size(), 'Expected only Approved rows to be returned');
 
-Each test class should achieve at least 85% code coverage for its respective Apex class or trigger.
+        // Now exercise the search term (LIKE on Name/Stage/Status/Decision_Reason)
+        Test.startTest();
+        Map<String, Object> res2 = TechnologyDecision_DataTableHandler.getTechnologyDecision(
+            0, 200, null, 'alldecision', 'Alpha' // matches Name = 'Alpha TD'
+        );
+        Test.stopTest();
 
-All test methods must include positive, negative, and bulk scenarios.
+        Integer total2 = (Integer) res2.get('decisionRecordsCount');
+        List<TechnologyDecision__c> data2 = (List<TechnologyDecision__c>) res2.get('decisionRecords');
+        System.assertEquals(1, total2, 'Search should find only Alpha TD (and still be Approved)');
+        System.assertEquals('Alpha TD', data2[0].Name);
+    }
 
-Test data should be self-contained and created within the test class (no dependency on org data).
+    @IsTest
+    static void test_getTechnologyDecision_with_filters_in_and_nullcheck() {
+        makeTDs();
+        // Build filters JSON matching your handler:
+        //   - Status: ['Approved']
+        //   - Decision Reason: ['nullcheck'] (include nulls)
+        //   - Stage: ['Review','Final'] (2 values)
+        String filtersJson = JSON.serialize(new List<Object>{
+            new Map<String, Object>{ 'Status' => new List<Object>{ 'Approved' } },
+            new Map<String, Object>{ 'Decision Reason' => new List<Object>{ 'nullcheck' } },
+            new Map<String, Object>{ 'Stage' => new List<Object>{ 'Review', 'Final' } }
+        });
 
-All tests should run successfully in the QA/Full Sandbox without errors or failures.
+        Test.startTest();
+        Map<String, Object> res = TechnologyDecision_DataTableHandler.getTechnologyDecision(
+            0, 200, filtersJson, 'alldecision', null
+        );
+        Test.stopTest();
+
+        Integer total = (Integer) res.get('decisionRecordsCount');
+        List<TechnologyDecision__c> data = (List<TechnologyDecision__c>) res.get('decisionRecords');
+
+        // Approved + (Stage in Review/Final) + (Decision_Reason__c IN (values) OR = NULL)
+        // From our seed, that should match:
+        //   - Bravo TD (Approved, Review, Decision_Reason__c = null)
+        //   - Charlie TD (Approved, Final, Decision_Reason__c = 'Risk')  <-- allowed because nullcheck includes null,
+        //     and we didn't filter out non-null; our filter requests (IN values) OR (= null). Since we passed only
+        //     'nullcheck' for Decision Reason, handler will build only the NULL part for that field.
+        // Actually, because we provided only 'nullcheck' for Decision Reason, the handler will add only "= NULL".
+        // So expected = only Bravo TD.
+        System.assertEquals(1, total, 'Expected only the record with null Decision_Reason__c');
+        System.assertEquals('Bravo TD', data[0].Name);
+    }
+
+    @IsTest
+    static void test_getUniqueValues_all_vs_my() {
+        List<TechnologyDecision__c> rows = makeTDs();
+
+        // Re-assign one Approved record to the running user explicitly for "mydecision" path
+        User me = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+        // Note: OwnerId is standard on custom objects; set for a subset
+        update new TechnologyDecision__c(Id = rows[0].Id, OwnerId = me.Id); // Alpha TD -> myrecord
+
+        List<String> labels = new List<String>{ 'Status', 'Stage', 'Decision Reason' };
+
+        // All decisions
+        Test.startTest();
+        Map<String, Object> allMap = TechnologyDecision_DataTableHandler.getUniqueValues(labels, 'alldecision');
+        Test.stopTest();
+
+        System.assert(allMap.containsKey('Status'), 'Status bucket should be present');
+        System.assert(allMap.containsKey('Stage'), 'Stage bucket should be present');
+        System.assert(allMap.containsKey('Decision Reason'), 'Decision Reason bucket should be present');
+
+        List<Object> allStatus = (List<Object>) allMap.get('Status');
+        // Expect at least 'Approved' and 'Draft' buckets in all decisions
+        Boolean sawApproved = false, sawDraft = false;
+        for (Object o : allStatus) {
+            Map<String, Object> m = (Map<String, Object>) o;
+            if ((String) m.get('value') == 'Approved') sawApproved = true;
+            if ((String) m.get('value') == 'Draft') sawDraft = true;
+        }
+        System.assertEquals(true, sawApproved, 'Should see Approved count in all');
+        System.assertEquals(true, sawDraft, 'Should see Draft count in all');
+
+        // Only my decisions (should reflect only OwnerId = me.Id)
+        Test.startTest();
+        Map<String, Object> myMap = TechnologyDecision_DataTableHandler.getUniqueValues(labels, 'mydecision');
+        Test.stopTest();
+
+        // In "mydecision", only Alpha TD was reassigned to me
+        List<Object> myStatus = (List<Object>) myMap.get('Status');
+        System.assertEquals(1, myStatus.size(), 'Only one status bucket expected for my decisions');
+        Map<String, Object> onlyBucket = (Map<String, Object>) myStatus[0];
+        System.assertEquals('Approved', (String) onlyBucket.get('value'), 'My single record is Approved');
+        System.assertEquals(1, (Integer) onlyBucket.get('count'), 'Count should be 1 for my single record');
+    }
+
+    @IsTest
+    static void test_getApiNamesFromLabels() {
+        // These asserts depend on the field labels being the default labels
+        // defined in your org for TechnologyDecision__c.
+        List<String> api1 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', 'Status');
+        List<String> api2 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', 'Stage');
+        List<String> api3 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', 'Decision Reason');
+
+        System.assert(api1.size() > 0 && api1[0].endsWith('__c'), 'Status should resolve to a field API name');
+        System.assert(api2.size() > 0 && api2[0].endsWith('__c'), 'Stage should resolve to a field API name');
+        System.assert(api3.size() > 0 && api3[0].endsWith('__c'), 'Decision Reason should resolve to a field API name');
+    }
+}
