@@ -1,12 +1,15 @@
-@api
-    reset() {
-        this.options = this.options.map(o => ({
-            ...o,
-            selected: false,
-            class: 'slds-form-element__label'
-        }));
-        this.searchKey = '';
-        this.isDropdownOpen = false;
-    }
+Test classes must be created for the following Apex components:
 
- this.template.querySelector('c-technology-decision-custom-pick').reset();
+TechnologyDecision_CreateFormHelper
+
+TechnologyDecision_DataTableHandler
+
+TechnologyDecisionTrigger
+
+Each test class should achieve at least 85% code coverage for its respective Apex class or trigger.
+
+All test methods must include positive, negative, and bulk scenarios.
+
+Test data should be self-contained and created within the test class (no dependency on org data).
+
+All tests should run successfully in the QA/Full Sandbox without errors or failures.
