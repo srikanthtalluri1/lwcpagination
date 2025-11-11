@@ -1,26 +1,2 @@
- addChildrenToFilteredValues() {
-           
-
-            this._filteredFieldValues = this._filteredFieldValues.map(filterGroup => {
-                return {
-                    ...filterGroup,
-                    filteredFieldValue: filterGroup.filteredFieldValue.map(parent => {
-                        console.log('parent.value ', parent.value);
-                        const sourceArray = filterGroup.filterField === 'Status' ? this.statusStageArray : this.appDomainArray;
-                        const match = sourceArray?.find(
-                            cat => this.removeCount(cat.label) === parent.value
-                        );
-
-                        return {
-                            ...parent,
-                            children: match ? match.domains : []
-                        };
-                    })
-                };
-            });
-            console.log('this._filteredFieldValues 330 ', JSON.stringify(this._filteredFieldValues));
-        }
-
-        removeCount(label) {
-            return label.replace(/\s*\(\d+\)$/, '');
-        }
+ this.appDomainArray = normalizeDomains(data?.['modifedAffectedStandard']);
+                        this.statusStageArray = normalizeDomains(data?.['listSatausStage']);
