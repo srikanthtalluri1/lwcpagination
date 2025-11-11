@@ -1,3 +1,55 @@
- List<PortfolioItem> listSatausStage = getStatusStage();
-          fieldUniqueMap.put('listSatausStage', listSatausStage);
-        fieldUniqueMap.put(field, uniqueValues);
+@AuraEnabled(cacheable=true)
+    public static List<PortfolioItem> getStatusStage() {
+        //String whereClause = buildWhereConditionForNames(filterNames);
+       // system.debug('whereClause '+whereClause);
+         string query = 'SELECT Status__c portfolioName, Stage__c domainName,COUNT(Id) recordCount FROM AWP_Architecture_Waiver_Form__c '
+             		 +
+                    ' GROUP BY  Status__c, Stage__c ORDER BY Status__c ' ;
+           system.debug('query 1520 '+query);
+        List<AggregateResult> results = Database.query(query);
+        system.debug('results '+results);
+      
+
+        // Step 2: Group by Portfolio
+        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
+
+        for (AggregateResult ar : results) {
+            system.debug('ar '+ar);
+            String portfolioName = (String)ar.get('portfolioName');
+            String domainName = (String)ar.get('domainName');
+            Integer count = (Integer)ar.get('recordCount');
+
+            if (String.isBlank(portfolioName)) {
+                portfolioName = 'No Data';
+            }
+            if (String.isBlank(domainName)) {
+                domainName = 'No Data';
+            }
+
+            // Create portfolio if missing
+            if (!portfolioMap.containsKey(portfolioName)) {
+                PortfolioItem p = new PortfolioItem();
+                p.label = portfolioName + ' (0)'; // Will update later with total
+                p.count = 0;
+                p.domains = new List<DomainItem>();
+                portfolioMap.put(portfolioName, p);
+            }
+
+            // Add domain to portfolio
+            DomainItem d = new DomainItem();
+            d.label = domainName + ' (' + count + ')';
+            d.count = count;
+            portfolioMap.get(portfolioName).domains.add(d);
+
+            // Increase portfolio count
+            portfolioMap.get(portfolioName).count += count;
+        }
+
+        // Step 3: Update portfolio labels with correct total
+        for (PortfolioItem p : portfolioMap.values()) {
+            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
+        }
+
+        return new List<PortfolioItem>(portfolioMap.values());
+    }
+s
