@@ -1,1753 +1,292 @@
-public with sharing class AWP_WaiverHandlerClass {
-  public static Id userId = UserInfo.getUserId();
-  public static Map<String, Schema.SObjectField> waiverFormFields = Schema.getGlobalDescribe()
-    .get('AWP_Architecture_Waiver_Form__c')
-    .getDescribe()
-    .fields.getMap();
-  // static final String FIELDS_TO_BE_QUERIED = 'Id, Name, Status__c, Waiver_Reason__c, Requesting_Portfolio__c, BARR_Risk_Level_UI__c, Affected_Standard_Portfolio__c,Renew_Counter__c, App_Name__c, Standard_Page_Title__c, Requesting_TPM__c ';
-
-  //Above please add the fields that you want to be queried
-  //static final String FIELDS_TO_BE_QUERIED_NEW = 'Id, Waiver_Id__c, Waiver_Id__r.Type__c, Waiver_Id__r.Name, Waiver_Id__r.Status__c, Waiver_Id__r.Waiver_Reason__c, Waiver_Id__r.Requesting_Portfolio__c, Waiver_Id__r.BARR_Risk_Level_UI__c, Waiver_Id__r.Renew_Counter__c, Waiver_Id__r.Waiver_Expiration_Date__c, Waiver_Id__r.App_Name__c, Waiver_Id__r.Standard_Page_Title__c, Waiver_Id__r.Stage__c, Requesting_Application__c, Affected_Standard_Portfolio1__c, Affected_Standard_Portfolio_Name__c ';/*Feb 15th Changes*/
-  static final String FIELDS_TO_BE_QUERIED_NEW = 'Id, Waiver_Id__c, Waiver_Id__r.Type__c, Waiver_Id__r.Name, Waiver_Id__r.Status__c, Waiver_Id__r.Waiver_Reason__c, Waiver_Id__r.Waiver_Expiration_Date__c, Waiver_Id__r.Renew_Counter__c ';/*Feb 15th Changes*/
-  static final String OBJECT_NAME = 'AWP_Waiver_Relationship__c';
-  Map<String, String> waiverStatus = new Map<String, String>();
-  Map<String, String> waiverReason = new Map<String, String>();
-  Map<String, String> waiverBarrRisk = new Map<String, String>();
-  Map<String, String> waiverAffectedPort = new Map<String, String>();
-  Map<String, String> waiverRequestingPort = new Map<String, String>();
-
-  public AWP_WaiverHandlerClass() {
-    for (
-      Schema.PicklistEntry status : AWP_Architecture_Waiver_Form__c.Status__c.getDescribe()
-        .getPicklistValues()
-    ) {
-      waiverStatus.put(status.getLabel(), status.getValue());
-    }
-    for (
-      Schema.PicklistEntry reason : AWP_Architecture_Waiver_Form__c.Waiver_Reason__c.getDescribe()
-        .getPicklistValues()
-    ) {
-      waiverReason.put(reason.getValue(), reason.getValue());
-    }
-    for (
-      Schema.PicklistEntry risk : AWP_Architecture_Waiver_Form__c.BARR_Risk_Level_UI__c.getDescribe()
-        .getPicklistValues()
-    ) {
-      waiverBarrRisk.put(risk.getValue(), risk.getValue());
-    }
-
-    for (String str : new List<String>{ 'Test1', 'Test2' }) {
-      waiverAffectedPort.put(str, str);
-    }
-
-    for (String str : new List<String>{ 'Request1', 'Request2' }) {
-      waiverRequestingPort.put(str, str);
-    }
-  }
-
-  //Added the fields that we are looking to have filter options. If the field from Relationship record use the formula field in the value and the label in the key
-  public static Map<String, String> fieldList = new Map<String, String>{
-    'Requesting Application' => 'Requesting_Application__c',
-    'Affected Standard' => 'Affected_Standard_Portfolio1__c',/*Feb 15th Changes*/
-    'BARR Risk Level' => 'Waiver_Id__r.BARR_Risk_Level_UI__c',
-    'Waiver Reason' => 'Waiver_Id__r.Waiver_Reason__c',
-    'Status' => 'Waiver_Id__r.Status__c',
-    'Type' => 'Waiver_Id__r.Type__c',
-    'Domain Standard' => 'Affected_Standard_Domain1__r.Name'
-        
-        
-  };
-
-  @AuraEnabled
-  public static Map<String, Object> getWaiverRecordAndPermissions(
-    String searchKey,
-    String sortBy,
-    String sortOrder,
-    Integer pageSize,
-    String after,
-    String lastId,
-    String before,
-    String firstId,
-    boolean first,
-    boolean last,
-    Integer lastPageSize,
-    String allOrMy,
-    String filters,
-    String tab,
-    Integer limitSize, Integer offset
-  ) {
-      System.debug('f@@ ' + after+'@@ '+before);
-    Map<String, Object> result = new Map<String, Object>();
-    Set<String> filterValues = new Set<String>();
-
-    System.debug('filters====' + filters);
-    // Get the Current User's Id
-    String userId = UserInfo.getUserId();
-
-    // Fetch the user's permission sets
-    List<PermissionSetAssignment> psaList = [
-      SELECT PermissionSet.Name
-      FROM PermissionSetAssignment
-      WHERE AssigneeId = :userId
-    ];
-
-    List<String> permissionSetNames = new List<String>();
-    for (PermissionSetAssignment psa : psaList) {
-      permissionSetNames.add(psa.PermissionSet.Name);
-    }
-    result.put('permissionSets', permissionSetNames);
-
-    // Get the permission set name from custom label
-    String permissionSetName = Label.See_All_Waivers;
-    
-      if(Test.isRunningTest()){
-          permissionSetName = 'See_All_Waivers';
-      }
-    
-
-    // Determine the query based on the user's permission sets
-    List<AWP_Waiver_Relationship__c> waiverRecords;
-    Integer waiverRecordsCount = 0;
-	//Code Added By Srikant for Sorting Logic
-      if(!sortBy.contains('Waiver_Id__r.')){
-        sortBy='Waiver_Id__r.'+sortBy; 
-      }
-      if(sortBy.contains('renewCounter')){
-          sortBy= 'Waiver_Id__r.Renew_Counter__c';
-      }
-      if(sortBy.contains('waiverExpirationDate')){
-          sortBy= 'Waiver_Id__r.Waiver_Expiration_Date__c';
-      }
-      system.debug('sortBy '+sortBy);
-	//End Of Code by Srikanth
-    String query =
-      'SELECT ' +
-      FIELDS_TO_BE_QUERIED_NEW +
-      'FROM ' +
-      OBJECT_NAME +
-      ' ';
-    String countQuery = 'SELECT COUNT()' + 'FROM ' + OBJECT_NAME + ' ';
-
-    if (!permissionSetNames.contains(permissionSetName)) {
-      query += ' WHERE Waiver_Id__r.Status__c = \'Approved\'';
-      countQuery += ' WHERE Waiver_Id__r.Status__c = \'Approved\'';
-    }
-
-    //Search logic
-    if (String.isNotBlank(searchKey)) {
-      String textFilter = '\'%' + searchKey + '%\'';
-      if (!query.contains('WHERE')) {
-        query += ' WHERE ';
-        countQuery += ' WHERE ';
-      } else {
-        query += ' AND ';
-        countQuery += ' AND ';
-      }
-      query = buildSearchTerm(query, textFilter);
-      countQuery = buildSearchTerm(countQuery, textFilter);
-        system.debug('Checking Search Key '+ query + ' '+countQuery);
-    }
-    //END
-	system.debug('checking @ '+after+' last'+last+',before '+before+',first '+first+'sortBy ,'+sortBy+'sortOrder, '+sortOrder+'allOrMy '+allOrMy+'tab '+tab);
-    // Add sorting and pagination logic
-    if (
-      (after != '' && !last) ||
-      (after != '' && last) ||
-      (before != '' && !first) ||
-      (before != '' && first)
-    ) {
-      String param = ':textParam';
-      String textParam = after != '' &&
-        after != 'NULL'
-        ? after
-        : (before != '' && before != 'NULL' ? before : null);
-		system.debug('@@ '+after+'@@ '+before);
-      String field = sortBy;
-      if ((after != '' && !last) || (after != '' && last)) {
-        String operator = sortOrder == 'asc' ? '>' : '<';
-        if (after == 'NULL') {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' != NULL OR (' +
-            field +
-            ' = NULL AND Id ' +
-            operator +
-            ' \'' +
-            lastId +
-            '\' )) ';
-        } else if (sortOrder == 'desc') {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' ' +
-            operator +
-            ' ' +
-            param +
-            ' OR ' +
-            field +
-            ' = NULL OR ( ' +
-            field +
-            ' = ' +
-            param +
-            ' AND Id ' +
-            operator +
-            ' \'' +
-            lastId +
-            '\' )) ';
-        } else {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' ' +
-            operator +
-            ' ' +
-            param +
-            ' OR (' +
-            field +
-            ' = ' +
-            param +
-            ' AND Id ' +
-            operator +
-            ' \'' +
-            lastId +
-            '\' )) ';
-            system.debug('Query is @ '+query);
-        }
-      } else if ((before != '' && !first) || (before != '' && first)) {
-        String operator = sortOrder == 'asc' ? '<' : '>';
-        if (before == 'NULL') {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' != NULL OR ( ' +
-            field +
-            '= NULL AND Id ' +
-            operator +
-            ' \'' +
-            firstId +
-            '\' )) ';
-        } else if (sortOrder == 'asc') {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' ' +
-            operator +
-            ' ' +
-            param +
-            ' OR ' +
-            field +
-            ' = NULL OR ( ' +
-            field +
-            ' = ' +
-            param +
-            ' AND Id ' +
-            operator +
-            ' \'' +
-            firstId +
-            '\' )) ';
-        } else {
-          query +=
-            (!query.contains('WHERE') ? 'WHERE (' : 'AND ( ') +
-            field +
-            ' ' +
-            operator +
-            ' ' +
-            param +
-            ' OR (' +
-            field +
-            ' = ' +
-            param +
-            ' AND Id ' +
-            operator +
-            ' \'' +
-            firstId +
-            '\' )) ';
-        }
-      }
-    }
-	
-    //Add for All or My waivers
-    if (allOrMy == 'mywaivers') {
-      query += (!query.contains('WHERE')
-        ? ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' '
-        : ' AND Waiver_Id__r.OwnerId = \'' + userId + '\' ');
-      countQuery += (!countQuery.contains('WHERE')
-        ? ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' '
-        : ' AND Waiver_Id__r.OwnerId = \'' + userId + '\' ');
-    }
-    //END
-    system.debug('Query is '+query);
-      system.debug('countQuery is '+countQuery);
-    /*Srikanth Tab POC Changes*/
-      if (tab == 'Communication' && allOrMy == 'allwaivers') {
-          if(Test.isRunningTest())
-          {
-              if (!query.contains('  WHERE ')) {
-                  query += ' WHERE Waiver_Id__r.Type__c = \'Communication\' ';
-              } else {
-                  query += ' AND Waiver_Id__r.Type__c = \'Communication\' ';
-              }
-              
-              if (!countQuery.contains('  WHERE ')) {
-                  countQuery += ' WHERE Waiver_Id__r.Type__c = \'Communication\' ';
-              } else {
-                  countQuery += ' AND Waiver_Id__r.Type__c = \'Communication\' ';
-              }
-          }
-          else{
-              query += (!query.contains('WHERE')
-                        ? ' WHERE Waiver_Id__r.Type__c = \'Communication\' '
-                        : ' AND Waiver_Id__r.Type__c = \'Communication\' ');
-              countQuery += (!countQuery.contains('WHERE')
-                             ? ' WHERE Waiver_Id__r.Type__c = \'Communication\' '
-                             : ' Waiver_Id__r.Type__c = \'Communication\' ');
-          }
-      }
-      if (tab == 'Application' && allOrMy == 'allwaivers') {
-          if(Test.isRunningTest())
-          {
-              if (!query.contains('  WHERE ')) {
-                  query += ' WHERE Waiver_Id__r.Type__c = \'Application\' ';
-              } else {
-                  query += ' AND Waiver_Id__r.Type__c = \'Application\' ';
-              }
-              
-              if (!countQuery.contains('  WHERE ')) {
-                  countQuery += ' WHERE Waiver_Id__r.Type__c = \'Application\' ';
-              } else {
-                  countQuery += ' AND Waiver_Id__r.Type__c = \'Application\' ';
-              }
-          }
-          else{
-              query += (!query.contains('WHERE')
-                        ? ' WHERE Waiver_Id__r.Type__c = \'Application\' '
-                        : ' AND Waiver_Id__r.Type__c = \'Application\' ');
-              countQuery += (!countQuery.contains('WHERE')
-                             ? ' WHERE Waiver_Id__r.Type__c = \'Application\' '
-                             : ' Waiver_Id__r.Type__c = \'Application\' ');
-          }
-      }
-      if (tab == 'Business' && allOrMy == 'allwaivers') {
-          if(Test.isRunningTest())
-          {
-              if (!query.contains('  WHERE ')) {
-                  query += ' WHERE Waiver_Id__r.Type__c = \'Business\' ';
-              } else {
-                  query += ' AND Waiver_Id__r.Type__c = \'Business\' ';
-              }
-              
-              if (!countQuery.contains('  WHERE ')) {
-                  countQuery += ' WHERE Waiver_Id__r.Type__c = \'Business\' ';
-              } else {
-                  countQuery += ' AND Waiver_Id__r.Type__c = \'Business\' ';
-              }
-          }
-          else{
-              query += (!query.contains('WHERE')
-                        ? ' WHERE Waiver_Id__r.Type__c = \'Business\' '
-                        : ' AND Waiver_Id__r.Type__c = \'Business\' ');
-              countQuery += (!countQuery.contains('WHERE')
-                             ? ' WHERE Waiver_Id__r.Type__c = \'Business\' '
-                             : ' Waiver_Id__r.Type__c = \'Business\' ');
-          }
-      }
-      if (tab == 'Data' && allOrMy == 'allwaivers') {
-          if(Test.isRunningTest())
-          {
-              if (!query.contains('  WHERE ')) {
-                  query += ' WHERE Waiver_Id__r.Type__c = \'Data\' ';
-              } else {
-                  query += ' AND Waiver_Id__r.Type__c = \'Data\' ';
-              }
-              
-              if (!countQuery.contains('  WHERE ')) {
-                  countQuery += ' WHERE Waiver_Id__r.Type__c = \'Data\' ';
-              } else {
-                  countQuery += ' AND Waiver_Id__r.Type__c = \'Data\' ';
-              }
-          }
-          else{
-              query += (!query.contains('WHERE')
-                        ? ' WHERE Waiver_Id__r.Type__c = \'Data\' '
-                        : ' AND Waiver_Id__r.Type__c = \'Data\' ');
-              countQuery += (!countQuery.contains('WHERE')
-                             ? ' WHERE Waiver_Id__r.Type__c = \'Data\' '
-                             : ' Waiver_Id__r.Type__c = \'Data\' ');
-          }
-      }
-      if (tab == 'Technology' && allOrMy == 'allwaivers') {
-          if(Test.isRunningTest())
-          {
-              if (!query.contains('  WHERE ')) {
-                  query += ' WHERE Waiver_Id__r.Type__c = \'Technology\' ';
-              } else {
-                  query += ' AND Waiver_Id__r.Type__c = \'Technology\' ';
-              }
-              
-              if (!countQuery.contains('  WHERE ')) {
-                  countQuery += ' WHERE Waiver_Id__r.Type__c = \'Technology\' ';
-              } else {
-                  countQuery += ' AND Waiver_Id__r.Type__c = \'Technology\' ';
-              }
-          }
-          else{
-              query += (!query.contains('WHERE')
-                        ? ' WHERE Waiver_Id__r.Type__c = \'Technology\' '
-                        : ' AND Waiver_Id__r.Type__c = \'Technology\' ');
-              countQuery += (!countQuery.contains('WHERE')
-                             ? ' WHERE Waiver_Id__r.Type__c = \'Technology\' '
-                             : ' Waiver_Id__r.Type__c = \'Technology\' ');
-          }
-      }
-    /*Srikanth Tab POC Changes*/
-    
-
-    //Add for filter Logic
-    /*if (!String.isBlank(filters)) {
-      List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(
-        filters
-      );
-
-      if (filtersList.size() > 0) {
-        String filterQuery = ' AND (';
-        for (Object filter : filtersList) {
-          Map<String, Object> filterMap = (Map<String, Object>) filter;
-          System.debug('filterMap====' + filterMap);
-          for (String key : filterMap.keySet()) {
-              
-              /*Srikanth Changes*/
-              // Ensuring the key exists and the value is a list
-              /*if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
-                  List<Object> filterValuesList = (List<Object>) filterMap.get(key);
-              
-                  if (filterValuesList.size() > 0) {
-                  //if (!filterValuesList.isEmpty()) {
-                      // Separating null and non-null values
-                      Set<String> stringFilterValues = new Set<String>();
-                      Boolean includeNull = false;
-                      
-                      for (Object value : filterValuesList) {
-                          if (String.valueOf(value) == 'nullcheck') {
-                              includeNull = true; // Handling "No Data" Label (null values)
-                          } else {
-                              stringFilterValues.add(String.valueOf(value)); // Adding non-null values
-                          }
-                      }
-                      
-                      System.debug('stringFilterValues====' + stringFilterValues);
-                      
-                      if (!stringFilterValues.isEmpty() || includeNull) {
-                          // Constructing the filter query for the current field
-                          String fieldApiName = fieldList.get(key);
-                          
-                          if (!stringFilterValues.isEmpty()) {
-                              filterQuery += ' ' + fieldApiName + ' IN :stringFilterValues';
-                          }
-                          
-                          if (includeNull) {
-                              // Adding condition for null values
-                              filterQuery += (!stringFilterValues.isEmpty() ? ' OR ' : '') + fieldApiName + ' = NULL';
-                          }
-                          
-                          filterQuery += ' AND ';
-                      }
-                  }
-              }*/
-              /*Srikanth Changes*/
-              
-              
-          /*}
-        }
-        System.debug('filterQuery====' + filterQuery);
-        filterQuery = filterQuery.removeEnd(' AND ') + ') ';
-        query += filterQuery;
-        countQuery += filterQuery;
-      }
-        
-        
-        
-        
-        
-    }
-
-
-    //END
-
-    String orderQuery = '';
-    if (last || (before != '' && !first) || (before != '' && first)) {
-      orderQuery =
-        'ORDER BY ' +
-        sortBy +
-        ' ' +
-        (sortOrder == 'asc' ? 'desc NULLS LAST ' : 'asc NULLS FIRST ') +
-        ', Id ' +
-        (sortOrder == 'asc' ? 'desc' : 'asc');
-    } else {
-      orderQuery =
-        'ORDER BY ' +
-        sortBy +
-        ' ' +
-        (sortOrder == 'asc' ? 'asc NULLS FIRST ' : 'desc NULLS LAST ') +
-        ', Id ' +
-        sortOrder;
-    }
-
-    query +=
-      orderQuery +
-      ' LIMIT ' +
-      (lastPageSize > 0 ? lastPageSize : pageSize);
-
-    System.debug('filterValues====' + filterValues);
-      
-      if (allOrMy == 'allwaivers' && query.contains('AND')) {
-          query = query.replaceFirst(' AND', ' WHERE');
-          countQuery = countQuery.replaceFirst(' AND', ' WHERE');
-      }
-      
-    System.debug('query===' + query);
-    System.debug('countQuery===' + countQuery);*/
-      
-      if (!String.isBlank(filters)) {
-          List<Object> filtersList = (List<Object>) JSON.deserializeUntyped(filters);
-          
-          // To track if only NULL/nullcheck filters are present
-          Boolean onlyNullChecks = true;
-          system.debug('filtersList '+filtersList);
-         // system.debug('filtersList '+filtersList[0]);
-              
-          
-          if (filtersList.size() > 0) {              
-              //String filterQuery = ' AND (';
-              system.debug('checking here query '+query);
-              String filterQuery = (!query.contains(' WHERE ') ? ' WHERE (' : ' AND (');
-              system.debug('checking here'+filterQuery);
-              Map<String, String> fieldLableMap = getStagePicklistValues();
-              Map<String, List<String>> fieldSpecificFilterValuesMap = new Map<String, List<String>>();
-              system.debug('checking here');
-              // Construct the filter query
-              for (Object filter : filtersList) {
-                  Map<String, Object> filterMap = (Map<String, Object>) filter;
-                  string jsonstring =JSON.serialize(filterMap.values());
-                  Boolean hasLetters = Pattern.compile('[a-zA-Z]').matcher(jsonstring).find();
-                  system.debug('checking here'+hasLetters);
-                  system.debug('checking here'+String.valueOf(filterMap.values()));
-                  system.debug('checking here'+JSON.serialize(filterMap.values()));
-                  system.debug('checking here'+filter);
-                   system.debug('checking here'+filterMap.keySet());
-                  if( hasLetters == true){
-                  for (String key : filterMap.keySet()) {
-                      if (filterMap.get(key) != null && filterMap.get(key) instanceof List<Object>) {
-                          List<Object> filterValuesList = (List<Object>) filterMap.get(key);
-                          system.debug('checking here');
-                          Set<String> stringFilterValues = new Set<String>();
-                          Boolean includeNull = false;
-                          
-                          // Loop through filter values
-                          for (Object value : filterValuesList) {
-                              //value='Approved';
-                             string fieldApiName = getKeyByValue(fieldLableMap, String.valueOf(value));
-                              system.debug('filter checking here ' +String.valueOf(value));
-                             
-                              if (String.valueOf(value) == 'nullcheck') {
-                                  includeNull = true; // Mark nullcheck
-                              }else if(String.valueOf(value) == 'No Data'){
-                                  includeNull = true; // Mark nullcheck
-                              }else if( filterMap.keySet().contains('Status')){
-                                   system.debug('checking here fieldApiName ' +fieldApiName);
-                                   stringFilterValues.add(fieldApiName); // Add non-null values
-                                  onlyNullChecks = false; // There are other values besides nullcheck
-                              } else {
-                                  stringFilterValues.add(String.valueOf(value)); // Add non-null values
-                                  onlyNullChecks = false; // There are other values besides nullcheck
-                              }
-                          }
-                          
-                          // Only process fields that have filter values (either non-null or nullcheck)
-                          if (!stringFilterValues.isEmpty() || includeNull) {
-                              
-                              if (tab != 'All_Waivers' && fieldList.containsKey('Type')) {
-                                  fieldList.remove('Type');
-                              }
-                              
-                              /*Feb 15th Changes*/
-                              String affectedStandardKey = 'Affected Standard';
-                              //String fieldApiName = fieldList.get(key);
-                              
-                              String fieldApiName = (key == 'Affected Standard') 
-                                  ? 'Affected_Standard_Portfolio_Name__c' 
-                                  : fieldList.get(key);
-                              
-                              //if (affectedStandardKey == 'Affected Standard') {
-                              //    fieldApiName = 'Affected_Standard_Portfolio_Name__c'; // Replace with the new field
-                              //}
-                              /*Feb 15th Changes*/
-                              
-                              if (!fieldSpecificFilterValuesMap.containsKey(fieldApiName)) {
-                                  fieldSpecificFilterValuesMap.put(fieldApiName, new List<String>());
-                              }
-                              fieldSpecificFilterValuesMap.get(fieldApiName).addAll(stringFilterValues);
-                              
-                              // Add the field condition to the query
-                              filterQuery += '(';
-                              
-                              if (includeNull && onlyNullChecks) {
-                                  // If only NULL checks are present for this field, do a NULL check
-                                  filterQuery += fieldApiName + ' = NULL';
-                              } else {
-                                  // If there are non-null values, create the IN condition
-                                  if (!stringFilterValues.isEmpty()) {
-                                      List<String> quotedValues = new List<String>();
-                                      for (String value : stringFilterValues) {
-                                          quotedValues.add('\'' + value + '\'');
-                                      }
-                                      String quotedValuesString = String.join(quotedValues, ', ');
-                                      filterQuery += fieldApiName + ' IN (' + quotedValuesString + ')';
-                                  }
-                                  
-                                  // Include NULL check if needed (OR between IN and NULL)
-                                  if (includeNull) {
-                                      if (!stringFilterValues.isEmpty()) {
-                                          filterQuery += ' OR ';
-                                      }
-                                      filterQuery += fieldApiName + ' = NULL';
-                                  }
-                              }
-                              
-                              // Close the condition for this field
-                              filterQuery += ')';
-                              filterQuery += ' AND ';
-                          }
-                      }
-                  }
-              }
-              }
-              // Clean up the final query (remove last AND and close parentheses)
-              system.debug('Check filterQuery '+filterQuery);
-              String lastChar = filterQuery.substring(filterQuery.length() - 1);
-              system.debug('Check filterQuery '+lastChar);
-              if(lastChar=='('){
-                  filterQuery='';
-              }else{
-              filterQuery = filterQuery.removeEnd(' AND ') + ') ';
-              }
-              system.debug('Check filterQuery After '+filterQuery);
-              query += filterQuery;
-              countQuery += filterQuery;
-          }
-      }
-
-		system.debug('Query 605 '+query);
-      
-      // END
-      
-      String orderQuery = '';
-      if (last || (before != '' && !first) || (before != '' && first)) {
-          orderQuery =
-              'ORDER BY ' +
-              sortBy +
-              ' ' +
-              (sortOrder == 'asc' ? 'desc NULLS LAST ' : 'asc NULLS FIRST ') +
-              ', Id ' +
-              (sortOrder == 'asc' ? 'desc' : 'asc');
-      } else {
-          orderQuery =
-              'ORDER BY ' +
-              sortBy +
-              ' ' +
-              (sortOrder == 'asc' ? 'asc NULLS FIRST ' : 'desc NULLS LAST ') +
-              ', Id ' +
-              sortOrder;
-      }
-      
-      query +=
-          orderQuery +
-          ' LIMIT ' +
-          (lastPageSize > 0 ? lastPageSize : pageSize);
-      
-      System.debug('query===' + query);
-      System.debug('countQuery===' + countQuery);
-      
-     /* if (allOrMy == 'allwaivers' && query.contains('AND') && (tab == null || tab == '')) {
-          query = query.replaceFirst(' AND', ' WHERE');
-          countQuery = countQuery.replaceFirst(' AND', ' WHERE');
-      } */
-      
-      System.debug('Final Query: ' + query);
-
-
-
-
-
-
-      
-      /*Srikanth Changes*/
-      // Target fields to replace with their prefixed versions
-      Set<String> fieldsToReplace = new Set<String>{
-          'Waiver_Reason__c', 
-              'Requesting_Portfolio__c', 
-              'Status__c', 
-              'Standard_Page_Title__c',
-              'Type__c',
-              'Stage__c',
-              'Renew_Counter__c'
-              };
-      
-      // Extract the ORDER BY clause
-      Integer orderByIndex = query.indexOf('ORDER BY');
-      if (orderByIndex > -1) {
-          String beforeOrderBy = query.substring(0, orderByIndex);
-          String orderByClause = query.substring(orderByIndex + 9); // Skip 'ORDER BY'
-          Integer limitIndex = orderByClause.indexOf('LIMIT');
-          if (limitIndex > -1) {
-              orderByClause = orderByClause.substring(0, limitIndex).trim();
-          }
-          
-          // Process the ORDER BY clause
-          List<String> orderByFields = orderByClause.split(',');
-          for (Integer i = 0; i < orderByFields.size(); i++) {
-              String field = orderByFields[i].trim();
-              
-              // Extract the field name before ASC/DESC/NULLS FIRST if present
-              String baseField = field.split(' ')[0];
-              
-              // Replace with the prefixed version if in the target set
-              if (fieldsToReplace.contains(baseField)) {
-                  field = field.replace(baseField, 'Waiver_Id__r.' + baseField);
-                  orderByFields[i] = field;
-              }
-          }
-          
-          // Rebuild the ORDER BY clause
-          String modifiedOrderByClause = String.join(orderByFields, ', ');
-          system.debug('limitSize '+limitSize+' offset '+offset);
-          // Rebuild the query with the modified ORDER BY clause
-          query = beforeOrderBy + 'ORDER BY ' + modifiedOrderByClause + ' LIMIT :limitSize OFFSET :offset';
-      }
-      
-      // Log the modified query
-      System.debug('Modified Query: ' + query);
-      /*Srikanth Changes*/
-      
-    waiverRecords = Database.query(query);
-    waiverRecordsCount = Database.countQuery(countQuery);
-	system.debug('waiverRecords '+waiverRecords);
-    if (last || (before != '' && !first) || (before != '' && first)) {
-      List<AWP_Waiver_Relationship__c> tmp = new List<AWP_Waiver_Relationship__c>();
-      for (Integer i = waiverRecords.size() - 1; i >= 0; i--) {
-        tmp.add(waiverRecords.get(i));
-      }
-      waiverRecords = tmp;
-    }
-
-    result.put('waiverRecords', waiverRecords);
-    result.put('waiverRecordsCount', waiverRecordsCount);
-      system.debug('waiverRecords '+waiverRecords);
+import getStatusStageCounts from '@salesforce/apex/AWP_WaiverHandlerClass.getStatusStage';
+statusStageArray=[];
+get tableCondition() {
+    console.log('Checking 193');
+    const list = this._filteredFieldValues || [];
+    const result = list.some(category =>
+        category?.isStatusStage || category?.isApplicationStandard // <-- check spelling
+    );
+    console.log('tableCondition:', result);
     return result;
-  }
-
-  private static String buildSearchTerm(String query, String searchKey) {
-    query +=
-      '( Waiver_Id__r.Name LIKE ' +
-      searchKey +
-        'OR Waiver_Id__r.Type__c  LIKE ' +
-      searchKey +
-        'OR Waiver_Id__r.Requesting_Portfolio__c  LIKE ' +
-      searchKey +
-        'OR Waiver_Id__r.Stage__c   LIKE ' +
-      searchKey +
-      ' OR Waiver_Id__r.Status__c LIKE ' +
-      searchKey +
-      ' OR Waiver_Id__r.Waiver_Reason__c LIKE ' +
-      searchKey +
-      ' ) ';
-    return query;
-  }
-
- public static String getKeyByValue(Map<String, String> fielMap, String valueToFind) {
-    for (String key : fielMap.keySet()) {
-        if (fielMap.get(key) == valueToFind) {
-            return key;
-        }
     }
-    return null; // if not found
-}
-    
-  @AuraEnabled(cacheable=true)
-  public static Map<String, Object> getFilterDetails(String tabName) {
-    Map<String, Object> result = new Map<String, Object>();
-    List<Object> filterOptions = new List<Object>();
-      
-      if (tabName != 'All_Waivers' && fieldList.containsKey('Type') ||
-         fieldList.containsKey('Domain Standard')) {
-          fieldList.remove('Type');
-             fieldList.remove('Domain Standard');
-      }
-      
-    for (String s : fieldList.keySet()) {
-      filterOptions.add(
-        new Map<String, Object>{
-          'label' => s,
-          'value' => s,
-          'selected' => false
-        }
-      );
-    }
-    result.put('filterOptions', filterOptions);
-    return result;
-  }
-    
-    /*@AuraEnabled(cacheable=true)
-    public static Map<String, Object> getFilterDetails() {
-        Map<String, Object> result = new Map<String, Object>();
-        List<Object> filterOptions = new List<Object>();
-        
-        // Add generic filters for all fields except 'Affected_Standard_Portfolio__c'
-        for (String s : fieldList.keySet()) {
-            if (s != 'Affected Standard Portfolio') {
-                filterOptions.add(
-                    new Map<String, Object>{
-                        'label' => s,
-                            'value' => s,
-                            'selected' => false
-                            }
-                );
-            }
-        }
-        
-        // Add specific logic for Affected Standard Portfolio
-        List<AggregateResult> portfolioResults = [
-            SELECT Affected_Standard_Portfolio__c, COUNT(Id)
-            FROM AWP_Waiver_Relationship__c
-            WHERE Affected_Standard_Portfolio__c != NULL
-            GROUP BY Affected_Standard_Portfolio__c
-        ];
-        
-        // Extract portfolio names from AggregateResult
-        Set<String> portfolioNames = new Set<String>();
-        for (AggregateResult ar : portfolioResults) {
-            portfolioNames.add((String) ar.get('Affected_Standard_Portfolio__c'));
-        }
-        
-        Map<String, String> portfolioIdToNameMap = new Map<String, String>();
-        
-        // Fetch the portfolio names and IDs from the Portfolio object
-        List<TPM_Port__c> portfolios = [
-            SELECT Id, Name
-            FROM TPM_Port__c
-            WHERE Name IN :portfolioNames
-        ];
-        
-        for (TPM_Port__c portfolio : portfolios) {
-            portfolioIdToNameMap.put(portfolio.Name, portfolio.Id);
-        }
-        
-        // Add Portfolio filter options and merge into filterOptions
-        for (AggregateResult ar : portfolioResults) {
-            String portfolioName = (String) ar.get('Affected_Standard_Portfolio__c');
-            Integer count = (Integer) ar.get('expr0');
-            if (portfolioIdToNameMap.containsKey(portfolioName)) {
-                filterOptions.add(
-                    new Map<String, Object>{
-                        'label' => portfolioName,
-                            'value' => portfolioIdToNameMap.get(portfolioName),
-                            'selected' => false,
-                            'count' => count
-                            }
-                );
-            }
-        }
-        
-        result.put('filterOptions', filterOptions); // Single combined list for LWC
-        return result;
-    }*/
 
-    
-    
-    /*@AuraEnabled(cacheable=true)
-    public static Map<String, Object> getFilterDetailsSelected(List<String> portfolio) {
-        try {
-            Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-            
-            // Fetch domains related to the selected portfolio value
-            Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-            List<TPM_Domain__c> domains = [
-                SELECT Id, Port__c, Name, Port__r.Name
-                FROM TPM_Domain__c
-                WHERE Port__c IN :portfolio //Port__r.Name = :portfolio
-            ];
-            
-            for (TPM_Domain__c domain : domains) {
-                if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                    portfolioDomainMap.put(domain.Port__c, new List<Object>());
-                }
-                Map<String, Object> domainData = new Map<String, Object>();
-                domainData.put('id', domain.Id);
-                domainData.put('name', domain.Name);
-                portfolioDomainMap.get(domain.Port__c).add(domainData);
-            }
-            
-            fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-            return fieldUniqueMap;
-            
-        } catch (Exception e) {
-            System.debug('Error: ' + e.getMessage());
-            throw new AuraHandledException(e.getMessage());
-        }
-    }*/
+ addChildrenToFilteredValues() {
+           
 
+            this._filteredFieldValues = this._filteredFieldValues.map(filterGroup => {
+                return {
+                    ...filterGroup,
+                    filteredFieldValue: filterGroup.filteredFieldValue.map(parent => {
+                        console.log('parent.value ', parent.value);
+                        const sourceArray = filterGroup.filterField === 'Status' ? this.statusStageArray : this.appDomainArray;
+                        const match = sourceArray?.find(
+                            cat => this.removeCount(cat.label) === parent.value
+                        );
 
- /*@AuraEnabled(cacheable=true)
-public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy
-) {
-    try {
-        Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-        String condition = '';
-        
-        if (allOrMy == 'mywaivers') {
-            condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
-        }
-
-        Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
-
-        for (String field : fieldApiName) {
-            if (!fieldList.containsKey(field)) continue;
-
-            if (Limits.getQueries() < maxQueriesAllowed) {
-                String query = '';
-
-                if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-                    query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                            'FROM AWP_Waiver_Relationship__c ' + condition +
-                            ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
-                } else {
-                    query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
-                            'FROM AWP_Waiver_Relationship__c ' + condition +
-                            ' GROUP BY ' + fieldList.get(field);
-                }
-
-                results.put(field, Database.query(query));
-            } else {
-                System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
-            }
-        }
-
-        // After aggregation, fetch the portfolio names using a second query
-        Set<Id> portfolioIds = new Set<Id>();
-        for (String field : results.keySet()) {
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    portfolioIds.add((Id) ar.get('Affected_Standard_Portfolio1__c'));
-                }
-            }
-        }
-
-        Map<Id, String> portfolioNameMap = new Map<Id, String>();
-        if (!portfolioIds.isEmpty()) {
-            List<TPM_Port__c> portfolios = [
-                SELECT Id, Name FROM TPM_Port__c WHERE Id IN :portfolioIds
-            ];
-            for (TPM_Port__c portfolio : portfolios) {
-                portfolioNameMap.put(portfolio.Id, portfolio.Name);
-            }
-        }
-
-        for (String field : results.keySet()) {
-            List<Object> uniqueValues = new List<Object>();
-
-            if (fieldList.get(field) != 'Affected_Standard_Portfolio__c' && fieldList.get(field) != 'Affected_Standard_Portfolio1__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    Map<String, Object> uni = new Map<String, Object>();
-                    uni.put(
-                        'value',
-                        (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
-                    );
-                    uni.put('count', (Integer) ar.get('expr0'));
-                    uniqueValues.add((Object) uni);
-                }
-            }
-
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio__c' || fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-                for (AggregateResult ar : results.get(field)) {
-                    Id portfolioId = (Id) ar.get('Affected_Standard_Portfolio1__c');
-                    Map<String, Object> uni = new Map<String, Object>();
-                    String portfolioName = portfolioNameMap.get(portfolioId);
-                    uni.put('value', portfolioName);
-                    uni.put('id', portfolioId);
-                    uni.put('count', (Integer) ar.get('expr0'));
-                    uniqueValues.add((Object) uni);
-                }
-            }
-
-            fieldUniqueMap.put(field, uniqueValues);
-        }
-
-        // Domains related to portfolio logic
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-        List<TPM_Domain__c> domains = [
-            SELECT Id, Port__c, Name
-            FROM TPM_Domain__c
-            WHERE Port__c IN (
-                SELECT Affected_Standard_Portfolio1__c
-                FROM AWP_Waiver_Relationship__c
-                WHERE Affected_Standard_Portfolio1__c != NULL
-            )
-        ];
-
-        for (TPM_Domain__c domain : domains) {
-            if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                portfolioDomainMap.put(domain.Port__c, new List<Object>());
-            }
-            Map<String, Object> domainData = new Map<String, Object>();
-            domainData.put('id', domain.Id);
-            domainData.put('name', domain.Name);
-            portfolioDomainMap.get(domain.Port__c).add(domainData);
-        }
-
-        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-
-        return fieldUniqueMap;
-
-    } catch (Exception e) {
-        System.debug('message' + e.getMessage());
-        System.debug('stack' + e.getStackTraceString());
-        throw new AuraHandledException(e.getMessage());
-    }
-} */
-
-@AuraEnabled(cacheable=true)//Map<String, List<Object>>
-  public static Map<String, Object> getUniqueValues(
-    List<String> fieldApiName,
-    String allOrMy,
-      Boolean isfilterParam
-  ) {
-    try {
-      Map<String, List<AggregateResult>> results = new Map<String, List<AggregateResult>>();
-      Map<String, String> fieldLabel = getStagePicklistValues();
-      //Map<String, List<Object>> fieldUniqueMap = new Map<String, List<Object>>();
-      Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-      String condition = '';
-      if (allOrMy == 'mywaivers') {
-        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
-      }
-
-      List<String> tempFieldList = new List<String>{
-        'BARR Risk Level',
-        'Waiver Reason',
-        'Status'
-      };
-
-      Integer maxQueriesAllowed = Limits.getLimitQueries() - Limits.getQueries(); // Just for safety
-
-/*for (String field : fieldApiName) {
-    if (!fieldList.containsKey(field)) continue;
-
-    if (Limits.getQueries() < maxQueriesAllowed) {
-        String query = '';
-
-        if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
-        } else {
-            query = 'SELECT ' + fieldList.get(field) + ', COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY ' + fieldList.get(field);
-        }
-
-        results.put(field, Database.query(query));
-    } else {
-        // Optional: Log or handle case when you're about to exceed limits
-        System.debug('Skipping query for field: ' + field + ' to avoid governor limits.');
-    }
-} */
-        //Srikant 9 April to write query out of for loop
-        /*Set<String> fieldsToReplace = new Set<String>{
-          'Waiver_Reason__c', 
-              'Requesting_Portfolio__c', 
-              'Status__c', 
-              'Standard_Page_Title__c',
-              'Type__c',
-              'Stage__c'
-              }; 
-		 'Requesting Application' => 'Requesting_Application__c',
-    'Affected Standard' => 'Affected_Standard_Portfolio1__c',
-    'BARR Risk Level' => 'Waiver_Id__r.BARR_Risk_Level_UI__c',
-    'Waiver Reason' => 'Waiver_Id__r.Waiver_Reason__c',
-    'Status' => 'Waiver_Id__r.Status__c',
-    'Type' => 'Waiver_Id__r.Type__c'*/
-        system.debug('fieldApiName '+ fieldApiName);
-        String query = '';
-        string fieldApiNameString = string.join(fieldApiName,',');
-        if(fieldApiNameString.contains('Affected Standard')){
-            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Affected_Standard_Portfolio1__c,Affected_Standard_Portfolio1__r.Name';
-            results.put('Affected Standard', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Requesting Application')){
-            query = 'SELECT Requesting_Application__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Requesting_Application__c' ;
-            results.put('Requesting Application', Database.query(query));
-        }
-        if(fieldApiNameString.contains('BARR Risk Level')){
-            query = 'SELECT Waiver_Id__r.BARR_Risk_Level_UI__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Waiver_Id__r.BARR_Risk_Level_UI__c' ;
-            results.put('BARR Risk Level', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Waiver Reason')){
-            query = 'SELECT Waiver_Id__r.Waiver_Reason__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Waiver_Id__r.Waiver_Reason__c' ;
-            results.put('Waiver Reason', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Status')){
-            query = 'SELECT Waiver_Id__r.Status__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Waiver_Id__r.Status__c' ;
-             results.put('Status', Database.query(query));
-        }
-        if(fieldApiNameString.contains('Type')){
-            query = 'SELECT Waiver_Id__r.Type__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Waiver_Id__r.Type__c' ;
-             results.put('Type', Database.query(query));
-        }
-       /* if(fieldApiNameString.contains('Affected Standard')){
-            query = 'SELECT Affected_Standard_Portfolio1__c,Affected_Standard_Domain1__c , COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY Affected_Standard_Domain1__c' ;
-             results.put('Type', Database.query(query));
-        } */
-        
-	//Srikant 9 April to write query out of for loop
-        
-        // After aggregation, fetch the portfolio names using a second query
-        Set<Id> portfolioIds = new Set<Id>();
-        for (String field : results.keySet()) {
-            if (fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {/*Feb 15th Changes*/
-                for (AggregateResult ar : results.get(field)) {
-                    portfolioIds.add((Id) ar.get('Affected_Standard_Portfolio1__c'));
-                }
-            }
-        }
-        System.debug('portfolioIds '+portfolioIds);
-        
-        // Fetch the related names for the portfolio IDs
-        Map<Id, String> portfolioNameMap = new Map<Id, String>();
-        if (!portfolioIds.isEmpty()) {
-            List<TPM_Port__c> portfolios = [SELECT Id, Name FROM TPM_Port__c WHERE Id IN :portfolioIds];
-            for (TPM_Port__c portfolio : portfolios) {
-                portfolioNameMap.put(portfolio.Id, portfolio.Name);
-            }
-        }
-        System.debug('portfolioNameMap '+portfolioNameMap);
-        
-      for (String field : results.keySet()) {
-        List<Object> uniqueValues = new List<Object>();
-          /*Feb 15th Changes - 914*/
-          if (fieldList.get(field) != 'Affected_Standard_Portfolio__c' && fieldList.get(field) != 'Affected_Standard_Portfolio1__c') {
-              for (AggregateResult ar : results.get(field)) {
-                  system.debug('ar ===>>> '+ar);
-                  
-                   System.debug('uniqueValues '+(String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', '')));
-                  Map<String, Object> uni = new Map<String, Object>();
-                  if(field =='Status'){
-                     uni.put(
-                      'value',
-                      fieldLabel.get((String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', '')))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0')); 
-                  }else{
-                  uni.put(
-                      'value',
-                      (String) ar.get((fieldList.get(field)).replace('Waiver_Id__r.', ''))
-                  );
-                  uni.put('count', (Integer) ar.get('expr0'));
-                  }
-                  uniqueValues.add((Object) uni);
-                  // }
-                  // else if (
-                  //   field == 'Affected Standard Portfolio' ||
-                  //   field == 'Requesting Application'
-                  // ) {
-                  //   uni.put('value', (String) ar.get('Name'));
-                  //   uni.put('count', (Integer) ar.get('expr0'));
-                  //   uniqueValues.add((Object) uni);
-                  // }
-                  
-                  System.debug('uniqueValues '+uniqueValues);
-                 
-              }
-          }
-          
-          
-          // Now, process the aggregate results and include the names and IDs
-          /*Feb 15th Changes - 940*/
-          list<string> affctedSTNames = new list<string>();
-          if (fieldList.get(field) == 'Affected_Standard_Portfolio__c' || fieldList.get(field) == 'Affected_Standard_Portfolio1__c') {
-              
-              for (AggregateResult ar : results.get(field)) {
-                  //String portfolioName = (String) ar.get('Affected_Standard_Portfolio1__r.Name');
-                  Id portfolioId = (Id) ar.get('Affected_Standard_Portfolio1__c');
-                  Map<String, Object> uni = new Map<String, Object>();
-                  String portfolioName = portfolioNameMap.get(portfolioId);
-                  affctedSTNames.add(portfolioName);
-                  uni.put('value', portfolioName);  // Portfolio Name as label
-                  uni.put('id', portfolioId);  // Portfolio Id
-                  uni.put('count', (Integer) ar.get('expr0'));  // The count of related records
-                  system.debug('portfolioName 1201 '+portfolioName);
-                  uniqueValues.add((Object) uni);
-                  
-              }
-          }
-          
-		//getRecordApplicationPortfolio( affctedSTNames, allOrMy);
-          if(fieldList.get(field) == 'Affected_Standard_Portfolio1__c'){
-             List<PortfolioItem> lstportfolio = getPortfolioDomainCounts(affctedSTNames, isfilterParam );
-              fieldUniqueMap.put('modifedAffectedStandard', lstportfolio);
-          }
-		     List<PortfolioItem> listSatausStage = getStatusStage();
-          fieldUniqueMap.put('listSatausStage', listSatausStage);
-        fieldUniqueMap.put(field, uniqueValues);
-        
-          
-      }
-        
-
-        // Process new functionality: Portfolios and related Domains
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-        List<TPM_Domain__c> domains = [
-            SELECT Id, Port__c, Name
-            FROM TPM_Domain__c
-            WHERE Port__c IN (
-                SELECT Affected_Standard_Portfolio1__c
-                FROM AWP_Waiver_Relationship__c
-                WHERE Affected_Standard_Portfolio1__c != NULL
-            )
-        ];
-        
-        for (TPM_Domain__c domain : domains) {
-            if (!portfolioDomainMap.containsKey(domain.Port__c)) {
-                portfolioDomainMap.put(domain.Port__c, new List<Object>());
-            }
-            Map<String, Object> domainData = new Map<String, Object>();
-            domainData.put('id', domain.Id);
-            domainData.put('name', domain.Name);
-            portfolioDomainMap.get(domain.Port__c).add(domainData);
-        }
-        
-        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap);
-        getStatusStageCounts();
-      return fieldUniqueMap;
-    } catch (Exception e) {
-      System.debug('message' + e.getMessage());
-      System.debug('stack' + e.getStackTraceString());
-      throw new AuraHandledException(e.getMessage());
-    }
-  }
-
-
-  @AuraEnabled
-  public static ReturnWP fetchFields(
-    String recordId,
-    String objectName,
-    String fieldSetName
-  ) {
-    ReturnWP res = new ReturnWP();
-    try {
-      // Querying Name Field
-      if (String.isBlank(recordId)) {
-        res.message = 'Invalid Id';
-        return res;
-      }
-      res.objectLabelName = Schema.getGlobalDescribe()
-        .get(objectName)
-        .getDescribe()
-        .getLabel();
-      // List<sObject> objectList = Database.query(
-      //   'SELECT id, Name FROM ' + objectName + ' WHERE Id =: recordId'
-      // );
-      // res.nameField = String.valueof(objectList[0].get('Name'));
-
-      // Fetching Highlight Panel Field Set
-      if (String.isBlank(fieldSetName)) {
-        res.message = 'Please provide a Field Set Name';
-        return res;
-      }
-      Schema.FieldSet fieldSet = Schema.getGlobalDescribe()
-        .get(objectName)
-        .getDescribe()
-        .fieldSets.getMap()
-        .get(fieldSetName);
-      if (fieldSet == null) {
-        res.message = 'Field Set provided is not Valid';
-        return res;
-      }
-      res.fieldsAPI = new List<String>();
-      for (Schema.FieldSetMember fieldSetMem : fieldSet.getFields()) {
-        res.fieldsAPI.add(fieldSetMem.getFieldPath());
-      }
-      return res;
-    } catch (Exception ex) {
-      throw new AuraHandledException(ex.getMessage());
-    }
-  }
-
-  public class ReturnWP {
-    @AuraEnabled
-    public String message;
-    @AuraEnabled
-    public String nameField;
-    @AuraEnabled
-    public List<String> fieldsAPI;
-    @AuraEnabled
-    public String objectLabelName;
-  }
-    
-    
-    @AuraEnabled(cacheable=true)
-    public static Map<String, String> getStagePicklistValues() {
-        Map<String, String> stageLabelMap = new Map<String, String>();
-        Schema.DescribeFieldResult fieldResult = AWP_Architecture_Waiver_Form__c.Stage__c.getDescribe();
-        Schema.DescribeFieldResult fieldResult2 = AWP_Architecture_Waiver_Form__c.Status__c.getDescribe();
-        List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
-        List<Schema.PicklistEntry> picklistValues2 = fieldResult2.getPicklistValues();
-        
-        for (Schema.PicklistEntry entry : picklistValues) {
-            stageLabelMap.put(entry.getValue(), entry.getLabel());
-        }
-        if(!picklistValues2.IsEmpty()){
-        for (Schema.PicklistEntry entry1 : picklistValues2) {
-            stageLabelMap.put(entry1.getValue(), entry1.getLabel());
-        }
-        }
-        return stageLabelMap;
-    }
-    //Srikant Changes for Refresh Issue 10 April
-    @AuraEnabled(cacheable=true)
-    public static AWP_Architecture_Waiver_Form__c getRecordonLoad(String recordId) {
-        
-       AWP_Architecture_Waiver_Form__c  Waiver =[SELECT id, Name from AWP_Architecture_Waiver_Form__c 
-                                                WHERE Id=:recordId];
-        return Waiver;
-    }
-    //Srikant Changes for Refresh Issue
-        //Srikant Changes for Refresh Issue 17 April
-    @AuraEnabled(cacheable=true)
-    public static AWP_Waiver_Relationship__c  getRelationship(String recordId) {
-        
-       AWP_Waiver_Relationship__c   rel =[SELECT Id, Waiver_Id__c  from AWP_Waiver_Relationship__c 
-                                                WHERE Waiver_Id__c =:recordId limit 1];
-        return rel;
-    }
-    //Srikant Changes for Refresh Issue
-    //
-    
-    public static String buildWhereConditionForNames(List<String> names) {
-    if (names == null || names.isEmpty()) {
-        return ''; // No condition if list is empty
-    }
-    
-    List<String> nonNullNames = new List<String>();
-    Boolean hasNull = false;
-    
-    for (String s : names) {
-        if (s == null) {
-            hasNull = true;
-        } else {
-            // Escape single quotes in values
-            nonNullNames.add(s.replace('\'', '\\\''));
-        }
-    }
-    
-    List<String> conditions = new List<String>();
-    
-    if (!nonNullNames.isEmpty()) {
-        String inClause = 'Affected_Standard_Portfolio1__r.Name IN (\'' + String.join(nonNullNames, '\',\'') + '\')';
-        conditions.add(inClause);
-    }
-    
-    if (hasNull) {
-        conditions.add('Affected_Standard_Portfolio1__r.Name = null');
-    }
-    
-    return '(' + String.join(conditions, ' OR ') + ')';
-}
-
-     @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getRecordApplicationPortfolio(list<string> fieldApiName, string allOrMy, list<string> filterName ){ 
-        system.debug('filtervalues '+fieldApiName);
-        String condition = '';
-        Map<String, Object> fieldUniqueMap = new Map<String, Object>();
-        Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-         if (allOrMy == 'mywaivers') {
-        condition += ' WHERE Waiver_Id__r.OwnerId = \'' + userId + '\' ';
-      }
-        //condition += 'AND Affected_Standard_Domain1__r.Name IN (\''+ fieldApiName+ '\')';
-        String whereClause = buildWhereConditionForNames(fieldApiName);
-        condition += 'AND '+whereClause;
-        system.debug('condition '+condition);
-        
-        // New logic to get count
-        List<Object> uniqueValues = new List<Object>();
-       string query = 'SELECT  Affected_Standard_Domain1__c, COUNT(Id) ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                    ' GROUP BY  Affected_Standard_Domain1__c' ;
-        List<AggregateResult> agResult = Database.query(query);
-         // After aggregation, fetch the portfolio names using a second query
-        Set<Id> domainIds = new Set<Id>();
-        
-                for (AggregateResult ar : agResult) {
-                    domainIds.add((Id) ar.get('Affected_Standard_Domain1__c'));
-                }
-            
-        System.debug('domainIds '+domainIds);
-        
-        // Fetch the related names for the portfolio IDs
-        Map<Id, String> domainNameMap = new Map<Id, String>();
-        if (!domainIds.isEmpty()) {
-            List<TPM_Domain__c > domains = [SELECT Id, Name FROM TPM_Domain__c  WHERE Id IN :domainIds];
-            for (TPM_Domain__c domain : domains) {
-                domainNameMap.put(domain.Id, domain.Name);
-            }
-        }
-        System.debug('domainNameMap '+domainNameMap);
-        
-        for (AggregateResult ar : agResult) {
-                  //String portfolioName = (String) ar.get('Affected_Standard_Portfolio1__r.Name');
-                  Id domainId = (Id) ar.get('Affected_Standard_Domain1__c');
-                  Map<String, Object> uni = new Map<String, Object>();
-                  String domainName = domainNameMap.get(domainId);
-            	  uni.put('value', domainName);  // Domain Name as label
-                  uni.put('id', domainId);  // Domain Id
-                  uni.put('count', (Integer) ar.get('expr0'));  // The count of related records
-                  uniqueValues.add((Object) uni);
-                  
-              }
-        fieldUniqueMap.put('PortfolioDomains', uniqueValues);
-        //End of new logic to get count
-         List<AWP_Waiver_Relationship__c> waiverRecords;
-       // Map<String, Object> result = new Map<String, Object>();
-  
-
-     /*  //Commenting this logic as per change in requirement
-            string query = 'SELECT Id, Affected_Standard_Portfolio1__c,Affected_Standard_Domain1__c ,Affected_Standard_Domain1__r.Name  ' +
-                    'FROM AWP_Waiver_Relationship__c ' + condition +
-                 ' GROUP BY Affected_Standard_Domain1__r.Name' ;
-            // results.put('Affected Domain', Database.query(query));
-           system.debug('query '+query);
-        List<AWP_Waiver_Relationship__c> lstWaiverRel = (List<AWP_Waiver_Relationship__c>) Database.query(query);
-        System.debug('lstWaiverRel ' + lstWaiverRel);
-        
-       // Map<String, List<Object>> portfolioDomainMap = new Map<String, List<Object>>();
-        Map<String, Integer> duplicateCountMap = new Map<String, Integer>(); // New map to track duplicates per portfolio
-        
-        for (AWP_Waiver_Relationship__c domain : lstWaiverRel) {
-            String portfolioId = domain.Affected_Standard_Portfolio1__c;
-            String domainId = domain.Affected_Standard_Domain1__c;
-            String domainName = domain.Affected_Standard_Domain1__r?.Name;
-            
-            if (String.isBlank(portfolioId) || String.isBlank(domainId)) continue;
-            
-            if (!portfolioDomainMap.containsKey(portfolioId)) {
-                portfolioDomainMap.put(portfolioId, new List<Object>());
-            }
-            
-            List<Object> existingList = portfolioDomainMap.get(portfolioId);
-            Boolean alreadyExists = false;
-            
-            for (Object obj : existingList) {
-                Map<String, Object> mapObj = (Map<String, Object>) obj;
-                if (mapObj.get('id') == domainId) {
-                    alreadyExists = true;
-                    break;
-                }
-            }
-            
-            if (alreadyExists) {
-                // Increment duplicate count for this portfolio
-                if (duplicateCountMap.containsKey(portfolioId)) {
-                    duplicateCountMap.put(portfolioId, duplicateCountMap.get(portfolioId) + 1);
-                } else {
-                    duplicateCountMap.put(portfolioId, 1);
-                }
-            } else {
-                Map<String, Object> domainData = new Map<String, Object>{
-                    'id' => domainId,
-                        'name' => domainName
+                        return {
+                            ...parent,
+                            children: match ? match.domains : []
                         };
-                            existingList.add(domainData);
-            }
+                    })
+                };
+            });
+            console.log('this._filteredFieldValues 330 ', JSON.stringify(this._filteredFieldValues));
         }
-        
-        System.debug('portfolioDomainMap: ' + portfolioDomainMap);
-        System.debug('Duplicate counts per portfolio: ' + duplicateCountMap);
 
-			/*List<AWP_Waiver_Relationship__c> lstWaiverRel = (List<AWP_Waiver_Relationship__c>) Database.query(query);
-         system.debug('lstWaiverRel '+lstWaiverRel);
-         for (AWP_Waiver_Relationship__c domain : lstWaiverRel) {
-            if (!portfolioDomainMap.containsKey(domain.Affected_Standard_Portfolio1__c)) {
-                portfolioDomainMap.put(domain.Affected_Standard_Portfolio1__c, new List<Object>());
-            }
-            Map<String, Object> domainData = new Map<String, Object>();
-            domainData.put('id', domain.Affected_Standard_Domain1__c);
-            domainData.put('name', domain.Affected_Standard_Domain1__r.Name);
-            portfolioDomainMap.get(domain.Affected_Standard_Portfolio1__c).add(domainData);
-        } 
-        system.debug('fieldUniqueMap 1384 '+fieldUniqueMap);
-        fieldUniqueMap.put('PortfolioDomains', portfolioDomainMap); */
-        
+        removeCount(label) {
+            return label.replace(/\s*\(\d+\)$/, '');
+        }
 
-             
-      
-    return fieldUniqueMap;
-    }
-  
-    public class DomainItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-    }
 
-    public class PortfolioItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-        @AuraEnabled public List<DomainItem> domains;
-    }
 
-    @AuraEnabled(cacheable=true)
-    public static List<PortfolioItem> getPortfolioDomainCounts(list<string> filterNames, Boolean isFilterParam) {
-        String whereClause = buildWhereConditionForNames(filterNames);
-        system.debug('whereClause '+whereClause);
-         string query = 'SELECT Affected_Standard_Portfolio1__r.Name portfolioName, Affected_Standard_Domain1__r.Name domainName,COUNT(Id) recordCount FROM AWP_Waiver_Relationship__c WHERE '
-             		 + whereClause +
-                    ' GROUP BY  Affected_Standard_Portfolio1__r.Name, Affected_Standard_Domain1__r.Name ORDER BY Affected_Standard_Portfolio1__r.Name' ;
-           system.debug('query 1520 '+query);
-        List<AggregateResult> results = Database.query(query);
-        system.debug('results '+results);
-      
 
-        // Step 2: Group by Portfolio
-        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
+handleFilterSearch(event) {
 
-        for (AggregateResult ar : results) {
-            system.debug('ar '+ar);
-            String portfolioName = (String)ar.get('portfolioName');
-            String domainName = (String)ar.get('domainName');
-            Integer count = (Integer)ar.get('recordCount');
+    try {
+        const searchKey = (event.target.value || '').toLowerCase();
+        this.isfilterParam = true;
 
-            if (String.isBlank(portfolioName)) {
-                portfolioName = 'No Data';
-            }
-            if (String.isBlank(domainName)) {
-                domainName = 'No Data';
+        const selectedFilterApiNames = (this.selectedFilter || '').split(';').filter(x => x);
+        if (!selectedFilterApiNames.length) return;
+
+        // STEP 1: Capture current checked state (plain JSON only)
+        const checkedMap = new Map();
+        (this.checkedAffStdArray || []).forEach(group => {
+            (group.filteredFieldValue || []).forEach(parent => {
+                checkedMap.set(parent.id, !!parent.checked);
+                (parent.children || []).forEach(child => {
+                    checkedMap.set(child.label, !!child.checked);
+                });
+            });
+        });
+
+        // STEP 2: Fetch fresh unique values
+        getUniqueValues({
+            fieldApiName: selectedFilterApiNames,
+            allOrMy: this.selectedWaiver,
+            isfilterParam: this.isfilterParam
+        })
+        .then(data => {
+
+            if (!data) {
+                this._filteredFieldValues = [];
+                return;
             }
 
-            // Create portfolio if missing
-            if (!portfolioMap.containsKey(portfolioName)) {
-                PortfolioItem p = new PortfolioItem();
-                p.label = portfolioName + ' (0)'; // Will update later with total
-                p.count = 0;
-                p.domains = new List<DomainItem>();
-                portfolioMap.put(portfolioName, p);
-            }
+            /** -----------------------------
+             * Normalize Domain/Status arrays
+             * ----------------------------- */
+            const normalizeDomainList = arr => {
+                return (arr || []).map(item => ({
+                    ...item,
+                    domains: (item.domains || []).map(d => ({
+                        ...d,
+                        checked: false // enforce JSON safety
+                    }))
+                }));
+            };
 
-            // Add domain to portfolio
-            DomainItem d = new DomainItem();
-            d.label = domainName + ' (' + count + ')';
-            d.count = count;
-            portfolioMap.get(portfolioName).domains.add(d);
+            this.appDomainArray = normalizeDomainList(data.modifedAffectedStandard);
+            this.statusStageArray = normalizeDomainList(data.listSatausStage);
 
-            // Increase portfolio count
-            portfolioMap.get(portfolioName).count += count;
-        }
+            /** -----------------------------
+             * Step 3: Build filter groups
+             * ----------------------------- */
+            const rebuiltGroups = Object.keys(data)
+                .filter(key => !['PortfolioDomains', 'modifedAffectedStandard', 'listSatausStage'].includes(key))
+                .map((key, index) => {
+                    const filterOption = this._filterOptions.find(opt => opt.value === key);
+                    if (!filterOption) return null;
 
-        // Step 3: Update portfolio labels with correct total
-        for (PortfolioItem p : portfolioMap.values()) {
-            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
-        }
+                    const items = (data[key] || []).map(v => ({
+                        label: `${v.value ? v.value : 'No Data'} (${v.count})`,
+                        value: v.value || 'nullcheck',
+                        id: v.id || 'nullcheck',
+                        checked: false,
+                        children: [] // ensure JSON-safe children list
+                    }));
 
-        return new List<PortfolioItem>(portfolioMap.values());
+                    return {
+                        id: index,
+                        filterField: filterOption.label,
+                        filterFieldApiName: key,
+                        filteredFieldValue: items,
+                        selectedValue: [],
+                        showValues: true,
+                        icon: 'utility:chevrondown',
+                        isApplicationStandred: filterOption.label === 'Affected Standard',
+                        isStatusStage: filterOption.label === 'Status'
+                    };
+                })
+                .filter(Boolean);
+
+            this._filteredFieldValues = rebuiltGroups;
+
+            /** -----------------------------
+             * Step 4: Add children (domains/status)
+             * ----------------------------- */
+            this._filteredFieldValues = this._filteredFieldValues.map(group => {
+                return {
+                    ...group,
+                    filteredFieldValue: group.filteredFieldValue.map(parent => {
+                        const clean = label => label.replace(/\s*\(\d+\)\s*$/, '');
+
+                        const matching =
+                            group.filterField === 'Status'
+                                ? this.statusStageArray?.find(x => clean(x.label) === clean(parent.value))
+                                : this.appDomainArray?.find(x => clean(x.label) === clean(parent.value));
+
+                        return {
+                            ...parent,
+                            children: (matching?.domains || []).map(child => ({
+                                label: child.label,
+                                value: child.value,
+                                checked: false
+                            }))
+                        };
+                    })
+                };
+            });
+
+            /** -----------------------------
+             * Step 5: Apply search filter
+             * ----------------------------- */
+            const filtered = this._filteredFieldValues.map(group => {
+                const filteredValues = group.filteredFieldValue
+                    .map(parent => {
+                        const parentMatch = parent.label.toLowerCase().includes(searchKey);
+                        const matchingChildren = (parent.children || []).filter(child =>
+                            child.label.toLowerCase().includes(searchKey)
+                        );
+
+                        if (parentMatch) {
+                            return { ...parent, children: [...parent.children] };
+                        }
+                        if (matchingChildren.length > 0) {
+                            return { ...parent, children: matchingChildren };
+                        }
+                        return null;
+                    })
+                    .filter(Boolean);
+
+                return { ...group, filteredFieldValue: filteredValues };
+            });
+
+            /** -----------------------------
+             * Step 6: Restore checkmarks safely
+             * ----------------------------- */
+            const cleaned = filtered.map(group => {
+                return {
+                    ...group,
+                    filteredFieldValue: group.filteredFieldValue.map(parent => {
+                        const restoredParent = {
+                            ...parent,
+                            checked: checkedMap.get(parent.id) || false
+                        };
+                        return {
+                            ...restoredParent,
+                            children: (parent.children || []).map(child => ({
+                                ...child,
+                                checked: checkedMap.get(child.label) || false
+                            }))
+                        };
+                    })
+                };
+            });
+
+            // FINAL: store JSON-clean version only
+            this._filteredFieldValues = JSON.parse(JSON.stringify(cleaned));
+            this.checkedAffStdArray = JSON.parse(JSON.stringify(cleaned));
+            this.isfilterParam = false;
+        })
+        .catch(err => {
+            console.error('handleFilterSearch ERROR:', err);
+            this.isfilterParam = false;
+        });
+
+    } catch (ex) {
+        console.error('handleFilterSearch outer exception:', ex);
     }
-
-     @AuraEnabled(cacheable=true)
-    public static List<PortfolioItem> getStatusStage() {
-        //String whereClause = buildWhereConditionForNames(filterNames);
-       // system.debug('whereClause '+whereClause);
-         string query = 'SELECT Status__c portfolioName, Stage__c domainName,COUNT(Id) recordCount FROM AWP_Architecture_Waiver_Form__c '
-             		 +
-                    ' GROUP BY  Status__c, Stage__c ORDER BY Status__c ' ;
-           system.debug('query 1520 '+query);
-        List<AggregateResult> results = Database.query(query);
-        system.debug('results '+results);
-      
-
-        // Step 2: Group by Portfolio
-        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
-
-        for (AggregateResult ar : results) {
-            system.debug('ar '+ar);
-            String portfolioName = (String)ar.get('portfolioName');
-            String domainName = (String)ar.get('domainName');
-            Integer count = (Integer)ar.get('recordCount');
-
-            if (String.isBlank(portfolioName)) {
-                portfolioName = 'No Data';
-            }
-            if (String.isBlank(domainName)) {
-                domainName = 'No Data';
-            }
-
-            // Create portfolio if missing
-            if (!portfolioMap.containsKey(portfolioName)) {
-                PortfolioItem p = new PortfolioItem();
-                p.label = portfolioName + ' (0)'; // Will update later with total
-                p.count = 0;
-                p.domains = new List<DomainItem>();
-                portfolioMap.put(portfolioName, p);
-            }
-
-            // Add domain to portfolio
-            DomainItem d = new DomainItem();
-            d.label = domainName + ' (' + count + ')';
-            d.count = count;
-            portfolioMap.get(portfolioName).domains.add(d);
-
-            // Increase portfolio count
-            portfolioMap.get(portfolioName).count += count;
-        }
-
-        // Step 3: Update portfolio labels with correct total
-        for (PortfolioItem p : portfolioMap.values()) {
-            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
-        }
-
-        return new List<PortfolioItem>(portfolioMap.values());
-    }
-
-
-    @AuraEnabled(cacheable=true)
-    public static List<ParentItem> getStatusStageCounts() {
-       
-       // String whereClause = buildWhereClause(filterNames, isFilterParam);
-         String whereClause='';
-        System.debug('whereClause => ' + whereClause);
-
-        // ---------- STATUS QUERY ----------
-        String statusQuery = 
-            'SELECT Status__c, COUNT(Id) recordCount ' +
-            'FROM AWP_Architecture_Waiver_Form__c ' + whereClause +
-            ' GROUP BY Status__c ORDER BY Status__c';
-        List<AggregateResult> statusResults = Database.query(statusQuery);
-
-        // ---------- STAGE QUERY ----------
-        String stageQuery = 
-            'SELECT Stage__c, COUNT(Id) recordCount ' +
-            'FROM AWP_Architecture_Waiver_Form__c ' + whereClause +
-            ' GROUP BY Stage__c ORDER BY Stage__c';
-        List<AggregateResult> stageResults = Database.query(stageQuery);
-
-        // ---------- STATUS TREE BUILD ----------
-        Map<String, ParentItem> statusMap = new Map<String, ParentItem>();
-        List<String> masterStatusList = new List<String>{
-            'Draft/Saved',
-            'Draft/Pending AO Acknowledgement',
-            'Draft/Pending BO Acknowledgement',
-            'Draft/Pending TA Acknowledgement',
-            'Draft/Send Back From Acknowledgement',
-            'Draft/Past Due for Review',
-            'Draft/Pending with Process Executive',
-            'Draft/Pending Approval with Standard Owner',
-            'Draft/Send Back From Approval',
-            'Approve/Complete',
-            'Retire/Retired',
-            'Withdraw/Withdrawn',
-            'Reject/Reject'
-        };
-
-        // build count map from query results
-        Map<String, Integer> statusCountMap = new Map<String, Integer>();
-        for (AggregateResult ar : statusResults) {
-            String val = (String) ar.get('Status__c');
-            Integer cnt = (Integer) ar.get('recordCount');
-            if (!String.isBlank(val)) statusCountMap.put(val, cnt);
-        }
-
-        // build hierarchical structure
-        for (String combo : masterStatusList) {
-            List<String> parts = combo.split('/');
-            if (parts.size() != 2) continue;
-            String parent = parts[0].trim();
-            String child = parts[1].trim();
-            Integer count = statusCountMap.containsKey(combo) ? statusCountMap.get(combo) : 0;
-
-            if (!statusMap.containsKey(parent)) {
-                ParentItem p = new ParentItem();
-                p.label = parent + ' (0)';
-                p.count = 0;
-                p.children = new List<ChildItem>();
-                statusMap.put(parent, p);
-            }
-
-            ChildItem c = new ChildItem();
-            c.label = child + ' (' + count + ')';
-            c.count = count;
-            statusMap.get(parent).children.add(c);
-            statusMap.get(parent).count += count;
-        }
-
-        // update parent total in labels
-        for (ParentItem p : statusMap.values()) {
-            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
-        }
-
-        // ---------- STAGE FLAT LIST ----------
-        List<ParentItem> stageList = new List<ParentItem>();
-        for (AggregateResult ar : stageResults) {
-            String stageName = (String) ar.get('Stage__c');
-            Integer cnt = (Integer) ar.get('recordCount');
-            if (String.isBlank(stageName)) stageName = 'No Data';
-
-            ParentItem s = new ParentItem();
-            s.label = stageName + ' (' + cnt + ')';
-            s.count = cnt;
-            stageList.add(s);
-        }
-
-        // ---------- MERGE RESULT ----------
-        List<ParentItem> fullList = new List<ParentItem>();
-        fullList.addAll(statusMap.values());
-        fullList.addAll(stageList);
-
-        return fullList;
-    }
-
-    // Utility builder for flexible WHERE clauses
-    private static String buildWhereClause(List<String> filterNames, Boolean isFilterParam) {
-        if (filterNames == null || filterNames.isEmpty()) return 'WHERE Id != NULL';
-        List<String> conds = new List<String>();
-        for (String f : filterNames) {
-            conds.add('(' + f + ')');
-        }
-        return 'WHERE ' + String.join(conds, ' AND ');
-    }
-
-    // ---------- Inner Wrapper Classes ----------
-    public class ParentItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-        @AuraEnabled public List<ChildItem> children;
-    }
-    public class ChildItem {
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer count;
-    }
-
-
-
 }
+
+ // Utility function to normalize any domain array
+                        const normalizeDomains = (arr) =>
+                            arr?.map(domain => ({
+                                ...domain,
+                                domains: domain.domains.map(eachDomain => ({
+                                    ...eachDomain,
+                                    checked: false
+                                }))
+                            })) || [];
+
+                        // Assign and normalize in one step
+                        this.appDomainArray = normalizeDomains(data?.['modifedAffectedStandard']);
+                        this.statusStageArray = normalizeDomains(data?.['listSatausStage']);
+
+                       //this.appDomainArray= data?.['modifedAffectedStandard'];
+                        //this.statusStageArray= data?.['listSatausStage'];
+                        console.log('appDomainArray data ', JSON.stringify(this.appDomainArray));
+                        console.log('appDomainArray data 2183', JSON.stringify(this.statusStageArray));
+
+ isStatusStage: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label) === 'Status'
+
+/ Helper to trim labels
+const clean = label => label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+// Clone filters for immutability
+const updatedFilters = [...this._filteredFieldValues];
+
+// Find which parent contains the changed category
+const parentIndex = updatedFilters.findIndex(parent =>
+    parent.filteredFieldValue.some(cat =>
+        clean(cat.label) === clean(categoryName) ||
+        cat.children?.some(ch => clean(ch.label) === clean(categoryName))
+    )
+);
+
+if (parentIndex !== -1) {
+    const parentFilter = updatedFilters[parentIndex];
+
+    parentFilter.filteredFieldValue = parentFilter.filteredFieldValue.map(category => {
+        // Toggle parent
+        if (clean(category.label) === clean(categoryName)) {
+            category.checked = isChecked;
+            if (!isChecked) {
+                category.children = category.children.map(c => ({ ...c, checked: false }));
+            }
+        }
+
+        // Toggle child
+        if (category.children?.length > 0) {
+            category.children = category.children.map(child => {
+                if (clean(child.label) === clean(categoryName)) {
+                    child.checked = isChecked;
+                }
+                return child;
+            });
+        }
+        return category;
+    });
+
+    updatedFilters[parentIndex] = { ...parentFilter };
+}
+
+// ✅ Only now assign back
+this._filteredFieldValues = updatedFilters;
+
+// ✅ Build filters array (optional)
+this.filters = updatedFilters
+    .map((filter, idx) => {
+        const selectedValues = [];
+        filter.filteredFieldValue.forEach(cat => {
+            if (cat.checked) selectedValues.push(clean(cat.label));
+            const checkedChildren = cat.children?.filter(c => c.checked).map(c => clean(c.label));
+            if (checkedChildren?.length) selectedValues.push(...checkedChildren);
+        });
+        return selectedValues.length
+            ? { [filter.filterField]: selectedValues, uniqueKey: `${idx}-${selectedValues.join(',')}` }
+            : null;
+    })
+    .filter(Boolean);
+
+console.log('✅ Filters:', JSON.stringify(this.filters, null, 2));
