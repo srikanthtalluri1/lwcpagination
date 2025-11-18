@@ -98,3 +98,16 @@ handleChildCheckboxChangeNewOne(event) {
     this.records = [];
     this.fetchData();
 }
+
+'Stage' => 'Waiver_Id__r.Stage__c'
+
+ fieldList.containsKey('Domain Standard') || fieldList.containsKey('Stage')) {
+
+ fieldList.remove('Stage');
+
+
+  this.options.forEach(item => {
+            if (item.value === "Status") {
+                item.label = "Status/Stage";
+            }
+            });
