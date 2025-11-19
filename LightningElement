@@ -1,113 +1,117 @@
-handleChildCheckboxChangeNewOne(event) {
-    const parentName = event.target.dataset.parent;
-    const childId = event.target.dataset.id;
+handleParentCheckboxChangeNewOne(event) {
+    const categoryName = event.target.dataset.id;
     const isChecked = event.target.checked;
 
     const clean = label =>
         label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
 
-    // -----------------------------
-    // CHILD FIELD NAME MAPPING
-    // -----------------------------
     const childFieldMap = {
         "Affected Standard": "Domain Standard",
         "Status": "Stage"
     };
 
-    // -----------------------------
-    // UPDATE CHECKED FLAGS
-    // -----------------------------
-    const updated = [...this._filteredFieldValues];
+    // -------------------------------
+    // 1️⃣ Update parent/child selected state in _filteredFieldValues
+    // -------------------------------
 
-    const blockIndex = updated.findIndex(block =>
-        block.filteredFieldValue.some(cat =>
-            clean(cat.label) === clean(parentName)
+    const updatedFilters = JSON.parse(JSON.stringify(this._filteredFieldValues)); // deep clone
+
+    // Find which parent bucket contains the item clicked
+    const parentIndex = updatedFilters.findIndex(parent =>
+        parent.filteredFieldValue.some(cat =>
+            clean(cat.label) === clean(categoryName) ||
+            cat.children?.some(ch => clean(ch.label) === clean(categoryName))
         )
     );
 
-    if (blockIndex !== -1) {
-        const block = updated[blockIndex];
+    if (parentIndex !== -1) {
+        const parentBucket = updatedFilters[parentIndex];
 
-        block.filteredFieldValue = block.filteredFieldValue.map(cat => {
-            if (clean(cat.label) === clean(parentName)) {
-                cat.children = cat.children.map(child => {
-                    if (clean(child.label) === clean(childId)) {
-                        child.checked = isChecked;
-                    }
-                    return child;
-                });
+        parentBucket.filteredFieldValue = parentBucket.filteredFieldValue.map(category => {
+            const isParentMatch = clean(category.label) === clean(categoryName);
+
+            // Toggle parent
+            if (isParentMatch) {
+                category.checked = isChecked;
+                if (!isChecked) {
+                    // uncheck all children
+                    category.children = category.children?.map(child => ({
+                        ...child,
+                        checked: false
+                    })) || [];
+                }
             }
-            return cat;
-        });
 
-        updated[blockIndex] = { ...block };
+            // Toggle children
+            category.children = category.children?.map(child => {
+                if (clean(child.label) === clean(categoryName)) {
+                    return { ...child, checked: isChecked };
+                }
+                return child;
+            }) || [];
+
+            return category;
+        });
     }
 
-    this._filteredFieldValues = updated;
+    // assign updated version
+    this._filteredFieldValues = updatedFilters;
 
-    // -----------------------------
-    // BUILD FILTERS (Parent Separate, Child Separate)
-    // -----------------------------
-    this.filters = [];
+    // -------------------------------
+    // 2️⃣ Build SEPARATE FILTER OBJECTS for:
+    //     Affected Standard → Domain Standard
+    //     Status → Stage
+    // -------------------------------
 
-    updated.forEach((filterBlock, idx) => {
-        const parentField = filterBlock.filterField;
-        const childField = childFieldMap[parentField] || (parentField + "_child");
+    let finalFilters = [];
 
-        const parentSelected = [];
-        const childSelected = [];
+    updatedFilters.forEach((filterBucket, bucketIndex) => {
+        const parentField = filterBucket.filterField;
+        const childField = childFieldMap[parentField];
 
-        filterBlock.filteredFieldValue.forEach(cat => {
-            if (cat.checked) {
-                parentSelected.push(clean(cat.label));
+        let parentSelections = [];
+        let childSelections = [];
+
+        filterBucket.filteredFieldValue.forEach(parent => {
+            // parent selected
+            if (parent.checked) {
+                parentSelections.push(clean(parent.label));
             }
 
-            const checkedChildren = cat.children
-                ?.filter(c => c.checked)
-                .map(c => clean(c.label));
-
-            if (checkedChildren?.length) {
-                childSelected.push(...checkedChildren);
-            }
+            // child selected
+            parent.children?.forEach(child => {
+                if (child.checked) {
+                    childSelections.push(clean(child.label));
+                }
+            });
         });
 
-        // Parent filter (EX: Status)
-        if (parentSelected.length) {
-            this.filters.push({
-                [parentField]: parentSelected,
-                uniqueKey: `${idx}-${parentSelected.join(',')}`
+        // create parent filter object
+        if (parentSelections.length > 0) {
+            finalFilters.push({
+                [parentField]: parentSelections,
+                uniqueKey: `${bucketIndex}-${parentSelections.join(",")}`
             });
         }
 
-        // Child filter (EX: Stage)
-        if (childSelected.length) {
-            this.filters.push({
-                [childField]: childSelected,
-                uniqueKey: `${idx}-${childSelected.join(',')}`
+        // create child filter object
+        if (childSelections.length > 0) {
+            finalFilters.push({
+                [childField]: childSelections,
+                uniqueKey: `${bucketIndex}-${childSelections.join(",")}`
             });
         }
     });
 
-    console.log("Final Filters:", JSON.stringify(this.filters, null, 2));
+    this.filters = finalFilters;
 
-    // -----------------------------
-    // REFRESH DATA
-    // -----------------------------
+    console.log("FINAL FILTERS => ", JSON.stringify(this.filters, null, 2));
+
+    // -------------------------------
+    // 3️⃣ Continue your downstream logic
+    // -------------------------------
     this.checkedAffStdArray = this._filteredFieldValues;
     this.rowOffSet = 0;
     this.records = [];
     this.fetchData();
 }
-
-'Stage' => 'Waiver_Id__r.Stage__c'
-
- fieldList.containsKey('Domain Standard') || fieldList.containsKey('Stage')) {
-
- fieldList.remove('Stage');
-
-
-  this.options.forEach(item => {
-            if (item.value === "Status") {
-                item.label = "Status/Stage";
-            }
-            });
