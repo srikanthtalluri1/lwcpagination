@@ -1,130 +1,21 @@
-/*Added on Feb 6th 2025*/
-.button-container {
-    text-align: right;
-     position: sticky;
-     bottom: 5px;
-}
-/*Added on Feb 6th 2025*/
-
-.container {
-    position: absolute; /* position absolute and negative margin allows us to position our component */
-    background-color: white;
-}
-
-.filter-button {
-    top: 15rem;
-    z-index: 1000;
-    left: 0rem;
-    opacity: 60%;
-}
-
-.filter-button:hover {
-    opacity: 100%;
-}
-
-.background-white {
-    background-color: white;
-}
-
-.min-height-container {
-    min-height: 630px; /* Adjust this height as needed */
+.slds-combobox__form-element {
+    min-height: 2.5rem;
     display: flex;
-    flex-direction: column;
+    align-items: center;
 }
-.hidden {
-    display: none;
+.slds-pill_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
 }
-
-/* Add padding to create space for sub-checkboxes */
-.sub-option {
-    padding-left: 20px; /* Adjust the value as needed */
+.slds-combobox_container {
+    width: 100% !important;   /* take full width of parent */
+    max-width: 100%;          /* responsive cap */
+    display: block;           /* ensures stretch inside flex/grid */
 }
-
-.sub-option .slds-checkbox {
-    margin-left: 5px; /* Optional: You can tweak this to match your design */
-}
-
-
-.sub-options-list {
-    margin-left: 2rem; /* Adjust as needed for proper spacing */
-}
-.sub-option {
-    padding-left: 1rem; /* Additional space between sub-options */
-}
-
-
-
-.slds-card__header {
-    padding-top: 0px;
-}
-
-.tab-container {
-    height: 100%;
-    overflow-y: auto;
-   
-   
-}
-.customtable{
-  width:82.8%;
-  padding-left: 10px;
-  background-color: #b0c4de;
-  overflow-y: auto;
-  max-height: 100%;
-}
-.testclass{
-        --lwc-colorTextIconDefault: yellow;
-}
-
-.truncate-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 10px;
-    display: inline-block;
-}
-.viewport {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-/* child.css */
-.child-container {
-    flex: 1;                 /* take available space */
-    min-height: 0;           /* ⚠️ important so scroll works inside flex */
-    overflow-y: auto;        /* scroll only when needed */
-}
-
-
-
-
-/* optional - improve spacing for checkbox groups */
-lightning-checkbox-group {
-    margin-top: 0.5rem;
-    padding-bottom: 10px;
-}
-/* Neutralize outer slds-card so it does not produce the grey box */
-.slds-card {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-/* Keep the card-like appearance on each filter section */
-.filter-section {
-  background-color: #ffffff;          /* white card */
-  border-radius: 8px;                 /* rounded corners */
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  padding: 0rem;
-  margin-bottom: 1rem;                /* gap between sections */
-}
-
-/* title row spacing */
-.filter-section .slds-grid {
-  padding-bottom: 0.1rem;
-}
-
-/* tighten the search filter wrapper if used */
-.filters-wrapper {
-  padding: 0.5rem 0;
+.selected {
+    font-weight: bold;
+   /* background-color: #f3f3f3;  optional highlight */
+    border-radius: 4px;
+    padding: 2px 6px;
 }
