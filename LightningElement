@@ -1,107 +1,141 @@
-import { LightningElement, track, api, wire } from 'lwc';
+<template>
+    <lightning-layout multiple-rows class="tab-container" vertical-align="stretch">
+        <template if:true={showFilter}>
+            <lightning-layout-item size="12" padding="around-small" class="slds-color__background_gray-2">
+                
+                <!-- Search + Picklists -->
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12">
+                        <lightning-input class="slds-size_1-of-1"
+                            name="search" 
+                            label="Search"
+                            type="search" 
+                            onchange={handleReset} 
+                            onkeyup={handleSearch} 
+                            value={searchKey}>
+                        </lightning-input>
+                    </lightning-layout-item>
 
-export default class TechnologyDecisionCustomPick extends LightningElement {
-       @track isDropdownOpen = false;
-    @track searchKey = '';
-    @track options = [
-       // { label: 'Stage', value: 'Stage', selected: false, class: 'slds-form-element__label' },
-        { label: 'Status/Stage', value: 'Status', selected: false, class: 'slds-form-element__label' },
-        { label: 'Decision Reason', value: 'Decision Reason', selected: false, class: 'slds-form-element__label' }
-    ];
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                        <lightning-combobox 
+                            label="Filter by:" 
+                            class="slds-size_1-of-1" 
+                            title="Waivers List"
+                            value={selectedWaiver} 
+                            options={waiverOptions} 
+                            onchange={handleWaiverChange}>
+                        </lightning-combobox>
+                    </lightning-layout-item>
 
-    connectedCallback() {
-        window.addEventListener('click', this.handleOutsideClick);
-    }
-    disconnectedCallback() {
-        window.removeEventListener('click', this.handleOutsideClick);
-    }
+                    <lightning-layout-item size="12" >
+                        <c-technology-decision-custom-pick 
+                            class="slds-size_1-of-1"
+                            onselectionchange={handleActionsPicklist}>
+                        </c-technology-decision-custom-pick>
+                    </lightning-layout-item>
+                </lightning-layout>
 
-    // Keep any inside clicks from reaching window
-    eatClicksInside(e) { e.stopPropagation(); }
+                <!-- Filter values -->
+                <template if:true={showFilterValues}>
+                    <lightning-input 
+                        class="slds-size_1-of-1"
+                        label="Search Filter" 
+                        placeholder="Type to search..." 
+                        onchange={handleFilterSearch}>
+                    </lightning-input>
 
-    handleOutsideClick = (event) => {
-        // Close ONLY if the click is outside this component (shadow DOM safe)
-        const path = event.composedPath ? event.composedPath() : [];
-        if (path.includes(this.template.host)) return;
-        if (this.isDropdownOpen) this.isDropdownOpen = false;
-    };
-     @api
-    reset() {
-        this.options = this.options.map(o => ({
-            ...o,
-            selected: false,
-            class: 'slds-form-element__label'
-        }));
-        this.searchKey = '';
-        this.isDropdownOpen = false;
-    }
+                    <div class="slds-card">
+                        <template for:each={filteredFieldValues} for:item="filteredFieldValue">
+                            <div key={filteredFieldValue.id} class="filter-section slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default">
+                                <div class="slds-grid slds-align--spread slds-wrap">
+                                    <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
+                                        <lightning-button-icon 
+                                            class="slds-col_bump-left"
+                                            icon-name={filteredFieldValue.icon} 
+                                            size="small" 
+                                            variant="bare" 
+                                            onclick={handleFilterExpand}
+                                            data-action="filterbyexpand" 
+                                            data-index={filteredFieldValue.id}>
+                                        </lightning-button-icon>
+                                   
+                                    <template if:false={filteredFieldValue.isStatusStage}>
+                                    <lightning-checkbox-group if:true={filteredFieldValue.showValues}
+                                        class="slds-size_1-of-1"
+                                        name="filterValue" 
+                                        options={filteredFieldValue.filteredFieldValue}
+                                        data-action={filteredFieldValue.filterFieldApiName} 
+                                        data-index={filteredFieldValue.id}
+                                        onchange={handleActions} 
+                                        value={filteredFieldValue.selectedValue}
+                                        key={filteredFieldValue.uniqueKey}>
+                                    </lightning-checkbox-group>
+                                    </template>
+                        <template if:true={filteredFieldValue.isStatusStage}>
+                        <template if:true={filteredFieldValue.showValues}>
+                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="category"> 
+                        <!-- <template for:each={parentsWithChildren} for:item="category"> -->
+                            <div key={category.label} >
+                            <lightning-input
+                            data-name="test12"
+                            type="checkbox"
+                            label={category.label}
+                            data-id={category.label}
+                            checked={category.checked}
+                            onchange={handleParentCheckboxChangeNewOne}>
+                            </lightning-input>
 
-    get dropdownClass() {
-        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click ${this.isDropdownOpen ? 'slds-is-open' : ''}`;
-    }
+                          <!--  <template if:true={category.label ==filteredFieldValue.filteredFieldValue}> -->
+                           <!--   <template for:each={parent.children} for:item="group"> -->
+                           
+                              <template for:each={category.children} for:item="group"> 
+                                    <div key={group.label} class="slds-m-left_large">
+                                      <!--   <p class="slds-text-title_bold">{group.label}</p>
+                                       <template for:each={group.values} for:item="item"> -->
+                                   
+                                            <lightning-input
+                                                key={group.label}
+                                                data-name="test11"
+                                                type="checkbox"
+                                                label={group.label}
+                                                data-parent={category.label}
+                                                data-id={group.label}
+                                                checked={group.checked}
+                                                onchange={handleChildCheckboxChangeNewOne}>
+                                            </lightning-input>
+                                      <!--  </template> -->
+                                    </div>
+                                 <!-- </template>  -->
+                            </template> 
+                            </div>
+                        </template>
+                        </template>
+                        </template>
+                        
 
-    get filteredOptions() {
-        if (!this.searchKey) return this.options;
-        const sk = this.searchKey.toLowerCase();
-        return this.options.filter(o => o.label.toLowerCase().includes(sk));
-    }
 
-    get iconName() { return this.isDropdownOpen ? 'utility:up' : 'utility:down'; }
-    get noResults() { return this.filteredOptions.length === 0; }
+                            </div>
+                           </div>
+                        </template>
+                    </div>
+                </template>
 
-    // Select All states
-    get isSelectAll() {
-        return this.options.length > 0 && this.options.every(o => o.selected);
-    }
-    get isIndeterminate() {
-        const any = this.options.some(o => o.selected);
-        return any && !this.isSelectAll;
-    }
-    renderedCallback() {
-        const selectAll = this.template.querySelector('lightning-input.select-all');
-        if (selectAll) selectAll.indeterminate = this.isIndeterminate;
-    }
+                <!-- Reset button -->
+                <div class="slds-grid slds-grid_align-end slds-m-top_large">
+                    <lightning-button 
+                        label="Reset" 
+                        variant="neutral" 
+                        data-action="resetfilter"
+                        onclick={handleResetButton}>
+                    </lightning-button>
+                </div>
 
-    toggleDropdown(event) {
-        event.stopPropagation();
-        this.isDropdownOpen = !this.isDropdownOpen;
-    }
+                <!-- Spinner -->
+                <template if:true={isLoadingFilter}>
+                    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                </template>
 
-    handleSearch(event) {
-        event.stopPropagation();
-        this.searchKey = event.target.value;
-        this.isDropdownOpen = true; // keep open while typing
-    }
-
-    // Individual option click
-    handleSelect(event) {
-        event.stopPropagation();
-        const value = event.currentTarget.dataset.value;
-        this.options = this.options.map(o =>
-            o.value === value
-                ? { ...o, selected: !o.selected, class: !o.selected ? 'selected' : 'slds-form-element__label' }
-                : o
-        );
-        this.fireSelectionChange();
-        this.isDropdownOpen = true; // ensure it stays open after click
-    }
-
-    // Select All / Deselect All
-    onSelect(event) {
-        event.stopPropagation(); // don't bubble to window
-        const checked = event.target.checked;
-        this.options = this.options.map(o => ({
-            ...o,
-            selected: checked,
-            class: checked ? 'selected' : 'slds-form-element__label'
-        }));
-        this.fireSelectionChange();
-        this.isDropdownOpen = true; // stay open
-    }
-
-    fireSelectionChange() {
-        const selectedValues = this.options.filter(o => o.selected).map(o => o.value);
-        this.dispatchEvent(new CustomEvent('selectionchange', { detail: { values: selectedValues } }));
-    }
-
-}
+            </lightning-layout-item>
+        </template>
+    </lightning-layout>
+</template>
