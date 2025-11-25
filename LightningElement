@@ -1,141 +1,532 @@
-<template>
-    <lightning-layout multiple-rows class="tab-container" vertical-align="stretch">
-        <template if:true={showFilter}>
-            <lightning-layout-item size="12" padding="around-small" class="slds-color__background_gray-2">
-                
-                <!-- Search + Picklists -->
-                <lightning-layout multiple-rows>
-                    <lightning-layout-item size="12">
-                        <lightning-input class="slds-size_1-of-1"
-                            name="search" 
-                            label="Search"
-                            type="search" 
-                            onchange={handleReset} 
-                            onkeyup={handleSearch} 
-                            value={searchKey}>
-                        </lightning-input>
-                    </lightning-layout-item>
+import { LightningElement, track } from 'lwc';
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+import getUniqueValues from '@salesforce/apex/TechnologyDecision_DataTableHandler.getUniqueValues';
+export default class TechnologyDecisionDataFilters extends LightningElement {
+    searchKey;
+    isLoading;
+    currentPage;
+    rowOffSet;
+    records=[];
+    
+    sortedBy;
+    sortedDirection;
+    @track selectedFilters;
+    @track selectedWaiver = 'mydecision';
+    @track _filteredFieldValues = [];
+    _filterOptionsBackup=[];
+    @track _filterOptions = [];
+    filters = [];
+    @track selectedFiltersdata = {};
+    @track showFilter = true; 
+    listStatusStage=[];
+    get filteredFieldValues() {
+        console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
+        return this._filteredFieldValues;
+        }
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
+    }
+    get waiverOptions() {
+        return [
+            { label: 'My Decisons', value: 'mydecision' },
+            { label: 'All Decisons', value: 'alldecision' }
+        ];
+    }
+   
+handleSearch(event) {
+       
+}
+ handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        //this.resetPaginationState();
+        if(event.detail.value){
+        this.selectedWaiver = event.detail.value;
+        }
+        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
+        this.loading = true;
+        this.isFromhandleWaiverChange=true;
+        //this.handleFilterBy('resetfilter');
+        // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('decisiondata', {
+                        detail: { value: this.selectedWaiver }
+                    })
+                );
+    }
+    handleReset(event){
+        
+         window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        console.log('this.searchKey ',this.searchKey);
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            //this.resetPaginationState();
+            this.currentPage = 1;
 
-                    <lightning-layout-item size="12" class="slds-p-bottom_small">
-                        <lightning-combobox 
-                            label="Filter by:" 
-                            class="slds-size_1-of-1" 
-                            title="Waivers List"
-                            value={selectedWaiver} 
-                            options={waiverOptions} 
-                            onchange={handleWaiverChange}>
-                        </lightning-combobox>
-                    </lightning-layout-item>
+            /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
 
-                    <lightning-layout-item size="12" >
-                        <c-technology-decision-custom-pick 
-                            class="slds-size_1-of-1"
-                            onselectionchange={handleActionsPicklist}>
-                        </c-technology-decision-custom-pick>
-                    </lightning-layout-item>
-                </lightning-layout>
+             // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('searchkey', {
+                        detail: { value: this.searchKey }
+                    })
+                );
+        }, 300);
+    }
+ resetPaginationState() {
+        this.isLoading = true;
+        this.sortedBy = 'Name';
+        this.sortedDirection = 'asc';
+    }
+    handleActionsPicklist(event){
+    const selectedValues = event.detail.values;
+    console.log('Selected values from child: ', JSON.stringify(selectedValues));
 
-                <!-- Filter values -->
-                <template if:true={showFilterValues}>
-                    <lightning-input 
-                        class="slds-size_1-of-1"
-                        label="Search Filter" 
-                        placeholder="Type to search..." 
-                        onchange={handleFilterSearch}>
-                    </lightning-input>
+    this.selectedFilters = selectedValues;
 
-                    <div class="slds-card">
-                        <template for:each={filteredFieldValues} for:item="filteredFieldValue">
-                            <div key={filteredFieldValue.id} class="filter-section slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default">
-                                <div class="slds-grid slds-align--spread slds-wrap">
-                                    <div class="slds-col slds-text-title_bold">{filteredFieldValue.filterField}</div>
-                                        <lightning-button-icon 
-                                            class="slds-col_bump-left"
-                                            icon-name={filteredFieldValue.icon} 
-                                            size="small" 
-                                            variant="bare" 
-                                            onclick={handleFilterExpand}
-                                            data-action="filterbyexpand" 
-                                            data-index={filteredFieldValue.id}>
-                                        </lightning-button-icon>
-                                   
-                                    <template if:false={filteredFieldValue.isStatusStage}>
-                                    <lightning-checkbox-group if:true={filteredFieldValue.showValues}
-                                        class="slds-size_1-of-1"
-                                        name="filterValue" 
-                                        options={filteredFieldValue.filteredFieldValue}
-                                        data-action={filteredFieldValue.filterFieldApiName} 
-                                        data-index={filteredFieldValue.id}
-                                        onchange={handleActions} 
-                                        value={filteredFieldValue.selectedValue}
-                                        key={filteredFieldValue.uniqueKey}>
-                                    </lightning-checkbox-group>
-                                    </template>
-                        <template if:true={filteredFieldValue.isStatusStage}>
-                        <template if:true={filteredFieldValue.showValues}>
-                        <template for:each={filteredFieldValue.filteredFieldValue} for:item="category"> 
-                        <!-- <template for:each={parentsWithChildren} for:item="category"> -->
-                            <div key={category.label} >
-                            <lightning-input
-                            data-name="test12"
-                            type="checkbox"
-                            label={category.label}
-                            data-id={category.label}
-                            checked={category.checked}
-                            onchange={handleParentCheckboxChangeNewOne}>
-                            </lightning-input>
+    getUniqueValues({
+        fieldApiName: this.selectedFilters,
+        allOrMy: this.selectedWaiver
+    })
+    .then(data => {
+        console.log('Apex result :', JSON.stringify(data));
+         // Utility function to normalize any domain array
+                        const normalizeDomains = (arr) =>
+                            arr?.map(domain => ({
+                                ...domain,
+                                domains: domain.domains.map(eachDomain => ({
+                                    ...eachDomain,
+                                    checked: false
+                                }))
+                            })) || [];
+        this.listStatusStage = normalizeDomains(data?.['Status/Stage']);
+        console.log('listStatusStage :', JSON.stringify(this.listStatusStage));
+        const values = (data) ? Object.keys(data).map(x => {
+             if ( x =='Status/Stage') {
+               
+             }
+             else{
+            return {
+                [x]: data[x].map((val) => {
+                    const label = val.value ? val.value : 'No Data';
+                    const value = val.value ? val.value : 'nullcheck';
+                    const id = val.id ? val.id : 'nullcheck';
+                    return { label: `${label} (${val.count})`, value: value, id: id};
+                })
+            };
+            }
+        }).filter(Boolean) : [];
+    
+        let filteredFieldValues = values.map((x, ind) => {
+            const apiName = Object.keys(x)[0];
+            const options = Object.values(x)[0]
+                .sort((a, b) => {
+                    const valueA = (a.value || '').trim().toLowerCase();
+                    const valueB = (b.value || '').trim().toLowerCase();
+                    if (valueA === 'nullcheck') return -1;
+                    if (valueB === 'nullcheck') return 1;
+                    return valueA.localeCompare(valueB);
+                });
 
-                          <!--  <template if:true={category.label ==filteredFieldValue.filteredFieldValue}> -->
-                           <!--   <template for:each={parent.children} for:item="group"> -->
-                           
-                              <template for:each={category.children} for:item="group"> 
-                                    <div key={group.label} class="slds-m-left_large">
-                                      <!--   <p class="slds-text-title_bold">{group.label}</p>
-                                       <template for:each={group.values} for:item="item"> -->
-                                   
-                                            <lightning-input
-                                                key={group.label}
-                                                data-name="test11"
-                                                type="checkbox"
-                                                label={group.label}
-                                                data-parent={category.label}
-                                                data-id={group.label}
-                                                checked={group.checked}
-                                                onchange={handleChildCheckboxChangeNewOne}>
-                                            </lightning-input>
-                                      <!--  </template> -->
-                                    </div>
-                                 <!-- </template>  -->
-                            </template> 
-                            </div>
-                        </template>
-                        </template>
-                        </template>
-                        
+            return {
+                id: ind,
+                filterField: apiName,
+                filterFieldApiName: apiName,
+                filteredFieldValue: options,
+                showValues: true,
+                // ✅ restore from saved selections
+                selectedValue: this.selectedFiltersdata[apiName] || [],
+                icon: 'utility:chevrondown',
+            };
+        });
+    
+        console.log('Filtered Field Values:', JSON.stringify(filteredFieldValues));
 
+        this._filteredFieldValues = [...filteredFieldValues];
+        this._filterOptionsBackup = [...filteredFieldValues];
+        // Build the new filter block for Status/Stage
+       
+        if(this.listStatusStage.length >0){
+        const statusStageFilter = {
+            id: this._filteredFieldValues.length,                 // next index (e.g., 1)
+            filterField: "Status/Stage",
+            filterFieldApiName: "Status/Stage",
+            filteredFieldValue: this.listStatusStage.map(parent => ({
+                label: parent.label,               // e.g., "Draft (65)"
+                value: parent.label,   // e.g., "Draft"
+                id: "nullcheck",                   // follow your existing pattern
+                checked: false,
+                children: (parent.domains || []).map(d => ({
+                    count: d.count,
+                    label: d.label,                // e.g., "Saved (64)"
+                    checked: false
+                }))
+            })),
+            showValues: true,
+            selectedValue: [],
+            icon: "utility:chevrondown",
+            isStatusStage:true
+        };
 
-                            </div>
-                           </div>
-                        </template>
-                    </div>
-                </template>
+        // Push it as a separate index
+        this._filteredFieldValues.push(statusStageFilter);
+        }
+        this.isLoadingFilter = false;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
 
-                <!-- Reset button -->
-                <div class="slds-grid slds-grid_align-end slds-m-top_large">
-                    <lightning-button 
-                        label="Reset" 
-                        variant="neutral" 
-                        data-action="resetfilter"
-                        onclick={handleResetButton}>
-                    </lightning-button>
-                </div>
+    handleActions(event){ 
+    const apiName = event.target.dataset.action;   // filterFieldApiName
+    const values = event.detail.value;             // selected values array
 
-                <!-- Spinner -->
-                <template if:true={isLoadingFilter}>
-                    <lightning-spinner alternative-text="Loading"></lightning-spinner>
-                </template>
+    if (values && values.length > 0) {
+        this.selectedFiltersdata = {
+            ...this.selectedFiltersdata,
+            [apiName]: values
+        };
+    } else {
+        const { [apiName]: removed, ...rest } = this.selectedFiltersdata;
+        this.selectedFiltersdata = rest;
+    }
 
-            </lightning-layout-item>
-        </template>
-    </lightning-layout>
-</template>
+    // ✅ Sync _filteredFieldValues so UI keeps checked items
+    this._filteredFieldValues = this._filteredFieldValues.map(f => {
+        if (f.filterFieldApiName === apiName) {
+            return { ...f, selectedValue: this.selectedFiltersdata[apiName] || [] };
+        }
+        return f;
+    });
+
+    // Dispatch clean array to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.selectedFiltersArray }
+        })
+    );
+
+    console.log('Selected Filters Map:', JSON.stringify(this.selectedFiltersdata));
+    console.log('Selected Filters Array:', JSON.stringify(this.selectedFiltersArray));
+}
+
+     // Convert to array format [{ key, values }]
+   get selectedFiltersArray() {
+        return Object.keys(this.selectedFiltersdata).map(key => {
+            return { [key]: this.selectedFiltersdata[key] };
+        });
+    }
+    handleResetButton(event){
+        this._filteredFieldValues=[];
+        this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
+        
+    this.template.querySelector('c-technology-decision-custom-pick').reset();
+
+    }
+    handlefilterToggle(event){
+         this.showFilter = !this.showFilter;  // toggle between true/false
+    }
+    handleFilterExpand(event){
+            
+            console.log('index', event.currentTarget.dataset.index);
+            
+           // defensive: event.currentTarget.dataset might be undefined in some event propagation cases
+        const ds = (event.currentTarget && event.currentTarget.dataset) || (event.target && event.target.dataset);
+        if (!ds || typeof ds.index === 'undefined') {
+            // debug - helpful to open browser console to see why click didn't carry data-index
+            // eslint-disable-next-line no-console
+            console.warn('toggleFilter: data-index not found on event target', event);
+            return;
+        }
+
+        const index = Number(ds.index); // convert to number to match ids like 0,1,2
+
+        // Create a new array copying objects; update only the clicked item
+        const newArray = this._filteredFieldValues.map(item => {
+            if (Number(item.id) === index) {
+                const newShow = !item.showValues;
+                // return a new object (important for reactivity)
+                return {
+                    ...item,
+                    showValues: newShow,
+                    icon: newShow ? 'utility:chevrondown' : 'utility:chevronright'
+                };
+            }
+            return { ...item }; // shallow copy of unchanged items
+        });
+        console.log('newArray ', JSON.stringify(newArray));
+        // Assign the new array back to the tracked private field
+        this._filteredFieldValues = newArray;
+    }
+    handleFilterSearch(event) {
+    const searchTerm = event.target.value ? event.target.value.toLowerCase() : '';
+    console.log('Search filter term: ', searchTerm);
+
+    // If no search term, show all filters
+    if (!searchTerm) {
+        this._filteredFieldValues = [...this._filterOptionsBackup];
+        return;
+    }
+
+    // Filter logic
+    const filtered = this._filterOptionsBackup
+        .map(filter => {
+            const matchingValues = filter.filteredFieldValue.filter(opt =>
+                opt.label.toLowerCase().includes(searchTerm)
+            );
+            if (
+                filter.filterField.toLowerCase().includes(searchTerm) ||
+                matchingValues.length > 0
+            ) {
+                return {
+                    ...filter,
+                    filteredFieldValue: matchingValues,
+                    showValues: true
+                };
+            }
+            return null;
+        })
+        .filter(Boolean);
+
+    this._filteredFieldValues = filtered;
+}
+
+ handleChildCheckboxChangeNewOne(event) {
+    const parentName = event.target.dataset.parent;
+    const childId = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('childId 2310', childId);
+    console.log('parentName 2310', parentName);
+    console.log('isChecked 2310', isChecked);
+
+    const clean = label =>
+        label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+    // -----------------------------
+    // CHILD FIELD NAME MAPPING
+    // -----------------------------
+    const childFieldMap = {
+        "Affected Standard": "Domain Standard",
+        "Status/Stage": "Stage"
+    };
+
+    // -----------------------------
+    // UPDATE CHECKED FLAGS
+    // -----------------------------
+    const updated = [...this._filteredFieldValues];
+
+    const blockIndex = updated.findIndex(block =>
+        block.filteredFieldValue.some(cat =>
+            clean(cat.label) === clean(parentName)
+        )
+    );
+
+    if (blockIndex !== -1) {
+        const block = updated[blockIndex];
+
+        block.filteredFieldValue = block.filteredFieldValue.map(cat => {
+            if (clean(cat.label) === clean(parentName)) {
+                cat.children = cat.children.map(child => {
+                    if (clean(child.label) === clean(childId)) {
+                        child.checked = isChecked;
+                    }
+                    return child;
+                });
+            }
+            return cat;
+        });
+
+        updated[blockIndex] = { ...block };
+    }
+
+    this._filteredFieldValues = updated;
+
+    // -----------------------------
+    // BUILD FILTERS (Parent Separate, Child Separate)
+    // -----------------------------
+    this.filters = [];
+
+    updated.forEach((filterBlock, idx) => {
+        const parentField = filterBlock.filterField;
+        const childField = childFieldMap[parentField] || (parentField + "_child");
+
+        const parentSelected = [];
+        const childSelected = [];
+
+        filterBlock.filteredFieldValue.forEach(cat => {
+            if (cat.checked) {
+                parentSelected.push(clean(cat.label));
+            }
+
+            const checkedChildren = cat.children
+                ?.filter(c => c.checked)
+                .map(c => clean(c.label));
+
+            if (checkedChildren?.length) {
+                childSelected.push(...checkedChildren);
+            }
+        });
+
+        // Parent filter (EX: Status)
+        if (parentSelected.length) {
+            this.filters.push({
+                [parentField]: parentSelected
+                //uniqueKey: `${idx}-${parentSelected.join(',')}`
+            });
+        }
+
+        // Child filter (EX: Stage)
+        if (childSelected.length) {
+            this.filters.push({
+                [childField]: childSelected
+               // uniqueKey: `${idx}-${childSelected.join(',')}`
+            });
+        }
+    });
+
+    console.log("Final Filters:", JSON.stringify(this.filters, null, 2));
+
+    // -----------------------------
+    // REFRESH DATA
+    // -----------------------------
+    this.checkedAffStdArray = this._filteredFieldValues;
+    this.rowOffSet = 0;
+    this.records = [];
+     // Dispatch clean array to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.filters }
+        })
+    );
+}
+handleParentCheckboxChangeNewOne(event) {
+    const categoryName = event.target.dataset.id;
+    const isChecked = event.target.checked;
+    console.log('categoryName ',categoryName);
+    const clean = label =>
+        label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+    const childFieldMap = {
+        //"Affected Standard": "Domain Standard",
+        "Status/Stage": "Stage"
+    };
+
+    // -------------------------------
+    // 1️⃣ Update parent/child selected state in _filteredFieldValues
+    // -------------------------------
+
+    const updatedFilters = JSON.parse(JSON.stringify(this._filteredFieldValues)); // deep clone
+
+    // Find which parent bucket contains the item clicked
+    const parentIndex = updatedFilters.findIndex(parent =>
+        parent.filteredFieldValue.some(cat =>
+            clean(cat.label) === clean(categoryName) ||
+            cat.children?.some(ch => clean(ch.label) === clean(categoryName))
+        )
+    );
+
+    if (parentIndex !== -1) {
+        const parentBucket = updatedFilters[parentIndex];
+
+        parentBucket.filteredFieldValue = parentBucket.filteredFieldValue.map(category => {
+            const isParentMatch = clean(category.label) === clean(categoryName);
+
+            // Toggle parent
+            if (isParentMatch) {
+                category.checked = isChecked;
+                if (!isChecked) {
+                    // uncheck all children
+                    category.children = category.children?.map(child => ({
+                        ...child,
+                        checked: false
+                    })) || [];
+                }
+            }
+
+            // Toggle children
+            category.children = category.children?.map(child => {
+                if (clean(child.label) === clean(categoryName)) {
+                    return { ...child, checked: isChecked };
+                }
+                return child;
+            }) || [];
+
+            return category;
+        });
+    }
+
+    // assign updated version
+    this._filteredFieldValues = updatedFilters;
+
+    // -------------------------------
+    // 2️⃣ Build SEPARATE FILTER OBJECTS for:
+    //     Affected Standard → Domain Standard
+    //     Status → Stage
+    // -------------------------------
+
+    let finalFilters = [];
+     console.log('updatedFilters ', JSON.stringify(updatedFilters));
+
+    updatedFilters.forEach((filterBucket, bucketIndex) => {
+        const parentField = filterBucket.filterField;
+        console.log('parentField ', parentField);
+        const childField = childFieldMap[parentField];
+        console.log('childField ', childField);
+        let parentSelections = [];
+        let childSelections = [];
+
+        filterBucket.filteredFieldValue.forEach(parent => {
+            // parent selected
+            if (parent.checked) {
+                parentSelections.push(clean(parent.label));
+            }
+
+            // child selected
+            parent.children?.forEach(child => {
+                if (child.checked) {
+                    childSelections.push(clean(child.label));
+                }
+            });
+        });
+
+        // create parent filter object
+        if (parentSelections.length > 0) {
+            finalFilters.push({
+                [parentField]: parentSelections,
+                uniqueKey: `${bucketIndex}-${parentSelections.join(",")}`
+            });
+        }
+
+        // create child filter object
+        if (childSelections.length > 0) {
+            finalFilters.push({
+                [childField]: childSelections,
+                uniqueKey: `${bucketIndex}-${childSelections.join(",")}`
+            });
+        }
+    });
+
+    this.filters = finalFilters;
+
+    console.log("FINAL FILTERS => ", JSON.stringify(this.filters, null, 2));
+
+    // -------------------------------
+    // 3️⃣ Continue your downstream logic
+    // -------------------------------
+    this.checkedAffStdArray = this._filteredFieldValues;
+    this.rowOffSet = 0;
+    this.records = [];
+    // Dispatch clean array to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.filters }
+        })
+    );
+}
+
+}
