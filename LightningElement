@@ -1,180 +1,167 @@
-@isTest
-private class TechnologyDecisionTriggerTest {
+@IsTest
+private class technologyDecision_CreateFormHelperTest {
 
-    /**
-     * Helper to create a bare-minimum TechnologyDecision_Relationship__c record.
-     * Add any required fields for your org inside this method.
-     */
-    private static TechnologyDecision_Relationship__c createRelationshipRecord() {
-        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c();
-        // TODO: set any required fields on TechnologyDecision_Relationship__c here.
-        insert rel;
-        return rel;
+    // Helper to build the map for the TechnologyDecision__c side
+    private static Map<String, Object> buildDecisionFields() {
+        Map<String, Object> decisionFields = new Map<String, Object>();
+        // Set only editable / writeable fields (API names)
+        decisionFields.put('Name', 'Unit Test Decision');
+        decisionFields.put('Stage__c', 'Saved');
+        decisionFields.put('Status__c', 'Draft');
+        decisionFields.put('Why__c', 'Why text');
+        decisionFields.put('What__c', 'What text');
+        decisionFields.put('Value__c', 'Value text');
+
+        // If your org has additional required fields on TechnologyDecision__c,
+        // add them here with their API names, e.g.:
+        // decisionFields.put('Some_Required_Field__c', 'Some value');
+
+        return decisionFields;
     }
 
-    /**
-     * Test BEFORE INSERT – covers all Decision_Reason__c branches so the
-     * mapping logic is executed for:
-     * - New Technology (domain branch)
-     * - Replace Application (application branch)
-     * - Replace Technology (technology branch)
-     * - Replace Platform (platform branch)
-     */
-    @isTest
-    static void testBeforeInsert_AllReasonBranches() {
-        // Create one relationship record per branch
-        TechnologyDecision_Relationship__c relDomain      = createRelationshipRecord();
-        TechnologyDecision_Relationship__c relApp         = createRelationshipRecord();
-        TechnologyDecision_Relationship__c relTech        = createRelationshipRecord();
-        TechnologyDecision_Relationship__c relPlatform    = createRelationshipRecord();
+    // Helper to build the map for the TechnologyDecision_Relationship__c side
+    private static Map<String, Object> buildRelationshipFields() {
+        Map<String, Object> relationFields = new Map<String, Object>();
+        relationFields.put('Name', 'Unit Test Relation');
 
-        List<TechnologyDecision__c> decisionsToInsert = new List<TechnologyDecision__c>();
-
-        // Domain-related (New Technology / New Platform / New Capability / New Application)
-        decisionsToInsert.add(new TechnologyDecision__c(
-            Name                               = 'Test New Technology',
-            TechnologyDecision_Relationship__c = relDomain.Id,
-            Decision_Reason__c                 = 'New Technology'
-        ));
-
-        // Application-related (Replace Application / Existing Application / Upgrade Application)
-        decisionsToInsert.add(new TechnologyDecision__c(
-            Name                               = 'Test Replace Application',
-            TechnologyDecision_Relationship__c = relApp.Id,
-            Decision_Reason__c                 = 'Replace Application'
-        ));
-
-        // Technology-related (Replace Technology / Existing Technology / Upgrade Technology)
-        decisionsToInsert.add(new TechnologyDecision__c(
-            Name                               = 'Test Replace Technology',
-            TechnologyDecision_Relationship__c = relTech.Id,
-            Decision_Reason__c                 = 'Replace Technology'
-        ));
-
-        // Platform-related (Replace Platform / Existing Platform / Upgrade Platform)
-        decisionsToInsert.add(new TechnologyDecision__c(
-            Name                               = 'Test Replace Platform',
-            TechnologyDecision_Relationship__c = relPlatform.Id,
-            Decision_Reason__c                 = 'Replace Platform'
-        ));
-
-        Test.startTest();
-        insert decisionsToInsert;
-        Test.stopTest();
-
-        // Reload and do basic assertions
-        List<TechnologyDecision__c> inserted = [
-            SELECT Id,
-                   Name,
-                   Decision_Reason__c,
-                   Draft_Status_Start_Date__c,
-                   Requestor__c,
-                   Requesting_Technical_Architect__c,
-                   Requesting_Business_Owner__c,
-                   Requesting_Application_Owner__c,
-                   Requesting_Tech_Fellow__c
-            FROM TechnologyDecision__c
-            WHERE Id IN :decisionsToInsert
-        ];
-
-        System.assertEquals(4, inserted.size(), 'Four TechnologyDecision__c records should be inserted');
-
-        for (TechnologyDecision__c td : inserted) {
-            // At minimum, this should always be set by the trigger
-            System.assertNotEquals(
-                null,
-                td.Draft_Status_Start_Date__c,
-                'Draft_Status_Start_Date__c should be populated in before insert trigger'
-            );
-
-            // Optional: once you seed real related data, you can add asserts per reason:
-            // if (td.Decision_Reason__c == 'New Technology') {
-            //     System.assertNotEquals(null, td.Requesting_Technical_Architect__c);
-            // }
-        }
-    }
-
-    /**
-     * Test AFTER INSERT – verifies that the related
-     * TechnologyDecision_Relationship__c gets updated from the decision.
-     *
-     * Here we use a Decision_Reason__c that does NOT hit any of the
-     * mapping branches so that we can directly control the Requesting_*
-     * fields on the TechnologyDecision__c from the test, if needed.
-     */
-    @isTest
-    static void testAfterInsert_RelationshipUpdated() {
-        TechnologyDecision_Relationship__c rel = createRelationshipRecord();
-
-        // NOTE:
-        // If Requesting_* fields are lookups, you can create one appropriate
-        // parent record (e.g., Employee__c) and use that Id below.
-        TechnologyDecision__c td = new TechnologyDecision__c(
-            Name                               = 'Test After Insert Update',
-            TechnologyDecision_Relationship__c = rel.Id,
-            Decision_Reason__c                 = 'Other' // does not match any mapping block
-            // Optionally pre-populate:
-            // Requesting_Technical_Architect__c = someEmp.Id,
-            // Requesting_Business_Owner__c      = someEmp.Id,
-            // Requesting_Application_Owner__c   = someEmp.Id,
-            // Requesting_Tech_Fellow__c         = someEmp.Id
-        );
-
-        Test.startTest();
-        insert td;
-        Test.stopTest();
-
-        // Verify the relationship record exists and was touched by the trigger
-        TechnologyDecision_Relationship__c updatedRel = [
-            SELECT Id,
-                   Requesting_Technical_Architect__c,
-                   Requesting_Business_Owner__c,
-                   Requesting_Application_Owner__c,
-                   Requesting_Portfolio_Architect__c,
-                   Requesting_Tech_Fellow__c
-            FROM TechnologyDecision_Relationship__c
-            WHERE Id = :rel.Id
-        ];
-
-        System.assertNotEquals(null, updatedRel.Id, 'Relationship record should exist');
-
-        // If you pre-populated Requesting_* on TechnologyDecision__c above,
-        // you can assert those values here, e.g.:
+        // IMPORTANT:
+        // Do NOT try to set relationship fields like TechnologyDecision_Relationship__r.Something
+        // or Requesting_Application__r.Name – those are NOT editable.
+        // Always set the *lookup Id* field (the __c).
         //
-        // System.assertEquals(td.Requesting_Technical_Architect__c,
-        //                     updatedRel.Requesting_Technical_Architect__c);
-        // System.assertEquals(td.Requesting_Business_Owner__c,
-        //                     updatedRel.Requesting_Business_Owner__c);
-        // System.assertEquals(td.Requesting_Application_Owner__c,
-        //                     updatedRel.Requesting_Application_Owner__c);
-        // System.assertEquals(td.Requesting_Tech_Fellow__c,
-        //                     updatedRel.Requesting_Tech_Fellow__c);
+        // Example (if you need these):
+        // relationFields.put('Requesting_Domain__c', someDomain.Id);
+        // relationFields.put('Requesting_Application__c', someApp.Id);
+        //
+        // Add any required fields for TechnologyDecision_Relationship__c here.
+
+        return relationFields;
     }
 
-    /**
-     * Optional: test insert without relationship, to ensure the trigger
-     * safely skips logic when TechnologyDecision_Relationship__c is null.
-     */
-    @isTest
-    static void testInsertWithoutRelationship() {
-        TechnologyDecision__c td = new TechnologyDecision__c(
-            Name               = 'No Relationship',
-            Decision_Reason__c = 'New Technology'
-        );
+    @IsTest
+    static void testCreateDecisionWithRelation_andLink() {
+        // Arrange
+        Map<String, Object> decisionFields  = buildDecisionFields();
+        Map<String, Object> relationFields  = buildRelationshipFields();
 
         Test.startTest();
-        insert td;
+        // Act
+        String decisionIdStr = technologyDecision_CreateFormHelper.createDecisionWithRelation(
+            decisionFields,
+            relationFields
+        );
         Test.stopTest();
 
-        TechnologyDecision__c inserted = [
-            SELECT Id, Draft_Status_Start_Date__c
+        System.assertNotEquals(null, decisionIdStr, 'Method should return the Decision Id');
+
+        Id decisionId = (Id)decisionIdStr;
+
+        // Assert: Decision exists and is linked to a relationship record
+        TechnologyDecision__c dec = [
+            SELECT Id, Name, TechnologyDecision_Relationship__c
             FROM TechnologyDecision__c
-            WHERE Id = :td.Id
+            WHERE Id = :decisionId
+            LIMIT 1
         ];
-        System.assertNotEquals(
-            null,
-            inserted.Draft_Status_Start_Date__c,
-            'Draft_Status_Start_Date__c should still be set even without relationship'
+        System.assertNotEquals(null, dec.TechnologyDecision_Relationship__c,
+            'Decision should reference a TechnologyDecision_Relationship__c record');
+
+        TechnologyDecision_Relationship__c rel = [
+            SELECT Id, Decison_Id__c
+            FROM TechnologyDecision_Relationship__c
+            WHERE Id = :dec.TechnologyDecision_Relationship__c
+            LIMIT 1
+        ];
+
+        System.assertEquals(dec.Id, rel.Decison_Id__c,
+            'Relationship record should point back to the Decision via Decison_Id__c');
+    }
+
+    @IsTest
+    static void testGetDecisionRecord() {
+        // Arrange
+        TechnologyDecision__c dec = new TechnologyDecision__c(
+            Name = 'Get Record Test',
+            Stage__c = 'Saved',
+            Status__c = 'Draft',
+            Why__c = 'Why',
+            What__c = 'What',
+            Value__c = 'Value'
         );
+        insert dec;
+
+        Test.startTest();
+        TechnologyDecision__c fetched =
+            technologyDecision_CreateFormHelper.getDecisionRecord(dec.Id);
+        Test.stopTest();
+
+        System.assertEquals(dec.Id, fetched.Id, 'Should return same record');
+        System.assertEquals('Saved', fetched.Stage__c);
+        System.assertEquals('Draft', fetched.Status__c);
+    }
+
+    @IsTest
+    static void testValidateRequiredFieldsOnDecision_SavedMissing() {
+        // This decision is missing Why__c / What__c / Value__c to trigger validation
+        TechnologyDecision__c dec = new TechnologyDecision__c(
+            Name = 'Validation Test',
+            Stage__c = 'Saved',
+            Status__c = 'Draft'
+            // Deliberately NOT setting Why__c, What__c, Value__c
+        );
+        insert dec;
+
+        Test.startTest();
+        String message = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(
+            '',
+            message,
+            'For Stage=Saved with required fields missing, we should get a validation message'
+        );
+        System.assert(
+            message.contains('Please edit and update all required field(s)'),
+            'Message should indicate required fields must be updated'
+        );
+    }
+
+    @IsTest
+    static void testFetchButtonPermissions_PrepareDecisionVisible() {
+        // Simulate that the current user has TPM_Read_Write permission
+        technologyDecision_CreateFormHelper.permissionSetNames.clear();
+        technologyDecision_CreateFormHelper.permissionSetNames.add('TPM_Read_Write');
+
+        // Get whatever employee Id your AWP_Utility returns
+        Id empId = AWP_Utility.getLoggedInUserEmpRecordId();
+
+        // Create a decision where the logged-in employee is the Requestor/TA
+        TechnologyDecision__c dec = new TechnologyDecision__c(
+            Name = 'Button Perm Test',
+            Stage__c = 'Saved',
+            Status__c = 'Draft',
+            Requestor__c = empId,
+            Requesting_Technical_Architect__c = empId,
+            Why__c = 'Why',
+            What__c = 'What',
+            Value__c = 'Value'
+        );
+        insert dec;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.ButtonPermissions perms =
+            technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        Test.stopTest();
+
+        // For Stage = Saved and user as Requestor/TA + TPM_Read_Write,
+        // prepareDecision button should be enabled.
+        System.assertEquals(
+            true,
+            perms.prepareDecision,
+            'prepareDecision button should be allowed for TA/Requestor in Saved stage'
+        );
+
+        // Edit is always allowed per code
+        System.assertEquals(true, perms.edit, 'edit button should always be true');
     }
 }
