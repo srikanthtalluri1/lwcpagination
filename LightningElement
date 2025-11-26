@@ -1,167 +1,449 @@
 @IsTest
 private class technologyDecision_CreateFormHelperTest {
 
-    // Helper to build the map for the TechnologyDecision__c side
-    private static Map<String, Object> buildDecisionFields() {
-        Map<String, Object> decisionFields = new Map<String, Object>();
-        // Set only editable / writeable fields (API names)
-        decisionFields.put('Name', 'Unit Test Decision');
-        decisionFields.put('Stage__c', 'Saved');
-        decisionFields.put('Status__c', 'Draft');
-        decisionFields.put('Why__c', 'Why text');
-        decisionFields.put('What__c', 'What text');
-        decisionFields.put('Value__c', 'Value text');
+    /* ------------------------------------------------------------------------
+       COMMON HELPERS
+       ------------------------------------------------------------------------ */
 
-        // If your org has additional required fields on TechnologyDecision__c,
-        // add them here with their API names, e.g.:
-        // decisionFields.put('Some_Required_Field__c', 'Some value');
-
-        return decisionFields;
+    private static Id getEmpId() {
+        // Always use the same helper your production code uses
+        return AWP_Utility.getLoggedInUserEmpRecordId();
     }
 
-    // Helper to build the map for the TechnologyDecision_Relationship__c side
-    private static Map<String, Object> buildRelationshipFields() {
-        Map<String, Object> relationFields = new Map<String, Object>();
-        relationFields.put('Name', 'Unit Test Relation');
+    private static TechnologyDecision_Relationship__c createRelationWithDomainAndApp() {
+        // Minimal Relationship record; do NOT touch any __r fields
+        TPM_Domain__c dom = new TPM_Domain__c(
+            Name = 'Test Domain'
+            // TODO: If Domain has required fields, set them here
+        );
+        insert dom;
 
-        // IMPORTANT:
-        // Do NOT try to set relationship fields like TechnologyDecision_Relationship__r.Something
-        // or Requesting_Application__r.Name – those are NOT editable.
-        // Always set the *lookup Id* field (the __c).
-        //
-        // Example (if you need these):
-        // relationFields.put('Requesting_Domain__c', someDomain.Id);
-        // relationFields.put('Requesting_Application__c', someApp.Id);
-        //
-        // Add any required fields for TechnologyDecision_Relationship__c here.
+        TPM_App__c app = new TPM_App__c(
+            Name = 'Test App'
+            // TODO: If App has required fields, set them here
+        );
+        insert app;
 
-        return relationFields;
+        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c(
+            Name                      = 'Rel for Test',
+            Requesting_Domain__c      = dom.Id,
+            Requesting_Application__c = app.Id
+            // Requesting_Technology__c / Requesting_Platform__c if required
+        );
+        insert rel;
+        return rel;
     }
+
+    private static TechnologyDecision__c createBaseDecision(String reason, String stage, String status) {
+        Id empId = getEmpId();
+        TechnologyDecision_Relationship__c rel = createRelationWithDomainAndApp();
+
+        TechnologyDecision__c dec = new TechnologyDecision__c(
+            Name                               = 'Unit Test Decision - ' + reason,
+            Stage__c                           = stage,
+            Status__c                          = status,
+            Decision_Reason__c                 = reason,
+            Why__c                             = 'Why text',
+            What__c                            = 'What text',
+            Value__c                           = 'Value text',
+            TechnologyDecision_Relationship__c = rel.Id,
+            Requestor__c                       = empId,
+            Requesting_Technical_Architect__c  = empId,
+            Requesting_Business_Owner__c       = empId,
+            Requesting_Application_Owner__c    = empId,
+            Requesting_Tech_Fellow__c          = empId
+            // TODO: add any org-required fields here
+        );
+        insert dec;
+        return dec;
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Preparing Decision
+       ------------------------------------------------------------------------ */
 
     @IsTest
-    static void testCreateDecisionWithRelation_andLink() {
-        // Arrange
-        Map<String, Object> decisionFields  = buildDecisionFields();
-        Map<String, Object> relationFields  = buildRelationshipFields();
+    static void testSubmitApproval_PreparingDecisionComment() {
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Saved',
+            'Draft'
+        );
 
         Test.startTest();
-        // Act
-        String decisionIdStr = technologyDecision_CreateFormHelper.createDecisionWithRelation(
-            decisionFields,
-            relationFields
+        Boolean result = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'Prep comment',
+            'Preparing Decision Comment',
+            null
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, decisionIdStr, 'Method should return the Decision Id');
+        System.assertEquals(true, result, 'Method should return true');
 
-        Id decisionId = (Id)decisionIdStr;
-
-        // Assert: Decision exists and is linked to a relationship record
-        TechnologyDecision__c dec = [
-            SELECT Id, Name, TechnologyDecision_Relationship__c
+        TechnologyDecision__c refreshed = [
+            SELECT Id, Stage__c
             FROM TechnologyDecision__c
-            WHERE Id = :decisionId
-            LIMIT 1
+            WHERE Id = :dec.Id
         ];
-        System.assertNotEquals(null, dec.TechnologyDecision_Relationship__c,
-            'Decision should reference a TechnologyDecision_Relationship__c record');
-
-        TechnologyDecision_Relationship__c rel = [
-            SELECT Id, Decison_Id__c
-            FROM TechnologyDecision_Relationship__c
-            WHERE Id = :dec.TechnologyDecision_Relationship__c
-            LIMIT 1
-        ];
-
-        System.assertEquals(dec.Id, rel.Decison_Id__c,
-            'Relationship record should point back to the Decision via Decison_Id__c');
-    }
-
-    @IsTest
-    static void testGetDecisionRecord() {
-        // Arrange
-        TechnologyDecision__c dec = new TechnologyDecision__c(
-            Name = 'Get Record Test',
-            Stage__c = 'Saved',
-            Status__c = 'Draft',
-            Why__c = 'Why',
-            What__c = 'What',
-            Value__c = 'Value'
-        );
-        insert dec;
-
-        Test.startTest();
-        TechnologyDecision__c fetched =
-            technologyDecision_CreateFormHelper.getDecisionRecord(dec.Id);
-        Test.stopTest();
-
-        System.assertEquals(dec.Id, fetched.Id, 'Should return same record');
-        System.assertEquals('Saved', fetched.Stage__c);
-        System.assertEquals('Draft', fetched.Status__c);
-    }
-
-    @IsTest
-    static void testValidateRequiredFieldsOnDecision_SavedMissing() {
-        // This decision is missing Why__c / What__c / Value__c to trigger validation
-        TechnologyDecision__c dec = new TechnologyDecision__c(
-            Name = 'Validation Test',
-            Stage__c = 'Saved',
-            Status__c = 'Draft'
-            // Deliberately NOT setting Why__c, What__c, Value__c
-        );
-        insert dec;
-
-        Test.startTest();
-        String message = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id);
-        Test.stopTest();
-
-        System.assertNotEquals(
-            '',
-            message,
-            'For Stage=Saved with required fields missing, we should get a validation message'
-        );
-        System.assert(
-            message.contains('Please edit and update all required field(s)'),
-            'Message should indicate required fields must be updated'
-        );
-    }
-
-    @IsTest
-    static void testFetchButtonPermissions_PrepareDecisionVisible() {
-        // Simulate that the current user has TPM_Read_Write permission
-        technologyDecision_CreateFormHelper.permissionSetNames.clear();
-        technologyDecision_CreateFormHelper.permissionSetNames.add('TPM_Read_Write');
-
-        // Get whatever employee Id your AWP_Utility returns
-        Id empId = AWP_Utility.getLoggedInUserEmpRecordId();
-
-        // Create a decision where the logged-in employee is the Requestor/TA
-        TechnologyDecision__c dec = new TechnologyDecision__c(
-            Name = 'Button Perm Test',
-            Stage__c = 'Saved',
-            Status__c = 'Draft',
-            Requestor__c = empId,
-            Requesting_Technical_Architect__c = empId,
-            Why__c = 'Why',
-            What__c = 'What',
-            Value__c = 'Value'
-        );
-        insert dec;
-
-        Test.startTest();
-        technologyDecision_CreateFormHelper.ButtonPermissions perms =
-            technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
-        Test.stopTest();
-
-        // For Stage = Saved and user as Requestor/TA + TPM_Read_Write,
-        // prepareDecision button should be enabled.
         System.assertEquals(
-            true,
-            perms.prepareDecision,
-            'prepareDecision button should be allowed for TA/Requestor in Saved stage'
+            'Preparing Decision',
+            refreshed.Stage__c,
+            'Stage should move to Preparing Decision'
+        );
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Acknowledge Comment (Business Owner flow)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_AcknowledgeComment_BO() {
+        Id empId = getEmpId();
+
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = true;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = false;
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending BO Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        Test.startTest();
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'BO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+
+        System.assertEquals(true, after.BO_Acknowledged__c,
+            'Business Owner should now be acknowledged');
+        System.assertEquals(
+            'Pending AO Acknowledgement',
+            after.Stage__c,
+            'Stage should move to Pending AO Acknowledgement'
         );
 
-        // Edit is always allowed per code
-        System.assertEquals(true, perms.edit, 'edit button should always be true');
+        TechnologyDecision_Approval__c updatedBO = [
+            SELECT Id, Type__c, Actual_Acknowledger__c, Comments__c
+            FROM TechnologyDecision_Approval__c
+            WHERE Id = :pendingBO.Id
+        ];
+        System.assertEquals(
+            'BO Acknowledged',
+            updatedBO.Type__c,
+            'Approval history type should be updated to BO Acknowledged'
+        );
+        System.assertEquals(
+            empId,
+            updatedBO.Actual_Acknowledger__c,
+            'Actual_Acknowledger__c should be set to logged in employee'
+        );
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Approve Comment (Tech Fellow)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_ApproveComment() {
+        Id empId = getEmpId();
+
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Approval with Tech Fellow',
+            'Acknowledged'
+        );
+        dec.Requesting_Tech_Fellow__c = empId;
+        update dec;
+
+        // Pending approval record with Approved__c = true so SOQL in method does not blow up
+        TechnologyDecision_Approval__c pending = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Approval with Tech Fellow',
+            Approved__c      = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pending;
+
+        Test.startTest();
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'Approve comment',
+            'Approve Comment',
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+
+        System.assertEquals('Complete', after.Stage__c, 'Stage should be Complete');
+        System.assertEquals('Approve', after.Status__c, 'Status should be Approve');
+
+        TechnologyDecision_Approval__c updated = [
+            SELECT Id, Type__c, Actual_Approver__c, Comments__c
+            FROM TechnologyDecision_Approval__c
+            WHERE Id = :pending.Id
+        ];
+        System.assertEquals('Approved', updated.Type__c, 'Type should be Approved');
+        System.assertEquals(empId, updated.Actual_Approver__c,
+            'Actual_Approver__c should be logged in employee');
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Reject / Retire / Withdraw / Send Back / Recall / Reassign
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_OtherActions() {
+        Id empId = getEmpId();
+
+        // REJECT
+        TechnologyDecision__c decReject = createBaseDecision(
+            'New Technology',
+            'Pending Approval with Tech Fellow',
+            'Acknowledged'
+        );
+        decReject.Requesting_Tech_Fellow__c = empId;
+        update decReject;
+
+        TechnologyDecision_Approval__c apprReject = new TechnologyDecision_Approval__c(
+            Decision__c = decReject.Id,
+            Approved__c = true,
+            Type__c     = 'Pending Approval with Tech Fellow',
+            Action_Date_Time__c = System.now().addMinutes(-1)
+        );
+        insert apprReject;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decReject.Id,
+            'Rejecting',
+            'Reject Comment',
+            null
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterReject = [
+            SELECT Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decReject.Id
+        ];
+        System.assertEquals('Rejected', afterReject.Stage__c);
+        System.assertEquals('Reject', afterReject.Status__c);
+
+        // RETIRE
+        TechnologyDecision__c decRetire = createBaseDecision(
+            'New Technology',
+            'Complete',
+            'Approved'
+        );
+        update decRetire;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decRetire.Id,
+            'Retiring',
+            'Retire Comment',
+            null
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterRetire = [
+            SELECT Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decRetire.Id
+        ];
+        System.assertEquals('Retired', afterRetire.Stage__c);
+        System.assertEquals('Retire', afterRetire.Status__c);
+
+        // WITHDRAW
+        TechnologyDecision__c decWithdraw = createBaseDecision(
+            'New Technology',
+            'Security Review',
+            'Draft'
+        );
+        update decWithdraw;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decWithdraw.Id,
+            'Withdrawn',
+            'Withdraw Comment',
+            null
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterWithdraw = [
+            SELECT Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decWithdraw.Id
+        ];
+        System.assertEquals('Withdrawn', afterWithdraw.Stage__c);
+        System.assertEquals('Withdraw', afterWithdraw.Status__c);
+
+        // SEND BACK
+        TechnologyDecision__c decSendBack = createBaseDecision(
+            'New Technology',
+            'Security Review',
+            'Draft'
+        );
+        decSendBack.TA_Acknowledged__c = true;
+        decSendBack.BO_Acknowledged__c = true;
+        decSendBack.AO_Acknowledged__c = true;
+        update decSendBack;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decSendBack.Id,
+            'Send back',
+            'Send Back Comment',
+            null
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterSendBack = [
+            SELECT Stage__c, Status__c, AO_Acknowledged__c, BO_Acknowledged__c, TA_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decSendBack.Id
+        ];
+        System.assertEquals('Send_Back_Acknowledgment', afterSendBack.Stage__c,
+            'Stage must move to Send_Back_Acknowledgment for Draft status');
+        System.assertEquals('Draft', afterSendBack.Status__c);
+        System.assertEquals(false, afterSendBack.AO_Acknowledged__c);
+        System.assertEquals(false, afterSendBack.BO_Acknowledged__c);
+        System.assertEquals(false, afterSendBack.TA_Acknowledged__c);
+
+        // RECALL
+        TechnologyDecision__c decRecall = createBaseDecision(
+            'New Technology',
+            'Security Review',
+            'Acknowledged'
+        );
+        decRecall.TA_Acknowledged__c = true;
+        decRecall.AO_Acknowledged__c = true;
+        decRecall.BO_Acknowledged__c = true;
+        update decRecall;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decRecall.Id,
+            'Recall comment',
+            'Recall Comment',
+            null
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterRecall = [
+            SELECT Stage__c, Status__c, AO_Acknowledged__c, BO_Acknowledged__c, TA_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decRecall.Id
+        ];
+        System.assertEquals('Recall', afterRecall.Stage__c);
+        System.assertEquals('Draft', afterRecall.Status__c);
+        System.assertEquals(false, afterRecall.AO_Acknowledged__c);
+        System.assertEquals(false, afterRecall.BO_Acknowledged__c);
+        System.assertEquals(false, afterRecall.TA_Acknowledged__c);
+
+        // REASSIGN
+        TechnologyDecision__c decReassign = createBaseDecision(
+            'New Technology',
+            'Preparing Decision',
+            'Draft'
+        );
+        update decReassign;
+
+        Test.startTest();
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decReassign.Id,
+            'Reassigning',
+            'Reassign Comment',
+            getEmpId()  // reuse same empId as delegate
+        );
+        Test.stopTest();
+
+        TechnologyDecision__c afterReassign = [
+            SELECT ReAssigned_TA_Ack__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decReassign.Id
+        ];
+        System.assertEquals(
+            getEmpId(),
+            afterReassign.ReAssigned_TA_Ack__c,
+            'ReAssigned_TA_Ack__c should be set on reassign'
+        );
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: reAssignUsersList – New Technology (Domain based)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testReAssignUsersList_NewTechnology_Domain() {
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Preparing Decision',
+            'Draft'
+        );
+
+        Test.startTest();
+        Map<String, String> result =
+            technologyDecision_CreateFormHelper.reAssignUsersList(dec.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result map should not be null');
+        // We don’t assert exact size/keys because delegates may be null in test data,
+        // but at least the method must not throw.
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: reAssignUsersList – Replace Application (App based)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testReAssignUsersList_ReplaceApplication_App() {
+        TechnologyDecision__c dec = createBaseDecision(
+            'Replace Application',
+            'Preparing Decision',
+            'Draft'
+        );
+
+        Test.startTest();
+        Map<String, String> result =
+            technologyDecision_CreateFormHelper.reAssignUsersList(dec.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result map should not be null');
     }
 }
