@@ -1,197 +1,166 @@
-public class TechnologyDecision_HistoryHandler {
+@IsTest
+private class TechnologyDecision_HistoryHandlerTest {
 
-    @AuraEnabled(cacheable=true)
-    public static List<WrapperClass> getHistoryRecords(Id decisionId) {
-        // Always return something (even if empty)
-        if (decisionId == null) {
-            return new List<WrapperClass>();
+    @testSetup
+    static void setupData() {
+        // 1) Relationship record
+        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c();
+        // TODO: set required fields for your org, for example:
+        // rel.Name = 'Test Relationship';
+        insert rel;
+
+        // 2) Decision WITH relationship
+        TechnologyDecision__c decWithRel = new TechnologyDecision__c();
+        // TODO: set required fields for your org:
+        // decWithRel.Name = 'Decision With Rel';
+        decWithRel.TechnologyDecision_Relationship__c = rel.Id;
+        insert decWithRel;
+
+        // 3) Decision WITHOUT relationship
+        TechnologyDecision__c decNoRel = new TechnologyDecision__c();
+        // decNoRel.Name = 'Decision No Rel'; // if Name is required
+        insert decNoRel;
+    }
+
+    // --------- Test the core logic with mocked history rows ---------
+    @IsTest
+    static void testBuildHistoryRecords_WithMockHistory() {
+        // Get a valid Status API value so getPicklistLabel returns something
+        Schema.DescribeFieldResult statusDescribe = TechnologyDecision__c.Status__c.getDescribe();
+        List<Schema.PicklistEntry> entries = statusDescribe.getPicklistValues();
+
+        String validApiValue = entries.isEmpty() ? null : entries[0].getValue();
+
+        // Mock TechnologyDecision__History row
+        TechnologyDecision__History dh = (TechnologyDecision__History)
+            TechnologyDecision__History.SObjectType.newSObject(null);
+        dh.Field = 'Status__c';  // will resolve to label 'Status'
+        if (validApiValue != null) {
+           // dh.put('OldValue', validApiValue);
+            //dh.put('NewValue', validApiValue);
         }
 
-        // --- Get parent TechnologyDecision__c ---
-        TechnologyDecision__c decision = [
-            SELECT CreatedDate, CreatedBy.Name, CreatedById, TechnologyDecision_Relationship__c  
-            FROM TechnologyDecision__c  
-            WHERE Id = :decisionId 
+        // Mock TechnologyDecision_Relationship__History row
+        TechnologyDecision_Relationship__History rh = (TechnologyDecision_Relationship__History)
+            TechnologyDecision_Relationship__History.SObjectType.newSObject(null);
+        rh.Field = 'Name ';
+        //rh.put('OldValue', 'OldRel');
+        //rh.put('NewValue', 'NewRel');
+
+        List<TechnologyDecision__History> decisionHist =
+            new List<TechnologyDecision__History>{ dh };
+        List<TechnologyDecision_Relationship__History> relHist =
+            new List<TechnologyDecision_Relationship__History>{ rh };
+
+        Test.startTest();
+        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
+            TechnologyDecision_HistoryHandler.buildHistoryRecords(decisionHist, relHist);
+        Test.stopTest();
+
+        System.assertEquals(2, wrappers.size(),
+            'Expected one wrapper from decision history and one from relationship history.');
+
+        // Optional: check that Status field label was resolved
+        Boolean foundStatus = false;
+        for (TechnologyDecision_HistoryHandler.WrapperClass w : wrappers) {
+            if (w.fieldName == 'Status') {
+                foundStatus = true;
+                break;
+            }
+        }
+        System.assert(foundStatus, 'Expected at least one Status history row with label "Status".');
+    }
+
+    // --------- Test buildHistoryRecords with empty lists (no NPE, simple path) ---------
+    @IsTest
+    static void testBuildHistoryRecords_Empty() {
+        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
+            TechnologyDecision_HistoryHandler.buildHistoryRecords(
+                new List<TechnologyDecision__History>(),
+                new List<TechnologyDecision_Relationship__History>()
+            );
+        System.assertEquals(0, wrappers.size(), 'Empty history should return empty list.');
+    }
+
+    // --------- Test getHistoryRecords wrapper method (with and without relationship) ---------
+    @IsTest
+    static void testGetHistoryRecords_WithAndWithoutRelationship() {
+        TechnologyDecision__c withRel = [
+            SELECT Id, TechnologyDecision_Relationship__c
+            FROM TechnologyDecision__c
+            WHERE TechnologyDecision_Relationship__c != null
             LIMIT 1
         ];
 
-        // --- Try to get related TechnologyDecision_Relationship__c ---
-        TechnologyDecision_Relationship__c rel;
-        try {
-            rel = [
-                SELECT Id, CreatedDate, CreatedBy.Name, CreatedById  
-                FROM TechnologyDecision_Relationship__c 
-                WHERE Id = :decision.TechnologyDecision_Relationship__c 
-                LIMIT 1
-            ];
-        } catch (Exception e) {
-            rel = null;
-        }
-
-        // --- Query real history rows (may be empty in tests) ---
-        List<TechnologyDecision__History> decisionHistory = [
-            SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name, CreatedById
-            FROM TechnologyDecision__History
-            WHERE ParentId = :decisionId
+        TechnologyDecision__c noRel = [
+            SELECT Id, TechnologyDecision_Relationship__c
+            FROM TechnologyDecision__c
+            WHERE TechnologyDecision_Relationship__c = null
+            LIMIT 1
         ];
 
-        List<TechnologyDecision_Relationship__History> relationshipHistory =
-            (rel == null)
-            ? new List<TechnologyDecision_Relationship__History>()
-            : [
-                SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name, CreatedById
-                FROM TechnologyDecision_Relationship__History
-                WHERE ParentId = :rel.Id
-            ];
+        Test.startTest();
+        List<TechnologyDecision_HistoryHandler.WrapperClass> listWithRel =
+            TechnologyDecision_HistoryHandler.getHistoryRecords(withRel.Id);
+        List<TechnologyDecision_HistoryHandler.WrapperClass> listNoRel =
+            TechnologyDecision_HistoryHandler.getHistoryRecords(noRel.Id);
+        Test.stopTest();
 
-        // Heavy logic moved to a helper so tests can inject fake history data
-        return buildHistoryRecords(decisionHistory, relationshipHistory);
+        System.assertNotEquals(null, listWithRel, 'Result should not be null (with relationship).');
+        System.assertNotEquals(null, listNoRel, 'Result should not be null (no relationship).');
     }
 
-    /**
-     * Core logic that converts history rows to WrapperClass.
-     * Marked @TestVisible so tests can pass in mock history rows (since real history
-     * rows are not created during unit tests).
-     */
-    @TestVisible
-    static List<WrapperClass> buildHistoryRecords(
-        List<TechnologyDecision__History> decisionHistory,
-        List<TechnologyDecision_Relationship__History> relationshipHistory
-    ) {
-        List<WrapperClass> historyRecords = new List<WrapperClass>();
-
-        // Cache describe map once
-        Map<String, Schema.SObjectField> mfields =
-            Schema.TechnologyDecision__c.SObjectType.getDescribe().fields.getMap();
-
-        // ---- Decision history ----
-        for (TechnologyDecision__History formHistory : decisionHistory) {
-            String oldValue = String.valueOf(formHistory.OldValue);
-            String newValue = String.valueOf(formHistory.NewValue);
-            String fieldLabel = formHistory.Field;
-
-            if (formHistory.Field != null && mfields.containsKey(formHistory.Field)) {
-                Schema.DescribeFieldResult fieldResult = mfields.get(formHistory.Field).getDescribe();
-                fieldLabel = fieldResult.getLabel();
-            }
-
-            // Special logic for Status picklist: convert API value to label
-            if (fieldLabel == 'Status') {
-                if (formHistory.OldValue != null) {
-                    oldValue = getPicklistLabel(
-                        'TechnologyDecision__c',
-                        'Status__c',
-                        String.valueOf(formHistory.OldValue)
-                    );
-                }
-                if (formHistory.NewValue != null) {
-                    newValue = getPicklistLabel(
-                        'TechnologyDecision__c',
-                        'Status__c',
-                        String.valueOf(formHistory.NewValue)
-                    );
-                }
-            }
-
-            historyRecords.add(new WrapperClass(
-                fieldLabel,
-                oldValue,
-                newValue,
-                formHistory.CreatedDate,
-                (formHistory.CreatedBy == null ? null : formHistory.CreatedBy.Name),
-                String.valueOf(formHistory.CreatedById),
-                'AWP Architecture Waiver Form'
-            ));
-        }
-
-        // ---- Relationship history ----
-        if (relationshipHistory != null) {
-            for (TechnologyDecision_Relationship__History relationshipHistoryRow : relationshipHistory) {
-                historyRecords.add(new WrapperClass(
-                    relationshipHistoryRow.Field,
-                    String.valueOf(relationshipHistoryRow.OldValue),
-                    String.valueOf(relationshipHistoryRow.NewValue),
-                    relationshipHistoryRow.CreatedDate,
-                    (relationshipHistoryRow.CreatedBy == null ? null : relationshipHistoryRow.CreatedBy.Name),
-                    String.valueOf(relationshipHistoryRow.CreatedById),
-                    'TechnologyDecision Relationship'
-                ));
-            }
-        }
-
-        // Sort descending by createdDate
-        historyRecords.sort(new WrapperComparator());
-        return historyRecords;
-    }
-
-    public static String getPicklistLabel(String objectApiName, String fieldApiName, String apiValue) {
-        if (String.isBlank(objectApiName) || String.isBlank(fieldApiName) || String.isBlank(apiValue)) {
-            return null;
-        }
-
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
-        if (objType == null) return null;
-
-        Schema.DescribeSObjectResult objDescribe = objType.getDescribe();
-        Schema.SObjectField field = objDescribe.fields.getMap().get(fieldApiName);
-        if (field == null) return null;
-
-        List<Schema.PicklistEntry> picklistValues = field.getDescribe().getPicklistValues();
-        for (Schema.PicklistEntry entry : picklistValues) {
-            if (entry.getValue() == apiValue) {
-                return entry.getLabel();
-            }
-        }
-        return null; // no match found
-    }
-
-    public class WrapperComparator implements Comparator<WrapperClass> {
-        public Integer compare(WrapperClass a, WrapperClass b) {
-            if (b.createdDate > a.createdDate) {
-                return 1;  // Sort in descending order
-            } else if (b.createdDate < a.createdDate) {
-                return -1;
-            } else {
-                return 0;  // Same date
-            }
-        }
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<TechnologyDecision__History> getWaiverFormHistoryRecords(Id decisionId) {
-        List<TechnologyDecision__History> waiver = [
-            SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.Name, CreatedById
-            FROM TechnologyDecision__History
-            WHERE ParentId = :decisionId
+    // --------- Test getWaiverFormHistoryRecords (just that it returns a list) ---------
+    @IsTest
+    static void testGetWaiverFormHistoryRecords() {
+        TechnologyDecision__c anyDecision = [
+            SELECT Id
+            FROM TechnologyDecision__c
+            LIMIT 1
         ];
-        return waiver;
+
+        Test.startTest();
+        List<TechnologyDecision__History> waiver =
+            TechnologyDecision_HistoryHandler.getWaiverFormHistoryRecords(anyDecision.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, waiver, 'Waiver history list should not be null.');
+        // Size may be 0 in tests, that’s fine.
     }
 
-    public class WrapperClass {
-        @AuraEnabled public String fieldName;
-        @AuraEnabled public String oldValue;
-        @AuraEnabled public String newValue;
-        @AuraEnabled public Datetime createdDate;
-        @AuraEnabled public String createdBy;
-        @AuraEnabled public String createdById;
-        @AuraEnabled public String source;
-
-        public WrapperClass(
-            String fieldName,
-            String oldValue,
-            String newValue,
-            Datetime createdDate,
-            String createdBy,
-            String createdById,
-            String source
-        ) {
-            this.fieldName = fieldName;
-            this.oldValue = oldValue;
-            this.newValue = newValue;
-            this.createdDate = createdDate;
-            this.createdBy = createdBy;
-            this.createdById = createdById;
-            this.source = source;
+    // --------- Explicitly test picklist helper and comparator ---------
+    @IsTest
+    static void testPicklistLabel_AndComparator() {
+        // Picklist helper
+        Schema.DescribeFieldResult statusDescribe = TechnologyDecision__c.Status__c.getDescribe();
+        List<Schema.PicklistEntry> entries = statusDescribe.getPicklistValues();
+        if (!entries.isEmpty()) {
+            String apiVal = entries[0].getValue();
+            String label = TechnologyDecision_HistoryHandler.getPicklistLabel(
+                'TechnologyDecision__c',
+                'Status__c',
+                apiVal
+            );
+            // We don't assert specific label text; just that method runs
         }
+
+        // Comparator branches (>, <, ==)
+        Datetime now = Datetime.now();
+        TechnologyDecision_HistoryHandler.WrapperClass w1 =
+            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O1', 'N1', now,
+                'User1', '005000000000001', 'Src');
+        TechnologyDecision_HistoryHandler.WrapperClass w2 =
+            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O2', 'N2', now.addMinutes(5),
+                'User2', '005000000000002', 'Src');
+        TechnologyDecision_HistoryHandler.WrapperClass w3 =
+            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O3', 'N3', now,
+                'User3', '005000000000003', 'Src');
+
+        TechnologyDecision_HistoryHandler.WrapperComparator cmp =
+            new TechnologyDecision_HistoryHandler.WrapperComparator();
+
+        System.assertEquals(1, cmp.compare(w1, w2), 'b > a should return 1');
+        System.assertEquals(-1, cmp.compare(w2, w1), 'b < a should return -1');
+        System.assertEquals(0, cmp.compare(w1, w3), 'equal dates should return 0');
     }
 }
