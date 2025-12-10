@@ -1,6 +1,4 @@
- <div class="slds-col slds-text-title_bold">{filteredFieldValue.field}</div>
-
-  get filteredFieldValues() {
+get filteredFieldValues() {
         console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
         return this._filteredFieldValues.map(item => {
         return {
