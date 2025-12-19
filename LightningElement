@@ -1,18 +1,26 @@
-<aura:component implements="lightning:actionOverride,force:hasRecordId"
-                access="global">
-    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
-</aura:component>
+handleBackToListView() {
+        const pageRef = {
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Waivers_Management'
+            }
+        };
 
-
-({
-    doInit : function(component) {
-        const recordId = component.get("v.recordId");
-
-        // This creates: /lightning/n/AWP_Waiver_Managment/q/<recordId>
-        const url = "/lightning/n/AWP_Waiver_Managment/q/" + recordId;
-
-        const navEvt = $A.get("e.force:navigateToURL");
-        navEvt.setParams({ url: url });
-        navEvt.fire();
+        this[NavigationMixin.GenerateUrl](pageRef)
+            .then(url => {
+                console.log('Nav URL:', url);  // check in browser dev tools
+                // or temporarily show it in a toast if you want
+            });
+             this.goToTab();
     }
-})
+
+    goToTab() {
+        const pageRef = {
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Waivers_Management'
+            }
+        };
+
+        this[NavigationMixin.Navigate](pageRef);
+    }
