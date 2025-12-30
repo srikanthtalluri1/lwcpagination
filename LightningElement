@@ -1,1 +1,58 @@
-window.open(`/lightning/n/Decision_Management/w/${result}`,'_self');
+readonly={isReadOnly} onchange={handleforecastDate}
+
+readonly={isReadOnlySecNotes}
+
+import FORECAST_DATE_FIELD from '@salesforce/schema/TechnologyDecision__c.Forecast_Date__c';
+import SECU_DATE_FIELD from '@salesforce/schema/TechnologyDecision__c.Security_Notes__c';
+const FIELDS = [STATUS_FIELD, FORECAST_DATE_FIELD, SECU_DATE_FIELD];
+
+ @track isforecastFieldValid=true;
+    @track foreCastDate;
+    @track isReadOnly= false;
+    @track isReadOnlySecNotes= false;
+    @track secNotes;
+
+this.foreCastDate = data.fields.Forecast_Date__c.value;
+
+
+  handleforecastDate(event){
+    if(event.target.value){
+        this.isUpdateNull= false;
+        console.log('isUpdateNull ', this.isUpdateNull);
+    }else{
+        this.isUpdateNull= true;
+        console.log('isUpdateNull ', this.isUpdateNull);
+    }
+    this.forecastField=event.target.value;
+    if (event.target.value) {
+            const selectedDate = new Date(event.target.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+                console.log('selectedDate ', selectedDate);
+            if (selectedDate <= today) {
+                this.isforecastFieldValid=false;
+                
+            }else{
+                 this.isforecastFieldValid=true;
+            }
+        }
+   }
+
+ if ( this.isforecastFieldValid==false) {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Validation Error',
+                        message: 'Forecast Date must be a future date.',
+                        variant: 'error'
+                    })
+                );
+                return; // 🚫 block save
+            }
+
+ if(this.foreCastDate){
+        this.isReadOnly=true;
+        this.isReadOnlySecNotes=false;
+       }else{
+        this.isReadOnly=false;
+        this.isReadOnlySecNotes=true;
+       }
