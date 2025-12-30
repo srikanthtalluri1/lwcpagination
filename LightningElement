@@ -1,1 +1,12 @@
  icon-name={iconName}
+
+ @track iconName='utility:chevronleft';
+
+toggleFilterPanel(event) {
+        this.showFilter = !this.showFilter;
+        this.isFilterActive = !this.isFilterActive;
+        if(this.iconName == 'utility:chevronleft'){
+            this.iconName='utility:chevronright';
+        }else{
+             this.iconName='utility:chevronleft';
+        }
