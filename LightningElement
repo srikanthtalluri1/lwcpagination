@@ -1,8 +1,9 @@
-:host .slds-form_horizontal .slds-form-element__label {
-    padding-right: 1.5rem;   /* default is ~1.5rem */
-    width: 25%;              /* reduce label width */
-}
+ <template if:false={showOnlyBacktoListView}>
 
-:host .slds-form_horizontal .slds-form-element__control {
-    width: 75%;
-}
+ @track showOnlyBacktoListView=false;
+
+ if(key=='Status'){
+                if(value=='Withdrawn' || value=='Reject' || value=='Retire'){
+                    this.showOnlyBacktoListView=true;
+                }
+            }
