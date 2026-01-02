@@ -1,6 +1,8 @@
-:host ::part(modal-body) {
-    padding: 0;
+:host .slds-form_horizontal .slds-form-element__label {
+    padding-right: 1.5rem;   /* default is ~1.5rem */
+    width: 25%;              /* reduce label width */
 }
-:host {
-    --slds-c-tabs-panel-spacing-block-start: 0;
+
+:host .slds-form_horizontal .slds-form-element__control {
+    width: 75%;
 }
