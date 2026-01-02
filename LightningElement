@@ -1,9 +1,16 @@
- <template if:false={showOnlyBacktoListView}>
+Create a custom Lightning Web Component to display Stakeholder records as a related section on the Decision record page.
+The component should behave similar to a standard related list but be configurable and reusable across Decision record pages.
 
- @track showOnlyBacktoListView=false;
+Stakeholder records related to the Decision are displayed in a dedicated section on the Decision record page
 
- if(key=='Status'){
-                if(value=='Withdrawn' || value=='Reject' || value=='Retire'){
-                    this.showOnlyBacktoListView=true;
-                }
-            }
+Component is implemented using a custom LWC
+
+Supports view and add Stakeholder records
+
+Displays key Stakeholder fields (e.g., Name, Role, Contact/Email)
+
+Component is configurable via Lightning App Builder
+
+Follows Salesforce Lightning Design System (SLDS)
+
+Respects user permissions and sharing rules
