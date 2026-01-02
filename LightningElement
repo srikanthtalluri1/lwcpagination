@@ -1,16 +1,125 @@
-Create a custom Lightning Web Component to display Stakeholder records as a related section on the Decision record page.
-The component should behave similar to a standard related list but be configurable and reusable across Decision record pages.
+@IsTest
+private class technologyDecisionAckApproval_Test {
 
-Stakeholder records related to the Decision are displayed in a dedicated section on the Decision record page
+    @testSetup
+    static void setupData() {
+        // Create a Decision record (adjust required fields if your org enforces any)
+        TechnologyDecision__c decision = new TechnologyDecision__c(
+            Name = 'Test Decision'
+        );
+        insert decision;
 
-Component is implemented using a custom LWC
+        Id uId = UserInfo.getUserId();
+        DateTime nowDt = System.now();
 
-Supports view and add Stakeholder records
+        // Create approval/ack records
+        List<TechnologyDecision_Approval__c> recs = new List<TechnologyDecision_Approval__c>();
 
-Displays key Stakeholder fields (e.g., Name, Role, Contact/Email)
+        // Acknowledged = true (2 records to validate DESC sorting)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-10),
+            Assigned_To__c = uId,
+            Actual_Acknowledger__c = uId,
+            Acknowledged__c = true,
+            Approved__c = false
+        ));
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-1),
+            Assigned_To__c = uId,
+            Actual_Acknowledger__c = uId,
+            Acknowledged__c = true,
+            Approved__c = false
+        ));
 
-Component is configurable via Lightning App Builder
+        // Acknowledged = false (should NOT return from getacknowldgeRecords)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-2),
+            Assigned_To__c = uId,
+            Actual_Acknowledger__c = uId,
+            Acknowledged__c = false,
+            Approved__c = false
+        ));
 
-Follows Salesforce Lightning Design System (SLDS)
+        // Approved = true (2 records to validate DESC sorting)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-2),
+            Assigned_To__c = uId,
+            Actual_Approver__c = uId,
+            Approved__c = true,
+            Acknowledged__c = false
+        ));
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-1),
+            Assigned_To__c = uId,
+            Actual_Approver__c = uId,
+            Approved__c = true,
+            Acknowledged__c = false
+        ));
 
-Respects user permissions and sharing rules
+        // Approved = false (should NOT return from getapprovalRecords)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-3),
+            Assigned_To__c = uId,
+            Actual_Approver__c = uId,
+            Approved__c = false,
+            Acknowledged__c = false
+        ));
+
+        insert recs;
+    }
+
+    @IsTest
+    static void test_getacknowldgeRecords_filtersAndSorts() {
+        TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
+
+        Test.startTest();
+        List<TechnologyDecision_Approval__c> results =
+            technologyDecisionAckApproval.getacknowldgeRecords(decision.Id);
+        Test.stopTest();
+
+        System.assertEquals(2, results.size(), 'Should return only Acknowledged__c = true records');
+
+        // DESC order check (newest first)
+        System.assert(results[0].Action_Date_Time__c >= results[1].Action_Date_Time__c,
+            'Records should be sorted DESC by Action_Date_Time__c');
+        System.assertEquals(true, results[0].Acknowledged__c);
+        System.assertEquals(true, results[1].Acknowledged__c);
+    }
+
+    @IsTest
+    static void test_getapprovalRecords_filtersAndSorts() {
+        TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
+
+        Test.startTest();
+        List<TechnologyDecision_Approval__c> results =
+            technologyDecisionAckApproval.getapprovalRecords(decision.Id);
+        Test.stopTest();
+
+        System.assertEquals(2, results.size(), 'Should return only Approved__c = true records');
+
+        // DESC order check (newest first)
+        System.assert(results[0].Action_Date_Time__c >= results[1].Action_Date_Time__c,
+            'Records should be sorted DESC by Action_Date_Time__c');
+        System.assertEquals(true, results[0].Approved__c);
+        System.assertEquals(true, results[1].Approved__c);
+    }
+
+    @IsTest
+    static void test_nullDecisionId_returnsEmptyList() {
+        Test.startTest();
+        List<TechnologyDecision_Approval__c> ack =
+            technologyDecisionAckApproval.getacknowldgeRecords(null);
+        List<TechnologyDecision_Approval__c> appr =
+            technologyDecisionAckApproval.getapprovalRecords(null);
+        Test.stopTest();
+
+        System.assertEquals(0, ack.size(), 'Null decisionId should return empty list (ack)');
+        System.assertEquals(0, appr.size(), 'Null decisionId should return empty list (approval)');
+    }
+}
