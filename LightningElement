@@ -16,3 +16,55 @@
     </lightning-datatable>
 </lightning-card>
 </template>
+
+
+import { LightningElement, api, wire } from 'lwc';
+import fetchRelated from '@salesforce/apex/TechnologyDecision_RelatedListHandler.fetchRelated';
+import { NavigationMixin } from 'lightning/navigation';
+import { CurrentPageReference } from 'lightning/navigation';
+import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
+
+
+
+export default class TechnologyDecisionRelatedList extends NavigationMixin(LightningElement) {
+
+    @api recordId;
+    records;
+
+    columns = [
+        { label: 'Name', fieldName: 'Name', type: 'text' },
+        { label: 'Created Date', fieldName: 'CreatedDate', type: 'date' }
+    ];
+
+    @wire(fetchRelated, { parentId: '$recordId' })
+    wiredData({ data }) {
+        this.records = data;
+        console.log('this.recordId 24 ', this.records);
+    }
+    //recordId;
+    connectedCallback() {
+        const urlParts = window.location.pathname.split('/');
+        this.recordId = urlParts[urlParts.length - 1];
+        console.log('this.recordId 24 ', this.recordId);
+    }
+    
+
+
+    
+     handleNew() {
+        const defaultValues = encodeDefaultFieldValues({
+            TechnologyDecision__c: this.recordId
+        });
+        console.log('this.defaultValues 24 ', defaultValues);
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'TechnologyDecision_Relationship__c',
+                actionName: 'new'
+            },
+            state: {
+                defaultFieldValues: defaultValues
+            }
+        });
+    }
+}
