@@ -1,14 +1,18 @@
-public class TechnologyDecision_RelatedListHandler {
+<template>
+    <lightning-card title="Relationships">
+    <div class="slds-m-around_small">
+        <lightning-button
+            label="New"
+            variant="brand"
+            onclick={handleNew}>
+        </lightning-button>
+    </div>
 
-	@AuraEnabled(cacheable=true)
-public static List<TechnologyDecision_Relationship__c> fetchRelated(Id parentId) {
-    return [
-        SELECT Id, Name, CreatedDate
-        FROM TechnologyDecision_Relationship__c
-        WHERE TechnologyDecision__c = :parentId
-        ORDER BY CreatedDate DESC
-    ];
-}
-
-
-}
+    <lightning-datatable
+        key-field="Id"
+        data={records}
+        columns={columns}
+        hide-checkbox-column>
+    </lightning-datatable>
+</lightning-card>
+</template>
