@@ -1,29 +1,16 @@
-import { LightningElement, api, wire } from 'lwc';
-import { getRecord } from 'lightning/uiRecordApi';
+.stakeholder-header {
+    background-color: rgb(128, 127, 127); /* your gray */
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+}
 
-import NAME_FIELD from '@salesforce/schema/Account.Name';
-import TYPE_FIELD from '@salesforce/schema/Account.Type';
+/* Make text readable */
+.stakeholder-header .slds-card__header-title,
+.stakeholder-header .slds-text-heading_small {
+    color: #ffffff;
+}
 
-export default class GetRecordWireMethod extends LightningElement {
-    @api recordId;
-
-    name;
-    type;
-    error;
-
-    @wire(getRecord, {
-        recordId: '$recordId',
-        fields: [NAME_FIELD, TYPE_FIELD]
-    })
-    wiredRecord({ error, data }) {
-        if (data) {
-            this.name = data.fields.Name.value;
-            this.type = data.fields.Type.value;
-            this.error = undefined;
-        } else if (error) {
-            this.error = error;
-            this.name = undefined;
-            this.type = undefined;
-        }
-    }
+/* Icon color (people icon) */
+.stakeholder-header lightning-icon {
+    --sds-c-icon-color-foreground-default: #ffffff;
 }
