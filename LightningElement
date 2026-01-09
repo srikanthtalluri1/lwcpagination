@@ -1,4 +1,29 @@
-const baseUrl = window.location.origin;
-const recordUrl = ${baseUrl}/lightning/r/Account/${this.recordId}/view;
+import { LightningElement, api, wire } from 'lwc';
+import { getRecord } from 'lightning/uiRecordApi';
 
-window.open(recordUrl, '_self');
+import NAME_FIELD from '@salesforce/schema/Account.Name';
+import TYPE_FIELD from '@salesforce/schema/Account.Type';
+
+export default class GetRecordWireMethod extends LightningElement {
+    @api recordId;
+
+    name;
+    type;
+    error;
+
+    @wire(getRecord, {
+        recordId: '$recordId',
+        fields: [NAME_FIELD, TYPE_FIELD]
+    })
+    wiredRecord({ error, data }) {
+        if (data) {
+            this.name = data.fields.Name.value;
+            this.type = data.fields.Type.value;
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.name = undefined;
+            this.type = undefined;
+        }
+    }
+}
