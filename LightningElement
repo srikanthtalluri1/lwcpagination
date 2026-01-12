@@ -1,29 +1,68 @@
-/* Match standard Salesforce related list header */
+<div class="stakeholder-section">
+    <section class="slds-card relatedlist-card">
+        <header
+            class="slds-card__header
+                   slds-grid
+                   slds-grid_align-spread
+                   slds-grid_vertical-align-center
+                   stakeholder-header">
+
+            <!-- LEFT -->
+            <div class="slds-media slds-media_center">
+                <div class="slds-media__figure">
+                    <span class="slds-icon_container slds-icon-standard-people">
+                        <lightning-icon
+                            icon-name="standard:people"
+                            size="small"
+                            alternative-text="Stakeholders">
+                        </lightning-icon>
+                    </span>
+                </div>
+                <div class="slds-media__body">
+                    <h2 class="slds-card__header-title">
+                        Stakeholders ({stakeholderCount})
+                    </h2>
+                </div>
+            </div>
+
+            <!-- RIGHT -->
+            <div class="slds-no-flex">
+                <lightning-button
+                    label="New"
+                    variant="brand"
+                    onclick={handleNew}>
+                </lightning-button>
+            </div>
+        </header>
+
+        <div class="slds-card__body relatedlist-body">
+            <lightning-datatable
+                key-field="Id"
+                data={records}
+                columns={columns}
+                hide-checkbox-column>
+            </lightning-datatable>
+        </div>
+    </section>
+</div>
+
+
+/* Forces Stakeholders to behave like its own section */
+.stakeholder-section {
+    margin-top: 1.5rem; /* separation from previous section */
+}
+
+/* Card boundary like Salesforce */
+.relatedlist-card {
+    border: 1px solid #dddbda;
+    background: #ffffff;
+}
+
+/* Header matches standard */
 .stakeholder-header {
-    background: #f3f3f3; /* EXACT SLDS header color */
+    background: #f3f3f3;
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid #dddbda;
-    border-radius: 0; /* IMPORTANT */
 }
 
-/* Title text */
-.stakeholder-header .slds-card__header-title,
-.stakeholder-header .slds-text-heading_small {
-    color: #080707;
-    font-weight: 600;
-}
 
-/* Icon container */
-.stakeholder-header .slds-icon_container {
-    background-color: #0176d3; /* Standard blue circle */
-}
-
-/* People icon color */
-.stakeholder-header lightning-icon {
-    --sds-c-icon-color-foreground-default: #ffffff;
-}
-
-/* New button alignment */
-.stakeholder-header .slds-no-flex lightning-button {
-    margin-top: 0;
-}
