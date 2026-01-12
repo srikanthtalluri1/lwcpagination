@@ -1,52 +1,41 @@
-Enhance the Waivers list page by adding Requesting Portfolio and Requesting Domain as filter options in the left navigation panel.
-These new filters will allow users to easily narrow down waiver records based on the portfolio and domain associated with the requesting application, improving usability and data discoverability.
+let forecastdate = item.Forecast_Date__c;
+    console.log('Forecast raw: 112', item.Forecast_Date__c);
 
-The implementation should be done using a custom Salesforce LWC, aligned with the existing left-side filter behavior and UI standards.
+    if (forecastdate) {
+        try {
+           const dateObj = new Date(forecastdate);
 
-Acceptance Criteria
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // months are 0-based
+        const year = dateObj.getFullYear();
 
-New Filters Availability
+        forecastdate = `${day}/${month}/${year}`;
+        console.log('forecastdate 186 ',forecastdate);
+        } catch (e) {
+            forecastdate = item.Forecast_Date__c; // fallback
+        }
+    }
 
-“Requesting Portfolio” and “Requesting Domain” filters are displayed in the Waivers left navigation panel.
+Forecast_Date__c: forecastdate
 
-Filters are consistent with existing filter layout and styling.
-
-Filter Functionality
-
-Selecting a value in either filter updates the Waivers list in real time.
-
-Users can filter by:
-
-Requesting Portfolio only
-
-Requesting Domain only
-
-Both Requesting Portfolio and Domain together
-
-Data Accuracy
-
-Only waiver records matching the selected filter values are displayed.
-
-Clearing a filter resets the results accordingly.
-
-Usability
-
-Filters support multi-select (if existing filters support it).
-
-Default state shows all records when no filters are applied.
-
-Performance
-
-Filtering does not cause page reloads.
-
-No noticeable performance degradation when applying filters.
-
-Security & Access
-
-Filters respect Salesforce object-level and field-level security.
-
-Users only see values and records they have access to.
-
-Cross-Browser Compatibility
-
-Functionality works correctly in supported browsers (Chrome, Edge).
+ let displayValue = value;
+console.log('displayValue 135 ', displayValue);
+console.log('key 145 ', key);
+            // 🔹 Apply date format ONLY for Forecast_Date__c
+            if (key === 'Forecast Date' && value) {
+              
+                // if (typeof value === 'string') {
+            const datePart = value.split('T')[0]; // safe for DateTime
+            const [year, month, day] = datePart.split('-');
+            displayValue = `${day}/${month}/${year}`;
+                // }
+                console.log('displayValue 145 ', displayValue);
+            }
+            return {
+                key,
+                label: key,
+                value: value,
+                //displayValue: value && value !== '' ? value : ''   // <-- handle empty
+                 displayValue: displayValue ?? ''
+            };
+        });
