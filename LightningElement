@@ -1,68 +1,127 @@
-<div class="stakeholder-section">
-    <section class="slds-card relatedlist-card">
-        <header
-            class="slds-card__header
-                   slds-grid
-                   slds-grid_align-spread
-                   slds-grid_vertical-align-center
-                   stakeholder-header">
+<template>
+    <!-- Separate SECTION wrapper -->
+    <div class="stakeholder-section">
+        <section class="slds-card relatedlist-card">
 
-            <!-- LEFT -->
-            <div class="slds-media slds-media_center">
-                <div class="slds-media__figure">
-                    <span class="slds-icon_container slds-icon-standard-people">
-                        <lightning-icon
-                            icon-name="standard:people"
-                            size="small"
-                            alternative-text="Stakeholders">
-                        </lightning-icon>
-                    </span>
+            <!-- HEADER -->
+            <header
+                class="slds-card__header
+                       slds-grid
+                       slds-grid_align-spread
+                       slds-grid_vertical-align-center
+                       stakeholder-header">
+
+                <!-- LEFT : Icon + Title -->
+                <div class="slds-media slds-media_center">
+                    <div class="slds-media__figure">
+                        <span class="slds-icon_container slds-icon-standard-people">
+                            <lightning-icon
+                                icon-name="standard:people"
+                                size="small"
+                                alternative-text="Stakeholders">
+                            </lightning-icon>
+                        </span>
+                    </div>
+
+                    <div class="slds-media__body">
+                        <h2 class="slds-card__header-title">
+                            <span>Stakeholders ({stakeholderCount})</span>
+                        </h2>
+                    </div>
                 </div>
-                <div class="slds-media__body">
-                    <h2 class="slds-card__header-title">
-                        Stakeholders ({stakeholderCount})
-                    </h2>
+
+                <!-- RIGHT : New button -->
+                <div class="slds-no-flex">
+                    <lightning-button
+                        label="New"
+                        variant="brand"
+                        onclick={handleNew}>
+                    </lightning-button>
                 </div>
+            </header>
+
+            <!-- BODY -->
+            <div class="slds-card__body relatedlist-body">
+                <lightning-datatable
+                    key-field="Id"
+                    data={records}
+                    columns={columns}
+                    hide-checkbox-column
+                    onrowaction={handleRowAction}>
+                </lightning-datatable>
             </div>
 
-            <!-- RIGHT -->
-            <div class="slds-no-flex">
-                <lightning-button
-                    label="New"
-                    variant="brand"
-                    onclick={handleNew}>
-                </lightning-button>
-            </div>
-        </header>
+            <!-- OPTIONAL FOOTER (View All like standard) -->
+            <!--
+            <footer class="slds-card__footer relatedlist-footer">
+                <a href="javascript:void(0);" onclick={handleViewAll}>View All</a>
+            </footer>
+            -->
 
-        <div class="slds-card__body relatedlist-body">
-            <lightning-datatable
-                key-field="Id"
-                data={records}
-                columns={columns}
-                hide-checkbox-column>
-            </lightning-datatable>
-        </div>
-    </section>
-</div>
+        </section>
+    </div>
+</template>
 
 
-/* Forces Stakeholders to behave like its own section */
+/* ================================
+   SECTION SEPARATION (IMPORTANT)
+================================ */
 .stakeholder-section {
-    margin-top: 1.5rem; /* separation from previous section */
+    margin-top: 1.5rem; /* creates a NEW section */
 }
 
-/* Card boundary like Salesforce */
+/* ================================
+   CARD (matches Salesforce)
+================================ */
 .relatedlist-card {
     border: 1px solid #dddbda;
     background: #ffffff;
 }
 
-/* Header matches standard */
+/* ================================
+   HEADER (exact Salesforce look)
+================================ */
 .stakeholder-header {
     background: #f3f3f3;
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid #dddbda;
 }
 
+/* Header title */
+.stakeholder-header .slds-card__header-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #080707;
+}
 
+/* Icon circle (blue like OOTB) */
+.stakeholder-header .slds-icon_container {
+    background-color: #0176d3;
+    border-radius: 0.25rem;
+}
+
+/* Icon color */
+.stakeholder-header lightning-icon {
+    --sds-c-icon-color-foreground-default: #ffffff;
+}
+
+/* ================================
+   BODY
+================================ */
+.relatedlist-body {
+    padding: 0; /* standard related list has no padding */
+}
+
+/* ================================
+   FOOTER (optional View All)
+================================ */
+.relatedlist-footer {
+    border-top: 1px solid #dddbda;
+    padding: 0.5rem 0.75rem;
+    background: #ffffff;
+}
+
+.relatedlist-footer a {
+    font-weight: 600;
+    color: #0176d3;
+}
