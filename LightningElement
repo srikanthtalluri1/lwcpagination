@@ -1,24 +1,30 @@
 let forecastdate = item.Forecast_Date__c;
     console.log('Forecast raw: 112', item.Forecast_Date__c);
 
-    if (forecastdate) {
+    /*if (forecastdate) {
         try {
+             console.log('forecastdate 179 ',forecastdate);
            const dateObj = new Date(forecastdate);
 
         const day = String(dateObj.getDate()).padStart(2, '0');
         const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // months are 0-based
         const year = dateObj.getFullYear();
 
-        forecastdate = `${day}/${month}/${year}`;
+        forecastdate = `${month}/${day}/${year}`; 
         console.log('forecastdate 186 ',forecastdate);
         } catch (e) {
             forecastdate = item.Forecast_Date__c; // fallback
         }
-    }
+    } */
+    if (forecastdate) {
+    const [year, month, day] = forecastdate.split('-');
+    forecastdate = `${month}/${day}/${year}`;
+    console.log('forecastdate 186 ',forecastdate);
+}
 
-Forecast_Date__c: forecastdate
 
- let displayValue = value;
+
+let displayValue = value;
 console.log('displayValue 135 ', displayValue);
 console.log('key 145 ', key);
             // 🔹 Apply date format ONLY for Forecast_Date__c
@@ -27,7 +33,7 @@ console.log('key 145 ', key);
                 // if (typeof value === 'string') {
             const datePart = value.split('T')[0]; // safe for DateTime
             const [year, month, day] = datePart.split('-');
-            displayValue = `${day}/${month}/${year}`;
+            displayValue = `${month}/${day}/${year}`;
                 // }
                 console.log('displayValue 145 ', displayValue);
             }
