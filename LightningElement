@@ -1,47 +1,138 @@
-let forecastdate = item.Forecast_Date__c;
-    console.log('Forecast raw: 112', item.Forecast_Date__c);
+ 'Requesting App Portfolio' => 'Requesting_App_Portfolio__c'
 
-    /*if (forecastdate) {
-        try {
-             console.log('forecastdate 179 ',forecastdate);
-           const dateObj = new Date(forecastdate);
+ if (fieldApiNameString.contains('Requesting App Portfolio')) {
+    		query = 'SELECT Requesting_App_Portfolio__r.Name, COUNT(Id) ' +
+            'FROM AWP_Waiver_Relationship__c ' + condition +
+            ' GROUP BY Requesting_App_Portfolio__r.Name';
+            system.debug('query '+query);
+                results.put('Requesting App Portfolio', Database.query(query));
+            }
 
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // months are 0-based
-        const year = dateObj.getFullYear();
+field != 'Requesting App Portfolio'
 
-        forecastdate = `${month}/${day}/${year}`; 
-        console.log('forecastdate 186 ',forecastdate);
-        } catch (e) {
-            forecastdate = item.Forecast_Date__c; // fallback
+  if(fieldApiNameString.contains('Requesting App Portfolio')){
+             List<PortfolioItem> lstportfolio = getRequestingAppDomainPortfolio(fieldApiName);
+            system.debug('lstportfolio 1278 '+ lstportfolio);
+              fieldUniqueMap.put('requestingAppPort', lstportfolio);
+          }
+
+ if(fieldApiName == 'Requesting_App_Portfolio__c'){
+                                          fieldApiName= 'Requesting_App_Portfolio__r.Name';
+                                      }else{
+
+@AuraEnabled(cacheable=true)
+    public static List<PortfolioItem> getRequestingAppDomainPortfolio(list<string> filterNames) {
+        //String whereClause = buildWhereConditionForNames(filterNames);
+       // system.debug('whereClause '+whereClause);
+         string query = 'SELECT Requesting_App_Portfolio__r.Name portfolioName, Requesting_App_Doamin__r.Name  domainName,COUNT(Id) recordCount FROM AWP_Waiver_Relationship__c '
+             		 +
+                    ' GROUP BY  Requesting_App_Portfolio__r.Name, Requesting_App_Doamin__r.Name ORDER BY Requesting_App_Portfolio__r.Name ' ;
+           system.debug('query 1665 '+query);
+        List<AggregateResult> results = Database.query(query);
+        system.debug('results 1667 '+results);
+        Map<String, String> fieldMap = getStagePicklistValues();
+		system.debug('results 1667 '+fieldMap);
+        // Step 2: Group by Portfolio
+        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
+
+        for (AggregateResult ar : results) {
+            system.debug('ar '+ar);
+            String portfolioName = (String)ar.get('portfolioName');
+            String domainName = (String)ar.get('domainName');
+            Integer count = (Integer)ar.get('recordCount');
+			system.debug('portfolioName 1688 '+portfolioName+' portfolioName '+portfolioName);
+            if (String.isBlank(portfolioName)) {
+                portfolioName = 'No Data';
+            }
+            if (String.isBlank(domainName)) {
+                domainName = 'No Data';
+            }
+			system.debug('portfolioName '+portfolioName+' portfolioName '+portfolioName);
+            // Create portfolio if missing
+            if (!portfolioMap.containsKey(portfolioName)) {
+                PortfolioItem p = new PortfolioItem();
+                p.label = portfolioName + ' (0)'; // Will update later with total
+                p.count = 0;
+                p.domains = new List<DomainItem>();
+                portfolioMap.put(portfolioName, p);
+            }
+
+            // Add domain to portfolio
+            DomainItem d = new DomainItem();
+            d.label = domainName + ' (' + count + ')';
+            d.count = count;
+            portfolioMap.get(portfolioName).domains.add(d);
+
+            // Increase portfolio count
+            portfolioMap.get(portfolioName).count += count;
         }
-    } */
-    if (forecastdate) {
-    const [year, month, day] = forecastdate.split('-');
-    forecastdate = `${month}/${day}/${year}`;
-    console.log('forecastdate 186 ',forecastdate);
+
+        // Step 3: Update portfolio labels with correct total
+        for (PortfolioItem p : portfolioMap.values()) {
+            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
+        }
+			system.debug(' 1719 '+portfolioMap);
+        return new List<PortfolioItem>(portfolioMap.values());
+    }
+
+ requestingAppPort=[];
+
+ addChildrenToFilteredValues() {
+  console.log('this.requestingAppPort ', JSON.stringify(this.requestingAppPort));
+  console.log('this._filteredFieldValues 317 ', JSON.stringify(this._filteredFieldValues));
+
+  this._filteredFieldValues = (this._filteredFieldValues || []).map(filterGroup => {
+    const sourceArray =
+      filterGroup.filterField === 'Status'
+        ? this.statusStageArray
+        : filterGroup.filterField === 'Requesting App Portfolio'
+          ? this.requestingAppPort
+          : this.appDomainArray;
+
+    // ✅ If filteredFieldValue is empty, build it from sourceArray
+    const parentsArray =
+      (filterGroup.filteredFieldValue && filterGroup.filteredFieldValue.length)
+        ? filterGroup.filteredFieldValue
+        : (sourceArray || []).map(cat => ({
+            value: this.removeCount(cat.label),  // <-- used by your matching logic
+            label: cat.label,
+            count: cat.count,
+            checked: false,
+            children: cat.domains || []
+          }));
+
+    return {
+      ...filterGroup,
+      filteredFieldValue: parentsArray.map(parent => {
+        const match = (sourceArray || []).find(
+          cat => this.removeCount(cat.label) === parent.value
+        );
+
+        return {
+          ...parent,
+          children: match ? (match.domains || []) : (parent.children || [])
+        };
+      })
+    };
+  });
+this._filteredFieldValues = this._filteredFieldValues.map(fg =>
+  fg.filterField === 'Requesting App Portfolio'
+    ? { ...fg, isApplicationStandred: true }
+    : fg
+);
+
+  console.log('this._filteredFieldValues 330 ', JSON.stringify(this._filteredFieldValues));
+  
 }
 
+removeCount(label) {
+  return label.replace(/\s*\(\d+\)$/, '');
+}
 
+  this.requestingAppPort = normalizeDomains(data?.['requestingAppPort']);
 
-let displayValue = value;
-console.log('displayValue 135 ', displayValue);
-console.log('key 145 ', key);
-            // 🔹 Apply date format ONLY for Forecast_Date__c
-            if (key === 'Forecast Date' && value) {
-              
-                // if (typeof value === 'string') {
-            const datePart = value.split('T')[0]; // safe for DateTime
-            const [year, month, day] = datePart.split('-');
-            displayValue = `${month}/${day}/${year}`;
-                // }
-                console.log('displayValue 145 ', displayValue);
-            }
-            return {
-                key,
-                label: key,
-                value: value,
-                //displayValue: value && value !== '' ? value : ''   // <-- handle empty
-                 displayValue: displayValue ?? ''
-            };
-        });
+ && x !=='requestingAppPort'
+
+ "Requesting App Portfolio":"Requesting App Domain"
+                                          
+                                      }
