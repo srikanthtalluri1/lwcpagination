@@ -1,4 +1,14 @@
-density="comfy" >
-        <!-- Always visible fields -->
-         <div class="slds-form slds-form_stacked">
+'Requesting App Portfolio' => 'Requesting_App_Portfolio__c',
+    'Requesting App Domain'    => 'Requesting_App_Doamin__c'
 
+ if(fieldApiName == 'Requesting_App_Portfolio__c'){
+                                          fieldApiName= 'Requesting_App_Portfolio__r.Name';
+                                      }else if(fieldApiName == 'Requesting_App_Doamin__c'){
+                                        fieldApiName= 'Requesting_App_Doamin__r.Name'; 
+                                      }
+
+"Requesting App Portfolio":"Requesting App Domain"
+
+if(item.value === "Requesting App Domain"){
+                item.show = false;
+            }
