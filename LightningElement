@@ -1,82 +1,235 @@
-  'Requesting App Portfolio' => 'Requesting_App_Portfolio__c',
-    'Requesting App Domain'    => 'Requesting_App_Doamin__c'
+handleFilterSearch(event) {
+  try {
+    console.log('this._filteredFieldValues 667 ', JSON.stringify(this._filteredFieldValues));
 
+    const searchKey = (event.target.value || '').toLowerCase();
+    this.isfilterParam = true;
 
-if(fieldApiName == 'Requesting_App_Portfolio__c'){
-                                          fieldApiName= 'Requesting_App_Portfolio__r.Name';
-                                      }else if(fieldApiName == 'Requesting_App_Doamin__c'){
-                                        fieldApiName= 'Requesting_App_Doamin__r.Name'; 
-                                      }
+    console.log('searchKey ', searchKey);
+    console.log('selectedFilter ', this.selectedFilter);
 
- if (fieldApiNameString.contains('Requesting App Portfolio')) {
-    		query = 'SELECT Requesting_App_Portfolio__r.Name, COUNT(Id) ' +
-            'FROM AWP_Waiver_Relationship__c ' + condition +
-            ' GROUP BY Requesting_App_Portfolio__r.Name';
-            system.debug('query '+query);
-                results.put('Requesting App Portfolio', Database.query(query));
-            }
+    const selectedFilterApiNames = (this.selectedFilter || '')
+      .split(';')
+      .filter(x => x);
 
-&& field != 'Requesting App Portfolio'
+    console.log('selectedFilterApiNames ', JSON.stringify(selectedFilterApiNames));
+    if (!selectedFilterApiNames.length) return;
 
- if(fieldApiNameString.contains('Requesting App Portfolio')){
-             List<PortfolioItem> lstportfolio = getRequestingAppDomainPortfolio(fieldApiName);
-            system.debug('lstportfolio 1278 '+ lstportfolio);
-              fieldUniqueMap.put('requestingAppPort', lstportfolio);
-          }
+    console.log('checkedAffStdArray ', JSON.stringify(this.checkedAffStdArray));
 
+    const stripCount = (s) => (s || '').toString().replace(/\s*\(\d+\)\s*$/, '');
 
+    // STEP 1: Capture current checked state (plain JSON only)
+    const checkedMap = new Map();
+    (this.checkedAffStdArray || []).forEach(group => {
+      (group.filteredFieldValue || []).forEach(parent => {
+        // Use stable parent key (id if good; else value/label)
+        const parentKey = parent.id && parent.id !== 'nullcheck'
+          ? parent.id
+          : stripCount(parent.value || parent.label);
 
-@AuraEnabled(cacheable=true)
-    public static List<PortfolioItem> getRequestingAppDomainPortfolio(list<string> filterNames) {
-        //String whereClause = buildWhereConditionForNames(filterNames);
-       // system.debug('whereClause '+whereClause);
-         string query = 'SELECT Requesting_App_Portfolio__r.Name portfolioName, Requesting_App_Doamin__r.Name  domainName,COUNT(Id) recordCount FROM AWP_Waiver_Relationship__c '
-             		 +
-                    ' GROUP BY  Requesting_App_Portfolio__r.Name, Requesting_App_Doamin__r.Name ORDER BY Requesting_App_Portfolio__r.Name ' ;
-           system.debug('query 1665 '+query);
-        List<AggregateResult> results = Database.query(query);
-        system.debug('results 1667 '+results);
-        Map<String, String> fieldMap = getStagePicklistValues();
-		system.debug('results 1667 '+fieldMap);
-        // Step 2: Group by Portfolio
-        Map<String, PortfolioItem> portfolioMap = new Map<String, PortfolioItem>();
+        checkedMap.set(parentKey, !!parent.checked);
 
-        for (AggregateResult ar : results) {
-            system.debug('ar '+ar);
-            String portfolioName = (String)ar.get('portfolioName');
-            String domainName = (String)ar.get('domainName');
-            Integer count = (Integer)ar.get('recordCount');
-			system.debug('portfolioName 1688 '+portfolioName+' portfolioName '+portfolioName);
-            if (String.isBlank(portfolioName)) {
-                portfolioName = 'No Data';
-            }
-            if (String.isBlank(domainName)) {
-                domainName = 'No Data';
-            }
-			system.debug('portfolioName '+portfolioName+' portfolioName '+portfolioName);
-            // Create portfolio if missing
-            if (!portfolioMap.containsKey(portfolioName)) {
-                PortfolioItem p = new PortfolioItem();
-                p.label = portfolioName + ' (0)'; // Will update later with total
-                p.count = 0;
-                p.domains = new List<DomainItem>();
-                portfolioMap.put(portfolioName, p);
-            }
+        (parent.children || []).forEach(child => {
+          const childKey = stripCount(child.value || child.label);
+          checkedMap.set(childKey, !!child.checked);
+        });
+      });
+    });
 
-            // Add domain to portfolio
-            DomainItem d = new DomainItem();
-            d.label = domainName + ' (' + count + ')';
-            d.count = count;
-            portfolioMap.get(portfolioName).domains.add(d);
+    console.log('checkedMap keys ', JSON.stringify([...checkedMap.keys()]));
 
-            // Increase portfolio count
-            portfolioMap.get(portfolioName).count += count;
+    // STEP 2: Fetch fresh unique values
+    getUniqueValues({
+      fieldApiName: selectedFilterApiNames,
+      allOrMy: this.selectedWaiver,
+      isfilterParam: this.isfilterParam
+    })
+      .then(data => {
+        console.log('data 693', JSON.stringify(data));
+
+        if (!data) {
+          this._filteredFieldValues = [];
+          return;
         }
 
-        // Step 3: Update portfolio labels with correct total
-        for (PortfolioItem p : portfolioMap.values()) {
-            p.label = p.label.substring(0, p.label.lastIndexOf('(')).trim() + ' (' + p.count + ')';
-        }
-			system.debug(' 1719 '+portfolioMap);
-        return new List<PortfolioItem>(portfolioMap.values());
-    }
+        /** -----------------------------
+         * Normalize Domain/Status/Requesting arrays
+         * ----------------------------- */
+        const normalizeDomainList = (arr) => {
+          return (arr || []).map(item => ({
+            ...item,
+            // ensure item.value exists for matching
+            value: item.value ?? stripCount(item.label),
+            domains: (item.domains || []).map(d => ({
+              ...d,
+              // ensure child.value exists for selection/matching
+              value: d.value ?? stripCount(d.label),
+              checked: false
+            }))
+          }));
+        };
+
+        this.appDomainArray = normalizeDomainList(data.modifedAffectedStandard);
+        this.statusStageArray = normalizeDomainList(data.listSatausStage);
+        this.requestingAppPort = normalizeDomainList(data.requestingAppPort);
+
+        console.log('this.data 715 ', JSON.stringify(data));
+        console.log('_filterOptions ', JSON.stringify(this._filterOptions));
+
+        /** -----------------------------
+         * Step 3: Build filter groups
+         * ----------------------------- */
+        const rebuiltGroups = Object.keys(data)
+          .filter(key => !['PortfolioDomains', 'modifedAffectedStandard', 'listSatausStage', 'requestingAppPort'].includes(key))
+          .map((key, index) => {
+            console.log('this.key 747 ', key, ' key ', index);
+
+            const filterOption = this._filterOptions.find(opt => opt.value === key);
+            console.log('this.filterOption 747 ', JSON.stringify(filterOption));
+
+            if (!filterOption) return null;
+
+            // ✅ Map label -> correct data key
+            const apiName =
+              filterOption.label === 'Requesting App Portfolio'
+                ? 'requestingAppPort'
+                : key;
+
+            // ✅ Use apiName to read values; also support payload that uses label/count instead of value/id
+            const items = (data[apiName] || []).map(v => {
+              const rawValue = v.value ?? stripCount(v.label) ?? 'No Data';
+              const rawId = v.id ?? rawValue; // stable id if id not provided
+
+              return {
+                label: `${rawValue ? rawValue : 'No Data'} (${v.count ?? 0})`,
+                value: rawValue,
+                id: rawId,
+                checked: false,
+                children: []
+              };
+            });
+
+            return {
+              id: index,
+              filterField: filterOption.label,
+              filterFieldApiName: apiName,
+              filteredFieldValue: items,
+              selectedValue: [],
+              showValues: true,
+              icon: 'utility:chevrondown',
+
+              // ✅ FIX: proper OR comparison
+              isApplicationStandred:
+                filterOption.label === 'Affected Standard' ||
+                filterOption.label === 'Requesting App Portfolio',
+
+              isStatusStage: filterOption.label === 'Status'
+            };
+          })
+          .filter(Boolean);
+
+        this._filteredFieldValues = rebuiltGroups;
+        console.log('this._filteredFieldValues 747 ', JSON.stringify(this._filteredFieldValues));
+
+        /** -----------------------------
+         * Step 4: Add children (domains/status/requestingAppPort)
+         * ----------------------------- */
+        this._filteredFieldValues = this._filteredFieldValues.map(group => {
+          return {
+            ...group,
+            filteredFieldValue: (group.filteredFieldValue || []).map(parent => {
+              const parentKey = stripCount(parent.value || parent.label);
+
+              let source = null;
+              if (group.filterField === 'Status') {
+                source = this.statusStageArray;
+              } else if (group.filterFieldApiName === 'requestingAppPort') {
+                source = this.requestingAppPort;   // ✅ FIX for Requesting App Portfolio
+              } else {
+                source = this.appDomainArray;
+              }
+
+              const matching = source?.find(x => stripCount(x.value || x.label) === parentKey);
+
+              return {
+                ...parent,
+                children: (matching?.domains || []).map(child => ({
+                  label: child.label,
+                  value: child.value ?? stripCount(child.label), // ✅ ensure value exists
+                  checked: false
+                }))
+              };
+            })
+          };
+        });
+
+        /** -----------------------------
+         * Step 5: Apply search filter
+         * ----------------------------- */
+        const filtered = this._filteredFieldValues.map(group => {
+          const filteredValues = (group.filteredFieldValue || [])
+            .map(parent => {
+              const parentMatch = (parent.label || '').toLowerCase().includes(searchKey);
+
+              const matchingChildren = (parent.children || []).filter(child =>
+                (child.label || '').toLowerCase().includes(searchKey)
+              );
+
+              if (parentMatch) {
+                return { ...parent, children: [...(parent.children || [])] };
+              }
+              if (matchingChildren.length > 0) {
+                return { ...parent, children: matchingChildren };
+              }
+              return null;
+            })
+            .filter(Boolean);
+
+          return { ...group, filteredFieldValue: filteredValues };
+        });
+
+        /** -----------------------------
+         * Step 6: Restore checkmarks safely
+         * ----------------------------- */
+        const cleaned = filtered.map(group => {
+          return {
+            ...group,
+            filteredFieldValue: (group.filteredFieldValue || []).map(parent => {
+              const parentRestoreKey = parent.id && parent.id !== 'nullcheck'
+                ? parent.id
+                : stripCount(parent.value || parent.label);
+
+              const restoredParent = {
+                ...parent,
+                checked: checkedMap.get(parentRestoreKey) || false
+              };
+
+              return {
+                ...restoredParent,
+                children: (parent.children || []).map(child => {
+                  const childRestoreKey = stripCount(child.value || child.label);
+                  return {
+                    ...child,
+                    checked: checkedMap.get(childRestoreKey) || false
+                  };
+                })
+              };
+            })
+          };
+        });
+
+        // FINAL: store JSON-clean version only
+        this._filteredFieldValues = JSON.parse(JSON.stringify(cleaned));
+        this.checkedAffStdArray = JSON.parse(JSON.stringify(cleaned));
+        this.isfilterParam = false;
+      })
+      .catch(err => {
+        console.error('handleFilterSearch ERROR:', err);
+        this.isfilterParam = false;
+      });
+
+  } catch (ex) {
+    console.error('handleFilterSearch outer exception:', ex);
+  }
+}
