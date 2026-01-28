@@ -1,6 +1,6 @@
-Schema.DescribeSObjectResult d =
-    App_Domain__c.SObjectType.getDescribe();
-
-for (Schema.ChildRelationship cr : d.getChildRelationships()) {
-    System.debug(cr.getRelationshipName());
-}
+  if(item.value === "Requesting App Domain"){
+                item.show = false;
+            }
+            if(item.value === "Requesting App Portfolio"){
+                item.label = "Requesting App Portfolio/Domain";
+            }
