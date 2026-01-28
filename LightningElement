@@ -1,1 +1,1 @@
- filterOption.label === 'Requesting App Portfolio',
+  isApplicationStandred: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label) === ('Affected Standard' || 'Requesting App Portfolio') ,
