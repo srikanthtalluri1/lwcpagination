@@ -1,6 +1,2 @@
-  if(item.value === "Requesting App Domain"){
-                item.show = false;
-            }
-            if(item.value === "Requesting App Portfolio"){
-                item.label = "Requesting App Portfolio/Domain";
-            }
+ this.requestingAppPort = normalizeDomains(data?.['requestingAppPort']);
+
