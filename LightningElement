@@ -1,2 +1,1 @@
- this.requestingAppPort = normalizeDomains(data?.['requestingAppPort']);
-
+ filterOption.label === 'Requesting App Portfolio',
