@@ -1,3 +1,5 @@
+onvaluechange={handlebuttonclick} lwc:ref="highlight"
+
 handleBackToListViewtest(event){
      this.dispatchEvent(
             new CustomEvent('valuechange', {
