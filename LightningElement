@@ -1,22 +1,10 @@
-
- this.refs?.highlights?.refreshdatacustom?.();
-onvaluechange={handlebuttonclick} lwc:ref="highlight"
-
-handleBackToListViewtest(event){
-     this.dispatchEvent(
+handleRefreshPath() {
+    // delay in milliseconds (example: 2000 = 2 seconds)
+    setTimeout(() => {
+        this.dispatchEvent(
             new CustomEvent('valuechange', {
                 detail: 'Hello from Child A'
             })
         );
+    }, 2000);
 }
-
-import { refreshApex } from '@salesforce/apex'; 
-
- this.wiredRecordResult = result;  //29 Jan
-       console.log(JSON.stringify(result)); //29 Jan
-        const { data, error } = result; //29 Jan
-
-  @api async refreshdatacustom() {
-     console.log('Refreshing getRecord in Custom Path');
-    await refreshApex(this.wiredRecordResult);
-     return this.progressMeth();
