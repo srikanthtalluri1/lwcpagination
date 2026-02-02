@@ -1,3 +1,5 @@
+
+ this.refs?.highlights?.refreshdatacustom?.();
 onvaluechange={handlebuttonclick} lwc:ref="highlight"
 
 handleBackToListViewtest(event){
