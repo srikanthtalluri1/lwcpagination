@@ -1,1 +1,10 @@
-  isApplicationStandred: (this._filterOptions.filter(t => t.value === Object.keys(x)[0])[0].label) === ('Affected Standard' || 'Requesting App Portfolio') ,
+ import { refreshApex } from '@salesforce/apex'; 
+
+ this.wiredRecordResult = result;  //29 Jan
+       console.log(JSON.stringify(result)); //29 Jan
+        const { data, error } = result; //29 Jan
+
+  @api async refreshdatacustom() {
+     console.log('Refreshing getRecord in Custom Path');
+    await refreshApex(this.wiredRecordResult);
+     return this.progressMeth();
