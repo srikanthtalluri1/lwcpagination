@@ -1,10 +1,19 @@
-handleRefreshPath() {
-    // delay in milliseconds (example: 2000 = 2 seconds)
-    setTimeout(() => {
-        this.dispatchEvent(
-            new CustomEvent('valuechange', {
-                detail: 'Hello from Child A'
-            })
-        );
-    }, 2000);
-}
+Description
+
+Build a record-triggered Flow to capture and store Date/Time timestamps when Stage and/or Status changes. When a record moves from one Stage/Status to another, the Flow should populate the corresponding start/end timestamp fields for reporting and tracking.
+
+Status change (any value)
+
+When Status changes from one value to another, the Flow must set Status Start Timestamp for the new value = NOW() and Status End Timestamp for the prior value = NOW() (based on the configured mapping/fields).
+
+Stage change (any value)
+
+When Stage changes from one value to another, the Flow must set Stage Start Timestamp for the new value = NOW() and Stage End Timestamp for the prior value = NOW() (based on the configured mapping/fields).
+
+No change = no update
+
+If Stage and Status do not change, no timestamp fields are updated.
+
+No overwrite rule
+
+The Flow must not overwrite existing start/end timestamps for a value unless the record re-enters that same value (if re-entry is allowed; otherwise never overwrite).
