@@ -1,4 +1,12 @@
- import { refreshApex } from '@salesforce/apex'; 
+handleBackToListViewtest(event){
+     this.dispatchEvent(
+            new CustomEvent('valuechange', {
+                detail: 'Hello from Child A'
+            })
+        );
+}
+
+import { refreshApex } from '@salesforce/apex'; 
 
  this.wiredRecordResult = result;  //29 Jan
        console.log(JSON.stringify(result)); //29 Jan
