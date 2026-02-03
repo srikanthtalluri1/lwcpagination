@@ -1,12 +1,12 @@
- }else if(fieldName=='Planned_Date_of_Resolution__c' && waiverData.get(fieldName) != null && waiverData.get(fieldName) != ''){
-                String jsonStr = JSON.serialize(waiverData.get(fieldName));
-                list<string> lstdate = jsonStr.split('-');
-                System.debug('lstdate '+lstdate);
-                string newdate= lstdate[1]+'/'+lstdate[2]+'/'+lstdate[0];
-                string datenew = newdate.replaceAll('"','');
-                system.debug('datenew '+datenew);
-               date wdate = date.parse(datenew);
-                system.debug('wdate '+wdate);
-                waiver.put(fieldName, wdate);
-                
-            }
+ get filteredFieldValues() {
+    return (this._filteredFieldValues || []).map(item => ({
+        ...item,
+        field:
+            item.filterField === 'Status'
+                ? 'Status/Stage'
+                : item.filterField === 'Requesting App Portfolio'
+                ? 'Requesting App Portfolio/Domain'
+                : item.filterField
+    }));
+}
+
