@@ -1,23 +1,12 @@
- plannedDateofResolutionError=false;
-
- if(field.fieldName =='Planned_Date_of_Resolution__c' ){
-                    if(field.value !=''){
-                        const selectedDate = new Date(field.value);
-                        console.log('selectedDate 602 ', selectedDate);
-                       
-                        
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                    
-                if (selectedDate <= today) {
-                     console.log('selectedDate 644 ', selectedDate);
-                      this.showToast('Error', 'Planned_Date_of_Resolution__c date cannot be in future' , 'error'); 
-                      this.plannedDateofResolutionError=true;
-                }else{
-                     this.plannedDateofResolutionError=false;
-                } 
-               
-                }
-                }
-
- if(this.isError==false &&  this.plannedDateofResolutionError == false){
+ }else if(fieldName=='Planned_Date_of_Resolution__c' && waiverData.get(fieldName) != null && waiverData.get(fieldName) != ''){
+                String jsonStr = JSON.serialize(waiverData.get(fieldName));
+                list<string> lstdate = jsonStr.split('-');
+                System.debug('lstdate '+lstdate);
+                string newdate= lstdate[1]+'/'+lstdate[2]+'/'+lstdate[0];
+                string datenew = newdate.replaceAll('"','');
+                system.debug('datenew '+datenew);
+               date wdate = date.parse(datenew);
+                system.debug('wdate '+wdate);
+                waiver.put(fieldName, wdate);
+                
+            }
