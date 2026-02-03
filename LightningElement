@@ -1,19 +1,23 @@
-Description
+ plannedDateofResolutionError=false;
 
-Build a record-triggered Flow to capture and store Date/Time timestamps when Stage and/or Status changes. When a record moves from one Stage/Status to another, the Flow should populate the corresponding start/end timestamp fields for reporting and tracking.
+ if(field.fieldName =='Planned_Date_of_Resolution__c' ){
+                    if(field.value !=''){
+                        const selectedDate = new Date(field.value);
+                        console.log('selectedDate 602 ', selectedDate);
+                       
+                        
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                    
+                if (selectedDate <= today) {
+                     console.log('selectedDate 644 ', selectedDate);
+                      this.showToast('Error', 'Planned_Date_of_Resolution__c date cannot be in future' , 'error'); 
+                      this.plannedDateofResolutionError=true;
+                }else{
+                     this.plannedDateofResolutionError=false;
+                } 
+               
+                }
+                }
 
-Status change (any value)
-
-When Status changes from one value to another, the Flow must set Status Start Timestamp for the new value = NOW() and Status End Timestamp for the prior value = NOW() (based on the configured mapping/fields).
-
-Stage change (any value)
-
-When Stage changes from one value to another, the Flow must set Stage Start Timestamp for the new value = NOW() and Stage End Timestamp for the prior value = NOW() (based on the configured mapping/fields).
-
-No change = no update
-
-If Stage and Status do not change, no timestamp fields are updated.
-
-No overwrite rule
-
-The Flow must not overwrite existing start/end timestamps for a value unless the record re-enters that same value (if re-entry is allowed; otherwise never overwrite).
+ if(this.isError==false &&  this.plannedDateofResolutionError == false){
