@@ -7,6 +7,11 @@ handlefilterClick(event){
   typeof this.isAlreadySearched
 );
 
+  if(searchKey ==''){
+        this.isAlreadySearched= false;
+        console.log('isAlreadySearched ', this.isAlreadySearched);
+    }
+
         if(this.isAlreadySearched == false){
             this.checkedAffStdArray= this._filteredFieldValues;
              console.log('checkedAffStdArray handlefilterClick  ', JSON.stringify(this.checkedAffStdArray));
