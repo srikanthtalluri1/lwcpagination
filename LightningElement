@@ -1,12 +1,68 @@
- get filteredFieldValues() {
-    return (this._filteredFieldValues || []).map(item => ({
-        ...item,
-        field:
-            item.filterField === 'Status'
-                ? 'Status/Stage'
-                : item.filterField === 'Requesting App Portfolio'
-                ? 'Requesting App Portfolio/Domain'
-                : item.filterField
-    }));
-}
+handlefilterClick(event){
+        console.log('checking handlefilterClick ', this.isAlreadySearched);
+        console.log(
+  'isAlreadySearched value:',
+  this.isAlreadySearched,
+  'type:',
+  typeof this.isAlreadySearched
+);
+
+        if(this.isAlreadySearched == false){
+            this.checkedAffStdArray= this._filteredFieldValues;
+             console.log('checkedAffStdArray handlefilterClick  ', JSON.stringify(this.checkedAffStdArray));
+        }
+    }
+
+
+*/ //4 feb
+        const cleaned = filtered.map(group => {
+  // collect selected values for checkbox-group
+  const selectedValues = [];
+
+  return {
+    ...group,
+
+    filteredFieldValue: (group.filteredFieldValue || []).map(parent => {
+      const parentRestoreKey =
+        parent.id && parent.id !== 'nullcheck'
+          ? parent.id
+          : stripCount(parent.value || parent.label);
+
+      const isParentChecked = checkedMap.get(parentRestoreKey) || false;
+
+      // 👉 push into selectedValue if checked
+      if (isParentChecked) {
+        selectedValues.push(parent.value);
+      }
+
+      return {
+        ...parent,
+        checked: isParentChecked,
+
+        children: (parent.children || []).map(child => {
+          const childRestoreKey = stripCount(child.value || child.label);
+          const isChildChecked = checkedMap.get(childRestoreKey) || false;
+
+          return {
+            ...child,
+            checked: isChildChecked
+          };
+        })
+      };
+    }),
+
+    // 🔥 THIS is what lightning-checkbox-group actually uses
+    selectedValue: selectedValues
+  };
+});
+
+ const selectedSet = new Set(filterValue11);
+                        console.log('selectedSet ', selectedSet);
+                        this._filteredFieldValues = (this._filteredFieldValues || []).map(group => ({
+                        ...group,
+                        filteredFieldValue: (group.filteredFieldValue || []).map(item => ({
+                            ...item,
+                            checked: selectedSet.has(item.value)
+                        }))
+                        }));
 
