@@ -1,10 +1,25 @@
-onclick={handleClickDate}
+const field = event.target.fieldName;
+        console.log('event.detail.fields 573 ',field  , 'fieldName ', event.target.value);
+        if(field == 'Planned_Date_of_Resolution__c' && event.target.value != ''){
+               const selectedDate = new Date(event.target.value);
+                        console.log('selectedDate 602 ', selectedDate);
+                       
+                        
+                //const today = new Date();
+                const today = new Date().toISOString().split('T')[0];
+                console.log('selectedDate 582 ', today);
+               
+                    console.log('selectedDate 581 ', selectedDate);
+                     
+                if (event.target.value <= today) {
+                     console.log('selectedDate 644 ', selectedDate);
+                     console.log('selectedDate 644 ', today);
+                      this.plannedDateofResolutionError=true;
+                }else{
+                     this.plannedDateofResolutionError=false;
+                }  
+        }
 
- handleClickDate(event){
-            const pDate = event.detail.value
-            if(pDate == null){
-                this.isEditPlannedDateofResolution = true;
-            }
+if(this.plannedDateofResolutionError == true){
+         this.showToast('Error', 'Planned_Date_of_Resolution__c date cannot be in future' , 'error'); 
     }
-
-if(field.value !='' && this.isEditPlannedDateofResolution == true){
