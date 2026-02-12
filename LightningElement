@@ -1,25 +1,17 @@
-const field = event.target.fieldName;
-        console.log('event.detail.fields 573 ',field  , 'fieldName ', event.target.value);
-        if(field == 'Planned_Date_of_Resolution__c' && event.target.value != ''){
-               const selectedDate = new Date(event.target.value);
-                        console.log('selectedDate 602 ', selectedDate);
-                       
-                        
-                //const today = new Date();
-                const today = new Date().toISOString().split('T')[0];
-                console.log('selectedDate 582 ', today);
-               
-                    console.log('selectedDate 581 ', selectedDate);
-                     
-                if (event.target.value <= today) {
-                     console.log('selectedDate 644 ', selectedDate);
-                     console.log('selectedDate 644 ', today);
-                      this.plannedDateofResolutionError=true;
-                }else{
-                     this.plannedDateofResolutionError=false;
-                }  
-        }
+In the Waivers search box, when searching by Name, duplicate records are sometimes displayed in the results. This issue needs to be fixed so that each record appears only once.
 
-if(this.plannedDateofResolutionError == true){
-         this.showToast('Error', 'Planned_Date_of_Resolution__c date cannot be in future' , 'error'); 
-    }
+Additionally, remove all unnecessary console.log statements (LWC/Aura) and System.debug statements (Apex) from all Waiver-related components and classes.
+
+When searching in the Waivers search box by Name, duplicate records should not be displayed.
+
+Each waiver record must appear only once in the search results.
+
+Search functionality should continue to work as expected without impacting performance.
+
+All console.log statements are removed from Waiver-related LWC/Aura components.
+
+All System.debug statements are removed from Waiver-related Apex classes.
+
+Code should pass PMD validation and deployment checks.
+
+Changes should be tested in lower environment before deployment.
