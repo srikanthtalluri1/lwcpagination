@@ -1,10 +1,33 @@
-  this._filteredFieldValues = (this._filteredFieldValues || []).map(f => {
-                                const selectedSet = new Set(f.selectedValue || []);
-                                return {
-                                ...f,
-                                filteredFieldValue: (f.filteredFieldValue || []).map(opt => ({
-                                    ...opt,
-                                    checked: selectedSet.has(opt.value)
-                                }))
-                                };
-                            });
+Goal
+Update the Enterprise Architecture Waivers object/record experience per the TD working group analysis by:
+
+Converting some existing fields (datatype / usage change as defined in analysis)
+
+Removing deprecated fields
+
+Adding new fields required by the analysis
+
+Context / Reference
+Details and the field-by-field decisions are documented here:
+https://wiki.usaa.com/x/mdcknQ
+
+Scope (What will be changed)
+
+Implement the field changes exactly as documented in the wiki (convert/remove/add).
+
+Update any impacted page layouts / record pages / flows / validation rules / automation / reports that reference these fields.
+
+Ensure the updated fields are available with correct FLS/permissions for intended users.
+
+Target environment: Production (deploy via standard release process).
+
+
+All field add / convert / remove changes are implemented exactly per the wiki.
+
+Record pages/layouts updated: new fields shown, removed fields not visible anywhere.
+
+No broken dependencies (flows, validations, reports, automation, integrations).
+
+FLS/permission sets updated for intended users.
+
+Basic validation completed in Production-ready package
