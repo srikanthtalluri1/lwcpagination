@@ -13,3 +13,14 @@
             });
              this.goToTab();
     }
+
+    goToTab() {
+        const pageRef = {
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Waivers_Management'
+            }
+        };
+
+        this[NavigationMixin.Navigate](pageRef);
+    }
