@@ -1,26 +1,79 @@
- handleBackToListView() {
-        const pageRef = {
-            type: 'standard__navItemPage',
-            attributes: {
-                apiName: 'Waivers_Management'
-            }
-        };
+trigger TechnologyDecisionStakeholderTrigger on TechnologyDecision_StakeHolder__c (before insert, before update) {
+    TechnologyDecisionStakeholderHandler.preventDuplicates(Trigger.new, Trigger.oldMap);
+}
 
-        this[NavigationMixin.GenerateUrl](pageRef)
-            .then(url => {
-                console.log('Nav URL:', url);  // check in browser dev tools
-                // or temporarily show it in a toast if you want
-            });
-             this.goToTab();
+public class TechnologyDecisionStakeholderHandler {
+
+    public static void preventDuplicates(
+        List<TechnologyDecision_StakeHolder__c> newList,
+        Map<Id, TechnologyDecision_StakeHolder__c> oldMap
+    ) {
+        // Collect pairs that matter
+        Set<Id> decisionIds = new Set<Id>();
+        Set<Id> stakeholderIds = new Set<Id>();
+
+        // Map to detect duplicates within the same transaction too
+        Set<String> incomingKeys = new Set<String>();
+
+        for (TechnologyDecision_StakeHolder__c rec : newList) {
+            if (rec.Decision__c == null || rec.Stakeholder__c == null) continue;
+
+            // On update, skip if lookup fields not changed (optional but reduces queries)
+            if (oldMap != null && oldMap.containsKey(rec.Id)) {
+                TechnologyDecision_StakeHolder__c oldRec = oldMap.get(rec.Id);
+                if (oldRec.Decision__c == rec.Decision__c && oldRec.Stakeholder__c == rec.Stakeholder__c) {
+                    continue;
+                }
+            }
+
+            decisionIds.add(rec.Decision__c);
+            stakeholderIds.add(rec.Stakeholder__c);
+
+            String key = buildKey(rec.Decision__c, rec.Stakeholder__c);
+
+            // Block duplicates in the same insert/update batch
+            if (incomingKeys.contains(key)) {
+                rec.addError('Duplicate Stakeholder: this Stakeholder is already added to this Decision.');
+            } else {
+                incomingKeys.add(key);
+            }
+        }
+
+        if (decisionIds.isEmpty() || stakeholderIds.isEmpty()) return;
+
+        // Query existing records
+        Map<String, Id> existingKeys = new Map<String, Id>();
+        for (TechnologyDecision_StakeHolder__c existing : [
+            SELECT Id, Decision__c, Stakeholder__c
+            FROM TechnologyDecision_StakeHolder__c
+            WHERE Decision__c IN :decisionIds
+              AND Stakeholder__c IN :stakeholderIds
+        ]) {
+            existingKeys.put(buildKey(existing.Decision__c, existing.Stakeholder__c), existing.Id);
+        }
+
+        // Add errors on duplicates against DB
+        for (TechnologyDecision_StakeHolder__c rec : newList) {
+            if (rec.Decision__c == null || rec.Stakeholder__c == null) continue;
+
+            // ignore self when updating
+            Id existingId = existingKeys.get(buildKey(rec.Decision__c, rec.Stakeholder__c));
+            if (existingId != null && existingId != rec.Id) {
+                rec.addError('Duplicate Stakeholder: this Stakeholder is already added to this Decision.');
+            }
+        }
     }
 
-    goToTab() {
-        const pageRef = {
-            type: 'standard__navItemPage',
-            attributes: {
-                apiName: 'Waivers_Management'
-            }
-        };
-
-        this[NavigationMixin.Navigate](pageRef);
+    private static String buildKey(Id decisionId, Id stakeholderId) {
+        return String.valueOf(decisionId) + '|' + String.valueOf(stakeholderId);
     }
+}
+
+
+
+ { label: 'Stakeholder', fieldName: 'StakeholderName', type: 'text' },
+
+  this.records = data.map(r => ({
+                ...r,
+                StakeholderName: r.Stakeholder__r ? r.Stakeholder__r.Name : ''
+            }));
