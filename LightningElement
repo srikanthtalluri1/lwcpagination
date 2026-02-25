@@ -1,13 +1,10 @@
-@AuraEnabled
-    public static void updatePlannedDate(Id waiverId) {
-        
-
-
-        Waiver__c waiverRec = new Waiver__c(
-            Id = waiverId,
-            Planned_Date_of_Resolution__c =''
-        );
-
-        update waiverRec;
-    }
-}
+updatePlannedDate({
+        waiverId: this.recordId,
+     
+    })
+    .then(() => {
+        console.log('Success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
