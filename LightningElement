@@ -1,21 +1,24 @@
-wiredRecordResult; // <-- store wire reference
-    @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
-    wiredRecord(result) {
-        this.wiredRecordResult = result;  //29 Jan
-       console.log(JSON.stringify(result)); //29 Jan
-        const { data, error } = result; //29 Jan
-        if (data) {
-            console.log('data check 129 AwpCustomPath '+JSON.stringify(data));
-            console.log('data check 130 AwpCustomPath '+data.fields.Status__c.value);
-            console.log('data check 131 AwpCustomPath '+data.fields.Stage__c.value);
-            this.record = data;
-            this.currentStep = data.fields.Status__c.value; 
-           // this.stageValue = data.fields.Stage__c.value; // Added this line on Feb 6th 2025
-            this.stageValue = data.fields.Stage__c.displayValue; // Added this line on April 3rd 2025 by Shikanth
+mport { LightningElement, api, wire } from 'lwc';
+import { getRecord, getFieldValue, getFieldDisplayValue } from 'lightning/uiRecordApi';
 
+import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
+import STAGE_FIELD  from '@salesforce/schema/TechnologyDecision__c.Stage__c';
 
-            this.progressMeth(); // Call your progress method to update the steps
-        } else if (error) {
-            console.error('Error fetching record:', error);
-        }
+const FIELDS = [STATUS_FIELD, STAGE_FIELD];
+
+export default class MyComp extends LightningElement {
+  @api recordId;
+
+  @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
+  wiredRecord({ data, error }) {
+    if (data) {
+      const status = getFieldValue(data, STATUS_FIELD);
+      const stage  = getFieldDisplayValue(data, STAGE_FIELD) ?? getFieldValue(data, STAGE_FIELD);
+
+      // use them safely
+      console.log(status, stage);
+    } else if (error) {
+      console.error(error);
     }
+  }
+}
