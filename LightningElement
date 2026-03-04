@@ -1,49 +1,17 @@
-Implement SLDS Toast notifications on the Waivers component to display user feedback messages (Success, Info, Warning, and Error) following Salesforce Lightning Design System standards.
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-Currently, messages are not aligned with SLDS toast guidelines. This enhancement will standardize notifications using SLDS toast styling to improve user experience and maintain UI consistency.
-
-1️⃣ Success Message
-
-When an action completes successfully (e.g., save/update/submit):
-
-A green Success toast is displayed.
-
-Toast includes:
-
-Success icon
-
-Clear success message
-
-Auto-dismiss behavior (if applicable)
-
-2️⃣ Error Message
-
-When an action fails (server-side or validation error):
-
-A red Error toast is displayed.
-
-Toast includes:
-
-Error icon
-
-Proper error message from Apex/validation
-
-Toast does NOT show white background (must follow SLDS styling)
-
-3️⃣ Warning Message
-
-When a warning condition occurs:
-
-A yellow Warning toast is displayed.
-
-Appropriate warning icon is shown.
-
-4️⃣ Info Message
-
-Informational messages display:
-
-Blue Info toast
-
-Info icon
-
-Clear message text
+export function showToast(component, {
+    title,
+    message,
+    variant = 'info',
+    mode = 'dismissable'
+}) {
+    component.dispatchEvent(
+        new ShowToastEvent({
+            title,
+            message,
+            variant,
+            mode
+        })
+    );
+}
