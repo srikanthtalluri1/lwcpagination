@@ -1,17 +1,20 @@
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+@AuraEnabled
+public static void updatePlannedDate(Id waiverId) {
+    if (!Schema.sObjectType.AWP_Architecture_Waiver_Form__c.isUpdateable()) {
+        throw new AuraHandledException('You do not have access to update this record.');
+    }
 
-export function showToast(component, {
-    title,
-    message,
-    variant = 'info',
-    mode = 'dismissable'
-}) {
-    component.dispatchEvent(
-        new ShowToastEvent({
-            title,
-            message,
-            variant,
-            mode
-        })
+    if (!Schema.sObjectType.AWP_Architecture_Waiver_Form__c
+            .fields.Planned_Date_of_Resolution__c
+            .getDescribe()
+            .isUpdateable()) {
+        throw new AuraHandledException('You do not have access to update Planned Date of Resolution.');
+    }
+
+    AWP_Architecture_Waiver_Form__c waiverRec = new AWP_Architecture_Waiver_Form__c(
+        Id = waiverId,
+        Planned_Date_of_Resolution__c = null
     );
+
+    update waiverRec;
 }
