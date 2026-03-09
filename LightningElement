@@ -1,20 +1,6 @@
-@AuraEnabled
-public static void updatePlannedDate(Id waiverId) {
-    if (!Schema.sObjectType.AWP_Architecture_Waiver_Form__c.isUpdateable()) {
-        throw new AuraHandledException('You do not have access to update this record.');
-    }
+originalValue;
 
-    if (!Schema.sObjectType.AWP_Architecture_Waiver_Form__c
-            .fields.Planned_Date_of_Resolution__c
-            .getDescribe()
-            .isUpdateable()) {
-        throw new AuraHandledException('You do not have access to update Planned Date of Resolution.');
-    }
-
-    AWP_Architecture_Waiver_Form__c waiverRec = new AWP_Architecture_Waiver_Form__c(
-        Id = waiverId,
-        Planned_Date_of_Resolution__c = null
-    );
-
-    update waiverRec;
+handleLoad(event) {
+    const record = event.detail.records[this.recordId];
+    this.originalValue = record.fields.Name.value;
 }
