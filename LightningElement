@@ -1,6 +1,3 @@
-originalValue;
-
-handleLoad(event) {
-    const record = event.detail.records[this.recordId];
-    this.originalValue = record.fields.Name.value;
+noRadius {
+    --slds-c-button-radius-border: 0rem;
 }
