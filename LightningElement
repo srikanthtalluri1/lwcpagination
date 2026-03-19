@@ -1,2 +1,40 @@
 const nowtime = new Date();
         decisionFields['Saves_Stage_Start_Date__c'] = nowtime.toISOString();
+
+
+ private static sObject populateFields(sObject record, Map<String, Object> fieldMap) {
+        Map<String, Schema.SObjectField> fieldsMap = record.getSObjectType().getDescribe().fields.getMap();
+
+        for (String fieldName : fieldMap.keySet()) {
+            try {
+                Object value = fieldMap.get(fieldName);
+                System.debug('fieldName field ' + fieldName + ': ' + value);
+
+                if (!fieldsMap.containsKey(fieldName)) {
+                    System.debug('Skipping unknown field ' + fieldName);
+                    continue;
+                }
+
+                Schema.DescribeFieldResult fieldDescribe = fieldsMap.get(fieldName).getDescribe();
+
+                if (value != null && fieldDescribe.getType() == Schema.DisplayType.DateTime) {
+                    String dt = String.valueOf(value);
+                    dt = dt.replace('T', ' ').replace('Z', '');
+                    if (dt.contains('.')) {
+                        dt = dt.substring(0, dt.indexOf('.'));
+                    }
+                    record.put(fieldName, Datetime.valueOfGmt(dt));
+                } 
+                else if (value != null && fieldDescribe.getType() == Schema.DisplayType.Date) {
+                    record.put(fieldName, Date.valueOf(String.valueOf(value)));
+                } 
+                else {
+                    record.put(fieldName, value);
+                }
+
+            } catch (Exception e) {
+                System.debug('Skipping field ' + fieldName + ': ' + e.getMessage());
+            }
+        }
+        return record;
+    }
