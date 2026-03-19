@@ -1,8 +1,27 @@
-const now = new Date();
+Implement functionality to ensure that all Decision-related email alerts are captured and stored in the Notification object for audit and tracking purposes.
 
-const formatted = now.getFullYear() + '-' +
-    String(now.getMonth() + 1).padStart(2, '0') + '-' +
-    String(now.getDate()).padStart(2, '0') + ' ' +
-    String(now.getHours()).padStart(2, '0') + ':' +
-    String(now.getMinutes()).padStart(2, '0') + ':' +
-    String(now.getSeconds()).padStart(2, '0');
+Currently, decision email alerts are triggered but not consistently persisted. This enhancement will:
+
+Capture all email alerts triggered from Decision status changes or events
+
+Store them in the Notification object
+
+Ensure the stored notification content matches the actual email sent
+
+Provide traceability for all outbound email communications
+
+This will improve visibility, compliance, and troubleshooting for decision-related communications.
+
+
+
+Decision email alerts are stored in the Notification object
+
+A Notification record is created for each email sent
+
+Stored content matches the actual email (subject, body, recipients)
+
+Notifications are triggered on Decision status changes/events
+
+Related Decision record is linked to the Notification
+
+System handles failures without breaking the process
