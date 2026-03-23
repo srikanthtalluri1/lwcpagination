@@ -1,6 +1,40 @@
-refreshFormView() {
-    this.showForm = false;
-    Promise.resolve().then(() => {
-        this.showForm = true;
-    });
+ },
+            rowClass: { fieldName: 'rowClass' }
+
+ get computedRecords() {
+        const selectedIds = this.selectedRows || [];
+        return (this.records || []).map(row => ({
+            ...row,
+            rowClass: selectedIds.includes(row.Waiver_Id__c) ? 'selected-row' : ''
+        }));
+    }
+
+ @track selectedRows=[];
+
+ data={computedRecords}
+
+ selected-rows={selectedRows} onrowselection={handleRowSelection}
+
+ handleRowSelection(event) {
+            const selected = event.detail.selectedRows || [];
+            this.selectedRows = selected.map(row => row.Waiver_Id__c);
+                console.log('this.selectedRows ',this.selectedRows);
+            }
+
+ this.selectedRows=[this.recordId];
+
+ row-class={typeAttributes.rowClass}>
+
+ typeAttributes: ['recordId','rowClass'],
+
+ <div class={rowClass}>
+</div>
+
+  @api rowClass;
+
+.selected-row {
+    /* background-color: #d8e6fe; */
+    font-weight: 800;
+    display: block;
+    padding: 0.25rem;
 }
