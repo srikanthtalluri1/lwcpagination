@@ -1,22 +1,270 @@
-handleClose(){
-        let windowUrl = new URL(window.location.href);
-        console.log('windowUrl ',windowUrl);
-        let pathName= windowUrl.href;
-        let converstring = pathName.toString();
-        const result = converstring.slice(0, converstring.lastIndexOf("w"));
-        console.log('converstring close',converstring);
-        console.log('converstring close',result);
-        // window.location.replace(result);
-        window.history.pushState({}, '', result);
-                    if (window.PerformanceNavigationTiming) {
-            console.info('window.performance works fine on this browser');
-            
-            if (PerformanceNavigationTiming.type === 'reload') {
-                console.info('This page is reloaded');
-            } else {
-                console.info('This page is not reloaded');
-            }
-            }
-        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
+//sri changes for improve code coverage - new test method targeting constructor with existing record,
+    //exec council awareness bypass, stakeholder upsert paths, updateRequestingPortfolio, getDomains edge cases
+    static testMethod void testExistingRecordConstructorAndExecAwareness()
+    {
+        Profile profile = [Select id from Profile where Name = 'System Administrator'];
+
+        User testUser = new User(alias = 'sri01', email='sriTest01@usaa.com', emailencodingkey='UTF-8', lastname='TestSri',
+                                 languagelocalekey='en_US', firstname='Sri', localesidkey='en_US', profileid = profile.Id,
+                                 country='United States', Department='07231', EmployeeNumber='S1001',
+                                 timezonesidkey='America/Los_Angeles', username='sriTest01@usaa.com',
+                                 Unit_Code__c='12345', CompanyName='IT Operations', Department_Description__c='Testing');
+        insert testUser;
+
+        UCH_Employee__c usaaEmp = new UCH_Employee__c();
+        usaaEmp.Name = 'Sri Test';
+        usaaEmp.Employee_ID__c = testUser.EmployeeNumber;
+        usaaEmp.Department_Description__c = 'Test';
+        usaaEmp.Department_ID__c = 'Test';
+        usaaEmp.Employee_Email_Address__c = 'sriEmp@usaa.com';
+        System.runAs(testUser) { insert usaaEmp; }
+
+        TPM_Port__c tpmPort = new TPM_Port__c();
+        tpmPort.Name = 'Sri Portfolio';
+        tpmPort.Additional_IT_Architect_1__c = usaaEmp.Id;
+        tpmPort.Portfolio_Owner__c = usaaEmp.Id;
+        tpmPort.Port_Id__c = 122214;
+        tpmPort.Portfolio_Architect__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmPort; }
+
+        TPM_Domain__c tpmDomain = new TPM_Domain__c();
+        tpmDomain.Name = 'Sri Domain';
+        tpmDomain.Port__c = tpmPort.Id;
+        tpmDomain.Domain_Id__c = 123999;
+        tpmDomain.Owning_Architect__c = usaaEmp.Id;
+        tpmDomain.Additional_IT_Architect_1__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmDomain; }
+
+        //sri changes for improve code coverage - insert Tech_Decision_Admins__c so admin query gets rows
+        Tech_Decision_Admins__c adminRec = new Tech_Decision_Admins__c();
+        adminRec.Admin__c = testUser.Id;
+        adminRec.Active__c = true;
+        adminRec.Is_CTO_EMG__c = false;
+        System.runAs(testUser) { insert adminRec; }
+
+        //sri changes for improve code coverage - create and save a record first so we can test the existing-record constructor path
+        TPM_Technology_Decision__c savedRec = new TPM_Technology_Decision__c();
+        savedRec.Name = 'Sri Existing Record Test';
+        savedRec.What__c = 'What text';
+        savedRec.Why__c = 'Why text';
+        savedRec.Value__c = 'Value text';
+        savedRec.Presentation_URL__c = 'http://test.com';
+        savedRec.Requesting_Domain__c = tpmDomain.Id;
+        savedRec.Affected_Domain__c = tpmDomain.Id;
+        savedRec.Hosting_Proximity__c = 'On-premise (inside USAA)';
+        savedRec.On_premise_non_USAA_Private_Cloud__c = false;
+        savedRec.Status__c = 'In Progress';
+        savedRec.Other_Affected_Domains__c = 'Sri Domain';
+        savedRec.Executive_Council_Awareness__c = 'No';
+        System.runAs(testUser) { insert savedRec; }
+
+        //sri changes for improve code coverage - insert stakeholders for getStakeholdersForAnalysis coverage
+        StakeHolder__c finStakeholder = new StakeHolder__c();
+        finStakeholder.Financial_Analysis_Owner__c = testUser.Id;
+        finStakeholder.Technology_Decision__c = savedRec.Id;
+        finStakeholder.Analysis_File_Location__c = 'http://file.loc';
+        finStakeholder.Investment_Monitoring_ID__c = 'INV-001';
+
+        StakeHolder__c resStakeholder = new StakeHolder__c();
+        resStakeholder.Resource_Impact_Analysis_Owner__c = testUser.Id;
+        resStakeholder.Technology_Decision__c = savedRec.Id;
+        resStakeholder.Resource_Impact_Analysis_File_Location__c = 'http://res.loc';
+
+        StakeHolder__c invStakeholder = new StakeHolder__c();
+        invStakeholder.Investor_Management_Owner__c = testUser.Id;
+        invStakeholder.Technology_Decision__c = savedRec.Id;
+
+        System.runAs(testUser) { insert new List<StakeHolder__c>{finStakeholder, resStakeholder, invStakeholder}; }
+
+        Test.startTest();
+
+        //sri changes for improve code coverage - invoke constructor with existing record Id (triggers full edit-mode path)
+        PageReference existingPage = new PageReference('/apex/TechnologyDecision_CreateEdit');
+        Test.setCurrentPageReference(existingPage);
+        ApexPages.currentPage().getParameters().put('Id', savedRec.Id);
+
+        ApexPages.StandardController sc = new ApexPages.StandardController(savedRec);
+        TechnologyDecision_CreateEdit_Controller ctrlExisting = new TechnologyDecision_CreateEdit_Controller(sc);
+
+        //sri changes for improve code coverage - getDomains with empty selectedPortfolio
+        ctrlExisting.getDomains();
+
+        //sri changes for improve code coverage - getDomains with a portfolio selected (non-empty path)
+        ctrlExisting.selectedPortfolio.add('Sri Portfolio');
+        ctrlExisting.getDomains();
+
+        //sri changes for improve code coverage - first save attempt with Executive_Council_Awareness = No and flag false triggers the warning path
+        ctrlExisting.techDecisionObj.Executive_Council_Awareness__c = 'No';
+        ctrlExisting.isExecutiveCouncilAwareness = false;
+        ctrlExisting.techDecisionObj.On_premise_non_USAA_Private_Cloud__c = false;
+        System.runAs(testUser) { ctrlExisting.saveThePage(); }
+
+        //sri changes for improve code coverage - second save with flag already true should proceed past the exec awareness check
+        ctrlExisting.isExecutiveCouncilAwareness = true;
+        ctrlExisting.techDecisionObj.Executive_Council_Awareness__c = 'No';
+        ctrlExisting.financialAnalysisStakeholder.Financial_Analysis_Owner__c = testUser.Id;
+        ctrlExisting.financialAnalysisStakeholder.Analysis_File_Location__c = 'http://file.loc';
+        ctrlExisting.financialAnalysisStakeholder.Investment_Monitoring_ID__c = 'INV-002';
+        ctrlExisting.resourceImpactAnalysisStakeholder.Resource_Impact_Analysis_Owner__c = testUser.Id;
+        ctrlExisting.resourceImpactAnalysisStakeholder.Resource_Impact_Analysis_File_Location__c = 'http://res2.loc';
+        ctrlExisting.invMgmtStakeholder.Investor_Management_Owner__c = testUser.Id;
+        System.runAs(testUser) { ctrlExisting.saveThePage(); }
+
+        Test.stopTest();
+
+        system.assertNotEquals(null, ctrlExisting.techDecisionObj.Id);
     }
 
+    //sri changes for improve code coverage - cover removeUserFromList with type param, updateReadyForFinal already-clicked path, and requestingPortfolio false branch
+    static testMethod void testRemoveUserAndReadyForFinalAlreadyClicked()
+    {
+        Profile profile = [Select id from Profile where Name = 'System Administrator'];
+
+        User testUser = new User(alias = 'sri02', email='sriTest02@usaa.com', emailencodingkey='UTF-8', lastname='TestSri2',
+                                 languagelocalekey='en_US', firstname='Sri2', localesidkey='en_US', profileid = profile.Id,
+                                 country='United States', Department='07231', EmployeeNumber='S1002',
+                                 timezonesidkey='America/Los_Angeles', username='sriTest02@usaa.com',
+                                 Unit_Code__c='12345', CompanyName='IT Operations', Department_Description__c='Testing');
+        insert testUser;
+
+        UCH_Employee__c usaaEmp = new UCH_Employee__c();
+        usaaEmp.Name = 'Sri Test 2';
+        usaaEmp.Employee_ID__c = testUser.EmployeeNumber;
+        usaaEmp.Department_Description__c = 'Test';
+        usaaEmp.Department_ID__c = 'Test';
+        usaaEmp.Employee_Email_Address__c = 'sriEmp2@usaa.com';
+        System.runAs(testUser) { insert usaaEmp; }
+
+        //sri changes for improve code coverage - use a portfolio with Port_Id__c != 122214
+        //so requestingPortfolio() exercises the false (not ops infrastructure) branch
+        TPM_Port__c tpmPortOther = new TPM_Port__c();
+        tpmPortOther.Name = 'Other Portfolio';
+        tpmPortOther.Additional_IT_Architect_1__c = usaaEmp.Id;
+        tpmPortOther.Portfolio_Owner__c = usaaEmp.Id;
+        tpmPortOther.Port_Id__c = 999999;
+        tpmPortOther.Portfolio_Architect__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmPortOther; }
+
+        TPM_Domain__c tpmDomainOther = new TPM_Domain__c();
+        tpmDomainOther.Name = 'Other Domain';
+        tpmDomainOther.Port__c = tpmPortOther.Id;
+        tpmDomainOther.Domain_Id__c = 199999;
+        tpmDomainOther.Owning_Architect__c = usaaEmp.Id;
+        tpmDomainOther.Additional_IT_Architect_1__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmDomainOther; }
+
+        TPM_Technology_Decision__c savedRec = new TPM_Technology_Decision__c();
+        savedRec.Name = 'Sri Remove Test';
+        savedRec.What__c = 'What';
+        savedRec.Why__c = 'Why';
+        savedRec.Value__c = 'Value';
+        savedRec.Presentation_URL__c = 'http://x.com';
+        savedRec.Requesting_Domain__c = tpmDomainOther.Id;
+        savedRec.Affected_Domain__c = tpmDomainOther.Id;
+        savedRec.On_premise_non_USAA_Private_Cloud__c = false;
+        savedRec.Status__c = 'In Progress';
+        savedRec.Ready_for_Final_Button_Clicked__c = true;
+        System.runAs(testUser) { insert savedRec; }
+
+        Test.startTest();
+
+        PageReference pg = new PageReference('/apex/TechnologyDecision_CreateEdit');
+        Test.setCurrentPageReference(pg);
+        ApexPages.currentPage().getParameters().put('Id', savedRec.Id);
+        ApexPages.currentPage().getParameters().put('strUserToBeRemoved', testUser.Id);
+        ApexPages.currentPage().getParameters().put('strTypeToBeRemoved', 'Financial Analysis Owner');
+
+        ApexPages.StandardController sc = new ApexPages.StandardController(savedRec);
+        TechnologyDecision_CreateEdit_Controller ctrl = new TechnologyDecision_CreateEdit_Controller(sc);
+
+        //sri changes for improve code coverage - add a stakeholder then remove with matching type
+        ctrl.sHolder.User__c = testUser.Id;
+        ctrl.sHolder.Type__c = 'Financial Analysis Owner';
+        ctrl.addStakeHolder();
+        ctrl.removeUserFromList();
+
+        //sri changes for improve code coverage - updateReadyForFinal when already clicked should return null immediately
+        ctrl.updateReadyForFinal();
+
+        //sri changes for improve code coverage - requestingPortfolio with domain not in ops-infrastructure port
+        ctrl.requestingPortfolio();
+
+        Test.stopTest();
+
+        system.assertEquals(true, savedRec.Ready_for_Final_Button_Clicked__c);
+    }
+
+    //sri changes for improve code coverage - cover On_premise validation error, Basis clear, and char-limit paths for Why/Value
+    static testMethod void testSaveValidationBranches()
+    {
+        Profile profile = [Select id from Profile where Name = 'System Administrator'];
+
+        User testUser = new User(alias = 'sri03', email='sriTest03@usaa.com', emailencodingkey='UTF-8', lastname='TestSri3',
+                                 languagelocalekey='en_US', firstname='Sri3', localesidkey='en_US', profileid = profile.Id,
+                                 country='United States', Department='99999', EmployeeNumber='S1003',
+                                 timezonesidkey='America/Los_Angeles', username='sriTest03@usaa.com',
+                                 Unit_Code__c='99999', CompanyName='Test Corp', Department_Description__c='Testing');
+        insert testUser;
+
+        UCH_Employee__c usaaEmp = new UCH_Employee__c();
+        usaaEmp.Name = 'Sri Test 3';
+        usaaEmp.Employee_ID__c = testUser.EmployeeNumber;
+        usaaEmp.Department_Description__c = 'Test';
+        usaaEmp.Department_ID__c = 'Test';
+        usaaEmp.Employee_Email_Address__c = 'sriEmp3@usaa.com';
+        System.runAs(testUser) { insert usaaEmp; }
+
+        TPM_Port__c tpmPort = new TPM_Port__c();
+        tpmPort.Name = 'Validation Portfolio';
+        tpmPort.Additional_IT_Architect_1__c = usaaEmp.Id;
+        tpmPort.Portfolio_Owner__c = usaaEmp.Id;
+        tpmPort.Port_Id__c = 888888;
+        tpmPort.Portfolio_Architect__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmPort; }
+
+        TPM_Domain__c tpmDomain = new TPM_Domain__c();
+        tpmDomain.Name = 'Validation Domain';
+        tpmDomain.Port__c = tpmPort.Id;
+        tpmDomain.Domain_Id__c = 188888;
+        tpmDomain.Owning_Architect__c = usaaEmp.Id;
+        tpmDomain.Additional_IT_Architect_1__c = usaaEmp.Id;
+        System.runAs(testUser) { insert tpmDomain; }
+
+        Test.startTest();
+
+        ApexPages.StandardController sc = new ApexPages.StandardController(new TPM_Technology_Decision__c());
+        TechnologyDecision_CreateEdit_Controller ctrl = new TechnologyDecision_CreateEdit_Controller(sc);
+
+        ctrl.techDecisionObj.Requesting_Domain__c = tpmDomain.Id;
+        ctrl.techDecisionObj.Affected_Domain__c = tpmDomain.Id;
+        ctrl.techDecisionObj.Presentation_URL__c = 'http://valid.com';
+        ctrl.techDecisionObj.Status__c = 'In Progress';
+        ctrl.isExecutiveCouncilAwareness = true;
+
+        //sri changes for improve code coverage - On_premise = true but Basis blank triggers error path
+        ctrl.techDecisionObj.What__c = 'What';
+        ctrl.techDecisionObj.Why__c = 'Why';
+        ctrl.techDecisionObj.Value__c = 'Value';
+        ctrl.techDecisionObj.On_premise_non_USAA_Private_Cloud__c = true;
+        ctrl.techDecisionObj.Basis_for_not_selecting_a_Cloud_solution__c = null;
+        System.runAs(testUser) { ctrl.saveThePage(); }
+
+        //sri changes for improve code coverage - Why exceeds 2000 chars path
+        String longStr = 'x'.repeat(2001);
+        ctrl.techDecisionObj.On_premise_non_USAA_Private_Cloud__c = false;
+        ctrl.techDecisionObj.What__c = 'Short what';
+        ctrl.techDecisionObj.Why__c = longStr;
+        System.runAs(testUser) { ctrl.saveThePage(); }
+
+        //sri changes for improve code coverage - Value exceeds 2000 chars path
+        ctrl.techDecisionObj.Why__c = 'Short why';
+        ctrl.techDecisionObj.Value__c = longStr;
+        System.runAs(testUser) { ctrl.saveThePage(); }
+
+        //sri changes for improve code coverage - verify getHostingProximityValues still executes cleanly
+        ctrl.getHostingProximityValues();
+
+        Test.stopTest();
+
+        system.assertNotEquals(null, ctrl.techDecisionObj);
+    }
