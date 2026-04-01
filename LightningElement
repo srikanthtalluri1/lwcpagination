@@ -1,8 +1,22 @@
-The Apex class TechnologyDecision_CreateEdit_Controller currently has ~50% test coverage, which is below the required threshold.
+handleClose(){
+        let windowUrl = new URL(window.location.href);
+        console.log('windowUrl ',windowUrl);
+        let pathName= windowUrl.href;
+        let converstring = pathName.toString();
+        const result = converstring.slice(0, converstring.lastIndexOf("w"));
+        console.log('converstring close',converstring);
+        console.log('converstring close',result);
+        // window.location.replace(result);
+        window.history.pushState({}, '', result);
+                    if (window.PerformanceNavigationTiming) {
+            console.info('window.performance works fine on this browser');
+            
+            if (PerformanceNavigationTiming.type === 'reload') {
+                console.info('This page is reloaded');
+            } else {
+                console.info('This page is not reloaded');
+            }
+            }
+        pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
+    }
 
-Update or create test classes to increase coverage to above 85% and ensure all key logic paths are tested.
-
-Test coverage is ≥ 85%
-All major logic paths are covered
-All tests pass successfully
-Code complies with PMD standards
