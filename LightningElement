@@ -1,13 +1,16 @@
-Currently, when a record reaches the final status in the Path for Waivers and Decisions, the entire path bar appears green.
+ if (isFinalStep == true) {
+                                stepsArrayTemp.push({
+                                    'label': cleanArrayValue,
+                                    'stage': this.stageValue,
+                                    'stageAndStatus': stageAndStatus,
+                                    'status': 'Current',
+                                    'showCurrent': true,
+                                    'showComplete': false,
+                                    'showUpcoming': false,
+                                    'finalStep': true
+                                });
 
-Requirement is to modify the behavior so that only the current (latest) stage is displayed in blue when the record is in the final (end-of-path) status, instead of showing green.
+                                afterCurrent = true;
+                                countToCurrent++;
+                            }
 
-All other stages and statuses should retain existing behavior.
-
-For intermediate statuses → Path behaves as-is (green progression).
-When record reaches final status:
-Only the current stage is highlighted in blue
-Previous stages remain unchanged (green)
-Change applies to both Waivers and Decisions objects.
-No impact to path structure, stages, or navigation.
-UI change is reflected consistently on Lightning record pages.
