@@ -1,16 +1,109 @@
- if (isFinalStep == true) {
-                                stepsArrayTemp.push({
-                                    'label': cleanArrayValue,
-                                    'stage': this.stageValue,
-                                    'stageAndStatus': stageAndStatus,
-                                    'status': 'Current',
-                                    'showCurrent': true,
-                                    'showComplete': false,
-                                    'showUpcoming': false,
-                                    'finalStep': true
-                                });
+import { LightningElement, track, api } from 'lwc';
+import createDecisionWithRelation from '@salesforce/apex/technologyDecision_CreateFormHelper.createDecisionWithRelation';
+import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
 
-                                afterCurrent = true;
-                                countToCurrent++;
-                            }
+export default class TechnologyDecisionCreateForm extends LightningModal {
+    decisionReason = '';
+    isRequired;
+    errormsg = '';
+    isLoading = true;
 
+    renderedCallback() {
+        if (this.isLoading && !this._renderedOnce) {
+            this._renderedOnce = true;
+            requestAnimationFrame(() => {
+                this.isLoading = false;
+            });
+        }
+    }
+
+    handleDecisionChange(event) {
+        this.decisionReason = event.target.value;
+    }
+
+    get showDomain() {
+        return ['New Technology', 'New Platform', 'New Capability', 'New Application'].includes(this.decisionReason);
+    }
+
+    get showReqPlatform() {
+        return ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason);
+    }
+
+    get showReqApplication() {
+        return ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason);
+    }
+
+    get showReqTechnology() {
+        return ['Replace Technology', 'Existing Technology', 'Upgrade Technology'].includes(this.decisionReason);
+    }
+
+    get required() {
+        this.isRequired =
+            ['Replace Application', 'Existing Application', 'Upgrade Application'].includes(this.decisionReason) ||
+            ['Replace Platform', 'Existing Platform', 'Upgrade Platform'].includes(this.decisionReason) ||
+            ['Replace Technology', 'Existing Technology', 'Upgrade Technology'].includes(this.decisionReason);
+        return this.isRequired;
+    }
+
+    handleCancel() {
+        this.close('cancel');
+    }
+
+    handleSave() {
+        let isValid = true;
+
+        this.template.querySelectorAll('lightning-input-field').forEach(el => {
+            if (!el.reportValidity()) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            Toast.show({
+                label: 'Missing Required Fields',
+                message: 'Please fill in all required fields before saving.',
+                variant: 'error'
+            }, this);
+            return;
+        }
+
+        const decisionFields = {};
+        const relationFields = {};
+
+        const nowtime = new Date();
+        decisionFields['Saved_Stage_Start_Date__c'] = nowtime.toISOString();
+
+        this.template.querySelectorAll('lightning-input-field').forEach(el => {
+            if (el.dataset.object === 'TechnologyDecision__c') {
+                decisionFields[el.fieldName] = el.value;
+            }
+            if (el.dataset.object === 'TechnologyDecision_Relationship__c') {
+                relationFields[el.fieldName] = el.value;
+            }
+        });
+
+        createDecisionWithRelation({ decisionFields, relationFields })
+            .then(result => {
+                if (result.includes('DUPLICATES_DETECTED')) {
+                    this.errormsg = 'Decision with this name already exists.';
+                    Toast.show({
+                        label: 'Error creating record',
+                        message: this.errormsg,
+                        variant: 'error'
+                    }, this);
+                    this.errormsg = '';
+                } else {
+                    window.open(`/lightning/n/Technology_Decision/w/${result}`, '_self');
+                }
+            })
+            .catch(error => {
+                const message = error?.body?.message || 'Error creating record';
+                Toast.show({
+                    label: 'Error creating record',
+                    message,
+                    variant: 'error'
+                }, this);
+            });
+    }
+}
