@@ -1,2 +1,1 @@
-const fieldIsValid = element.reportValidity();
-                isFormValid = isFormValid && fieldIsValid;
+Yes Neelima, I checked—he clicked the button twice. Now, it’s disabled after the first click, and a spinner is loading, so no one can click it a second time.
