@@ -1,1 +1,6 @@
-Yes Neelima, I checked—he clicked the button twice. Now, it’s disabled after the first click, and a spinner is loading, so no one can click it a second time.
+Capture and update Send Back Date and Recall Date timestamps whenever the status changes to the specified values.
+
+Acceptance Criteria
+
+When status = Send Back, system auto-populates Send Back Date with current date/time
+When status = Recall, system auto-populates Recall Date with current date/time
