@@ -1,5 +1,7 @@
-Analyze how Salesforce Platform Events work in the current system and create clear documentation covering usage, event flow, configuration, implementation steps, and best practices.
+Add Requesting Domain as a navigation/filter option in the Technology Decision list view so users can easily filter decisions by the related requesting domain.
 
-Document explains what Platform Events are and when to use them.
-Existing platform event setup and related components are reviewed.
-Event publish/subscribe flow is documented with examples.
+Requesting Domain is available under the filter options/navigation panel.
+Users can select Requesting Domain to filter Technology Decision records.
+Filtered results display only records matching the selected Requesting Domain.
+Existing filters like Status/Stage and Decision Reason continue to work as expected.
+Changes are validated in CTODev1 sandbox.
