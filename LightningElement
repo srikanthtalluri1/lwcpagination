@@ -1,25 +1,42 @@
- if(key=='Requesting Domain'){
-                              fieldApiName='TechnologyDecision_Relationship__r.Requesting_Domain__r.Name';
-                          }else{
-                              List<String> apiNames = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', key);
-                              fieldApiName =apiNames[0]; 
-                          }
+handleResetButton(event) {
+    // Clear selected filter data
+    this.selectedFiltersdata = {};
+    this.filters = [];
+    this.selectedFilters = [];
+    this.checkedAffStdArray = [];
+    this._filteredFieldValues=[];
 
-'Requesting Domain' => 'requestingDomain'
+    // Clear checked and selectedValue from UI filter options
+    this._filteredFieldValues = this._filteredFieldValues.map(filter => ({
+        ...filter,
+        selectedValue: [],
+        filteredFieldValue: filter.filteredFieldValue.map(option => ({
+            ...option,
+            checked: false,
+            children: option.children
+                ? option.children.map(child => ({
+                    ...child,
+                    checked: false
+                }))
+                : option.children
+        }))
+    }));
 
- if(fieldApiNameString.contains('Requesting Domain')){
-         query = 'SELECT TechnologyDecision_Relationship__r.Requesting_Domain__r.Name requestingDomain, COUNT(Id) cnt ' +
-        'FROM TechnologyDecision__c ' + condition +
-        ' GROUP BY TechnologyDecision_Relationship__r.Requesting_Domain__r.Name';
+    // Also reset backup so search does not bring old selected values back
+    this._filterOptionsBackup = JSON.parse(JSON.stringify(this._filteredFieldValues));
 
-			results.put('Requesting Domain', Database.query(query));
-        } 
+    // Reset child picklist component safely
+    const customPick = this.template.querySelector('c-technology-decision-custom-pick');
+    if (customPick) {
+        customPick.reset();
+    }
 
- String valueKey = field == 'Requesting Domain' ? 'requestingDomain' : fieldList.get(field);
-                  String countKey = field == 'Requesting Domain' ? 'cnt' : 'expr0';
-                    
-                    uni.put('value', (String) ar.get(valueKey));
-                    uni.put('count', (Integer) ar.get(countKey));
+    // Send empty filters to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: [] }
+        })
+    );
 
- { label: 'Requesting Domain', value: 'Requesting Domain', selected: false, class: 'slds-form-element__label' }
-
+    this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
+}
