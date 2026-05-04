@@ -1,42 +1,5 @@
-handleResetButton(event) {
-    // Clear selected filter data
-    this.selectedFiltersdata = {};
-    this.filters = [];
-    this.selectedFilters = [];
-    this.checkedAffStdArray = [];
-    this._filteredFieldValues=[];
+Analyze how Salesforce Platform Events work in the current system and create clear documentation covering usage, event flow, configuration, implementation steps, and best practices.
 
-    // Clear checked and selectedValue from UI filter options
-    this._filteredFieldValues = this._filteredFieldValues.map(filter => ({
-        ...filter,
-        selectedValue: [],
-        filteredFieldValue: filter.filteredFieldValue.map(option => ({
-            ...option,
-            checked: false,
-            children: option.children
-                ? option.children.map(child => ({
-                    ...child,
-                    checked: false
-                }))
-                : option.children
-        }))
-    }));
-
-    // Also reset backup so search does not bring old selected values back
-    this._filterOptionsBackup = JSON.parse(JSON.stringify(this._filteredFieldValues));
-
-    // Reset child picklist component safely
-    const customPick = this.template.querySelector('c-technology-decision-custom-pick');
-    if (customPick) {
-        customPick.reset();
-    }
-
-    // Send empty filters to parent
-    this.dispatchEvent(
-        new CustomEvent('filterdata', {
-            detail: { value: [] }
-        })
-    );
-
-    this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
-}
+Document explains what Platform Events are and when to use them.
+Existing platform event setup and related components are reviewed.
+Event publish/subscribe flow is documented with examples.
