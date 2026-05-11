@@ -1,96 +1,17 @@
-Platform Event Architecture Analysis
-Salesforce to SnapLogic Integration
-Recommended Design: Use one Platform Event per business domain — main object + its relationship object(s).
+private static String getFieldLabel(String objectApiName, String fieldApiName) {
+    Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
 
-1. Purpose
-This document defines a clean Platform Event approach for sending Salesforce data to SnapLogic from main objects and their related relationship objects.
-The goal is to keep the event model simple, readable, scalable, and easy for SnapLogic to consume.
-2. Objects in Scope
-Business Area	Main Object	Relationship Object(s)
-Waiver	Waiver	Waiver Relationship object(s)
-Decision	Decision	Decision Relationship object(s)
-TPMS	TPMS main object	TPMS Relationship object(s)
+    if (objType == null) {
+        return fieldApiName;
+    }
 
-3. Proposed Event Grouping
-The proposed design groups each main object and its relationship object(s) into one domain-specific Platform Event.
-Group	Publisher Objects	Platform Event
-Waiver Group	Waiver + Waiver Relationship object(s)	Waiver_Integration_Event__e
-Decision Group	Decision + Decision Relationship object(s)	Decision_Integration_Event__e
-TPMS Group	TPMS main object + TPMS Relationship object(s)	TPMS_Integration_Event__e
+    Map<String, Schema.SObjectField> fieldMap =
+        objType.getDescribe().fields.getMap();
 
-4. Why This Design Makes Sense
-•	The main object and relationship object belong to the same business process.
-•	SnapLogic receives one event per business domain instead of many object-level events.
-•	Salesforce metadata stays manageable because we avoid creating too many Platform Events.
-•	The payload can include both main object data and relationship object context when needed.
-•	Troubleshooting remains easier because Waiver, Decision, and TPMS events are separated by domain.
-5. High-Level Architecture
-Step	Component	Responsibility
-1	Main object or relationship object	Record is created, updated, or reaches an integration-ready status.
-2	Record-triggered Flow	Checks entry criteria and prepares event values/payload.
-3	Domain Platform Event	Publishes Waiver, Decision, or TPMS integration event.
-4	Salesforce Event Bus	Delivers the published event asynchronously.
-5	SnapLogic	Subscribes to the event, transforms data, and routes it to downstream systems.
+    if (fieldMap.containsKey(fieldApiName)) {
+        return fieldMap.get(fieldApiName).getDescribe().getLabel();
+    }
 
-6. Recommended Event Field Design
-Each Platform Event should contain common integration fields and only the business fields SnapLogic needs directly. Large or object-specific data can be placed in a JSON payload.
-Field	Purpose	Notes
-Source_Object__c	Identifies which object published the event	Waiver, Waiver Relationship, Decision, Decision Relationship, TPMS, etc.
-Source_Record_Id__c	Stores the Salesforce record Id	Used by SnapLogic for reference or API lookup.
-Parent_Record_Id__c	Stores the related main record Id	Useful when a relationship object publishes the event.
-Event_Type__c	Identifies the business event	Created, Updated, Status Changed, Approved, Submitted, etc.
-Correlation_Id__c	Used for tracing across Salesforce and SnapLogic	Helps debugging and log matching.
-Payload__c	Stores JSON payload when needed	Use for flexible object-specific data.
-Published_By__c	User or process that published the event	Optional audit field.
+    return fieldApiName;
+}
 
-7. Pros and Cons of Proposed Grouping
-Pros	Cons
-Balanced design: not too generic and not too many events.	Payload must identify whether the source is the main object or relationship object.
-Keeps related business data together under one domain event.	Some conditional logic is still required in Flow and SnapLogic.
-SnapLogic has fewer channels to subscribe to compared to one event per object.	If relationship objects become complex, the domain event can grow over time.
-Easier to understand than one global event for all objects.	Clear field mapping documentation is required for each event.
-Relationship object changes can still be sent through the correct business event.	Changes to a domain event may affect both main and relationship object processing.
-
-8. If We Use One Same Platform Event for All Objects
-This option means Waiver, Waiver Relationship, Decision, Decision Relationship, TPMS, and TPMS Relationship objects all publish to one common Platform Event.
-Design Item	Value
-Platform Event	SnapLogic_Integration_Event__e
-Publisher Objects	All main objects and relationship objects
-Routing Fields	Source_Object__c, Event_Type__c, Parent_Record_Id__c
-Payload Strategy	Use Payload__c JSON to carry object-specific data
-
-8.1 Pros
-•	Lowest Salesforce metadata effort because only one Platform Event is created.
-•	SnapLogic subscribes to only one event channel.
-•	Easy to add another object later without creating a new Platform Event.
-•	Works well if all objects follow the same integration pattern and SnapLogic expects a generic payload.
-•	Common logging, correlation, and retry handling can be standardized in one place.
-8.2 Cons
-•	The event becomes too generic and less readable from a Salesforce design perspective.
-•	SnapLogic must parse Source_Object__c and Payload__c for every message before routing.
-•	Object-specific validation is weak because one event cannot clearly enforce different required fields for each object.
-•	Troubleshooting becomes harder because all Waiver, Decision, and TPMS messages flow through the same event.
-•	Any change to the common event can impact all object integrations at the same time.
-•	Over time, the payload can become large, inconsistent, and harder to maintain.
-8.3 Recommendation on Global Event
-One global Platform Event is not preferred for this requirement because Waiver, Decision, and TPMS are separate business domains with their own relationship objects and processing needs. It can work technically, but it creates more parsing and troubleshooting effort for SnapLogic.
- 
-9. Comparison with Other Options
-Option	Description	Pros	Cons
-One global event	One event for Waiver, Decision, TPMS, and all relationship objects	Lowest metadata effort; one SnapLogic channel	Too generic; more parsing and harder troubleshooting.
-One event per object	Separate event for every main and relationship object	Very clear contracts	Too many events, flows, and SnapLogic subscriptions.
-Recommended grouping	One event per business domain: main object + relationship object(s)	Balanced, readable, maintainable	Requires good payload and routing standards.
-
-10. Implementation Steps
-1.	Define publishing conditions for Waiver, Waiver Relationship, Decision, Decision Relationship, TPMS, and TPMS Relationship objects.
-2.	Create three domain Platform Events: Waiver_Integration_Event__e, Decision_Integration_Event__e, and TPMS_Integration_Event__e.
-3.	Create record-triggered flows on the main and relationship objects.
-4.	In each flow, populate Source_Object__c, Source_Record_Id__c, Parent_Record_Id__c, Event_Type__c, Correlation_Id__c, and Payload__c.
-5.	Publish the related domain Platform Event using Create Records in Flow.
-6.	Configure SnapLogic to subscribe to each Platform Event channel.
-7.	Add logging/error tracking for publish failures and SnapLogic processing failures, if required.
-8.	Document field mapping and payload structure for each domain event.
-11. Final Recommendation
-Use one Platform Event per main business domain, where the main object and its relationship object(s) publish to the same event.
-Final Design: Waiver_Integration_Event__e, Decision_Integration_Event__e, TPMS_Integration_Event__e
-This approach is preferred over one global event because it keeps the architecture clean, reduces SnapLogic parsing complexity, and improves long-term maintainability.
