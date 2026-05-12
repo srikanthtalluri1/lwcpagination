@@ -1,17 +1,70 @@
-private static String getFieldLabel(String objectApiName, String fieldApiName) {
-    Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
+onshowfilter={handleshowfilter}
 
-    if (objType == null) {
-        return fieldApiName;
-    }
 
-    Map<String, Schema.SObjectField> fieldMap =
-        objType.getDescribe().fields.getMap();
+ onfilterdata={handlefilterdata}
+    ondecisiondata={handledecisiondata}
+    onsearchkey={handlesearchkey}
+    onhandlerestbuttonclick={handleTrigger}
+    selected-filters={savedFilters}
+    selected-filters-map={savedFiltersMap}
+    selected-waiver={savedWaiver}
+    search-key={savedSearchKey}
 
-    if (fieldMap.containsKey(fieldApiName)) {
-        return fieldMap.get(fieldApiName).getDescribe().getLabel();
-    }
 
-    return fieldApiName;
+  selecteddecision;
+    searchkey;
+    savedFilters;
+    savedWaiver;
+    savedSearchKey;
+
+ get filterPanelClass() {
+    return this.showToggle && this.showFilter
+        ? 'custom-border-right child-container'
+        : 'custom-border-right child-container slds-hide';
 }
 
+
+ handlefilterdata(event) {
+    this.filters = event.detail.value;
+    console.log(' this.filters ',  JSON.stringify(this.filters));
+    // Save for datatable
+    this.savedFilters = event.detail.value;
+
+    // Save for checkbox UI restore
+    this.savedFiltersMap = this.convertFilterArrayToMap(event.detail.value);
+    console.log(' this.savedFiltersMap ',  JSON.stringify(this.savedFiltersMap));
+    const child = this.template.querySelector('c-technology-decision-data-table');
+    if (child) {
+        child.updatefilters(this.filters);
+    }
+}
+
+convertFilterArrayToMap(filterArray) {
+    let result = {};
+
+    if (filterArray && Array.isArray(filterArray)) {
+        filterArray.forEach(item => {
+            Object.keys(item).forEach(key => {
+                if (key !== 'uniqueKey') {
+                    result[key] = item[key];
+                }
+            });
+        });
+    }
+ console.log(' this.result ',  JSON.stringify(result));
+    return result;
+}
+    handledecisiondata(event){
+        this.selecteddecision=event.detail.value;
+         this.savedWaiver = event.detail.value;
+        console.log('this.selecteddecision 17 ',this.selecteddecision);
+        const child = this.template.querySelector('c-technology-decision-data-table');
+        if (child) {
+            child.updateslecteddecision(this.selecteddecision);
+        }
+    }
+
+ handleshowfilter(event){
+        this.showFilter=event.detail.showfilter;
+        this.showToggle= event.detail.toggle;
+    }
