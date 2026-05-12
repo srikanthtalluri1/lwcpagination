@@ -1,70 +1,63 @@
-onshowfilter={handleshowfilter}
-
-
- onfilterdata={handlefilterdata}
-    ondecisiondata={handledecisiondata}
-    onsearchkey={handlesearchkey}
-    onhandlerestbuttonclick={handleTrigger}
-    selected-filters={savedFilters}
-    selected-filters-map={savedFiltersMap}
-    selected-waiver={savedWaiver}
-    search-key={savedSearchKey}
-
-
-  selecteddecision;
-    searchkey;
-    savedFilters;
-    savedWaiver;
-    savedSearchKey;
-
- get filterPanelClass() {
-    return this.showToggle && this.showFilter
-        ? 'custom-border-right child-container'
-        : 'custom-border-right child-container slds-hide';
+handleBackToListViewtest(event){
+     this.dispatchEvent(
+            new CustomEvent('valuechange', {
+                detail: 'Hello from Child A'
+            })
+        );
 }
 
+ onvaluechange={handlebuttonclick}
 
- handlefilterdata(event) {
-    this.filters = event.detail.value;
-    console.log(' this.filters ',  JSON.stringify(this.filters));
-    // Save for datatable
-    this.savedFilters = event.detail.value;
+handlebuttonclick(event){
+        this.refs?.highlights?.refreshdatacustom?.();
+        console.log('event record page ', event.detail);
+       
+         let windowUrl = new URL(window.location.href);
+        console.log('windowUrl ',windowUrl);
+        let pathName= windowUrl.href;
+        let converstring = pathName.toString();
+        const result = converstring.slice(0, converstring.lastIndexOf("w"));
+        console.log('converstring close',converstring);
+        console.log('converstring close',result);
+        // window.location.replace(result);
+        window.history.pushState({}, '', result);
+            const closeEvent = new CustomEvent('iseditform', {
+        detail: false,
+        bubbles: true,
+        composed: true
+    });
 
-    // Save for checkbox UI restore
-    this.savedFiltersMap = this.convertFilterArrayToMap(event.detail.value);
-    console.log(' this.savedFiltersMap ',  JSON.stringify(this.savedFiltersMap));
-    const child = this.template.querySelector('c-technology-decision-data-table');
-    if (child) {
-        child.updatefilters(this.filters);
-    }
-}
+ oniseditform={handleisEditForm}
 
-convertFilterArrayToMap(filterArray) {
-    let result = {};
+ handleisEditForm(event){
+        this.isEditform= event.detail;
+        console.log('datet ', this.isEditform);
+            // ✅ restore padding
+    this.hasPadding = true;
+    this.template.host.classList.remove('no-padding');
+        const closeEvent = new CustomEvent('showfilter', {
+        detail: {showfilter:true,
+                toggle:true},
+        bubbles: true,
+        composed: true
+    });
 
-    if (filterArray && Array.isArray(filterArray)) {
-        filterArray.forEach(item => {
-            Object.keys(item).forEach(key => {
-                if (key !== 'uniqueKey') {
-                    result[key] = item[key];
-                }
-            });
-        });
-    }
- console.log(' this.result ',  JSON.stringify(result));
-    return result;
-}
-    handledecisiondata(event){
-        this.selecteddecision=event.detail.value;
-         this.savedWaiver = event.detail.value;
-        console.log('this.selecteddecision 17 ',this.selecteddecision);
-        const child = this.template.querySelector('c-technology-decision-data-table');
-        if (child) {
-            child.updateslecteddecision(this.selecteddecision);
-        }
-    }
+    console.log('STEP 2: Dispatching iseditform from datatable');
+    this.dispatchEvent(closeEvent);
+     }
 
- handleshowfilter(event){
-        this.showFilter=event.detail.showfilter;
-        this.showToggle= event.detail.toggle;
+
+    console.log('STEP 2: Dispatching iseditform from RecordPage');
+    this.dispatchEvent(closeEvent);
+
+                    if (window.PerformanceNavigationTiming) {
+            console.info('window.performance works fine on this browser');
+            
+            if (PerformanceNavigationTiming.type === 'reload') {
+                console.info('This page is reloaded');
+            } else {
+                console.info('This page is not reloaded');
+            }
+            }
+       // pubsub.publish('closeSuccess', { recordId: this.recordId, isClosed: true });
     }
