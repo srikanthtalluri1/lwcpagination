@@ -1,1 +1,743 @@
-this.dispatchEvent(closeEvent);
+import { LightningElement, track, api } from 'lwc';
+import getTechnologyDecision from '@salesforce/apex/TechnologyDecision_DataTableHandler.getTechnologyDecision';
+import getUniqueValues from '@salesforce/apex/TechnologyDecision_DataTableHandler.getUniqueValues';
+import  pubsub  from 'c/pubsub';
+
+export default class TechnologyDecisionDataFilters extends LightningElement {
+    //searchKey;
+    isLoading;
+    currentPage;
+    rowOffSet;
+    records=[];
+    @api selectedFiltersMap;
+    @api selectedFilters;
+   @track isBackNavigation = false;
+    @api selectedWaiver = 'mydecision';
+    @api searchKey;
+    sortedBy;
+    selectedFilter;
+    sortedDirection;
+    //@track selectedFilters;
+    //@track selectedWaiver = 'mydecision';
+    @track _filteredFieldValues = [];
+    _filterOptionsBackup=[];
+    @track _filterOptions = [];
+    filters = [];
+    @track selectedFiltersdata = {};
+    @track showFilter = true; 
+    listStatusStage=[];
+    isStatusStage=false;
+    receivedValue;
+    get filteredFieldValues() {
+        console.log('this._filteredFieldValues filteredFieldValues 247' + JSON.stringify(this._filteredFieldValues));
+        return this._filteredFieldValues;
+        }
+    get showFilterValues() {
+        return this._filteredFieldValues.length > 0;
+    }
+    get waiverOptions() {
+        return [
+            { label: 'My Decisons', value: 'mydecision' },
+            { label: 'All Decisons', value: 'alldecision' }
+        ];
+    }
+   
+connectedCallback() {
+     if (!this.selectedWaiver) {
+        this.selectedWaiver = 'mydecision';
+    }
+    pubsub.subscribe('buttonClicked', this.handleButtonClicked);
+
+    this.showFilter = true;
+
+    console.log(
+        'this.selectedFiltersMap callback ',
+        JSON.stringify(this.selectedFiltersMap)
+    );
+
+    // ONLY restore during back navigation
+    if (this.selectedFiltersMap) {
+
+        this.isBackNavigation = true;
+
+        this.selectedFiltersdata = {
+            ...this.selectedFiltersMap
+        };
+
+        console.log(
+            'this.selectedFiltersdata callback ',
+            JSON.stringify(this.selectedFiltersdata)
+        );
+
+        if (this.selectedFilters && this.selectedFilters.length > 0) {
+
+            const selectedFieldNames = this.selectedFilters
+                .map(item => Object.keys(item)[0])
+                .filter(key => key !== 'uniqueKey');
+
+            console.log(
+                'selectedFieldNames ',
+                JSON.stringify(selectedFieldNames)
+            );
+
+            this.loadFilterValues(selectedFieldNames);
+        }
+    }
+
+    console.log(
+        'Restored selectedFiltersdata:',
+        JSON.stringify(this.selectedFiltersdata)
+    );
+
+    console.log('checking connected callback');
+}
+
+handleButtonClicked = (value) => {
+    console.log('checking here 44');
+    this.receivedValue = value;
+    console.log('Received value:', value);
+};
+
+disconnectedCallback() {
+    pubsub.unsubscribe('buttonClicked', this.handleButtonClicked);
+}
+handleSearch(event) {
+       
+}
+ handleWaiverChange(event) {
+        this.currentPage = 1;
+        this.searchKey = '';
+        //this.resetPaginationState();
+        if(event.detail.value){
+        this.selectedWaiver = event.detail.value;
+        }
+        console.log('this.selectedWaiver 421 ' + this.selectedWaiver);
+        this.loading = true;
+        this.isFromhandleWaiverChange=true;
+        //this.handleFilterBy('resetfilter');
+        // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('decisiondata', {
+                        detail: { value: this.selectedWaiver }
+                    })
+                );
+                this.loadFilterValues(this.selectedFilters);
+    }
+    handleReset(event){
+        
+         window.clearTimeout(this.delayTimeout);
+        this.searchKey = event.target.value.toLowerCase() ?? '';
+        console.log('this.searchKey ',this.searchKey);
+        this.delayTimeout = setTimeout(() => {
+            this.isLoading = true;
+            //this.resetPaginationState();
+            this.currentPage = 1;
+
+            /*Lazy Loading*/
+            this.rowOffSet = 0;
+            this.records = [];
+            /*Lazy Loading*/
+
+             // Dispatch the clean array version to parent
+                this.dispatchEvent(
+                    new CustomEvent('searchkey', {
+                        detail: { value: this.searchKey }
+                    })
+                );
+        }, 300);
+    }
+ resetPaginationState() {
+        this.isLoading = true;
+        this.sortedBy = 'Name';
+        this.sortedDirection = 'asc';
+    }
+
+handleActionsPicklist(event) {
+    const selectedValues = event.detail.values;
+    this.loadFilterValues(selectedValues);
+}
+loadFilterValues(selectedValues) {
+    this.selectedFilters = selectedValues;
+console.log('selectedFilters 161 dec ', this.selectedFilters);
+
+    getUniqueValues({
+        fieldApiName: this.selectedFilters,
+        allOrMy: this.selectedWaiver
+    })
+    .then(data => {
+        console.log('data 251 ', JSON.stringify(data));
+              // Utility function to normalize any domain array
+                        const normalizeDomains = (arr) =>
+                            arr?.map(domain => ({
+                                ...domain,
+                                domains: domain.domains.map(eachDomain => ({
+                                    ...eachDomain,
+                                    checked: false
+                                }))
+                            })) || [];
+       this.listStatusStage = normalizeDomains(data?.['Status/Stage']);
+   
+
+        const values = (data) ? Object.keys(data).map(x => {
+             if ( x =='Status/Stage') {
+               console.log('checking Status/Stage');
+             }
+             else{
+            return {
+                [x]: data[x].map((val) => {
+                    const label = val.value ? val.value : 'No Data';
+                    const value = val.value ? val.value : 'nullcheck';
+                    const id = val.id ? val.id : 'nullcheck';
+                    return { label: `${label} (${val.count})`, value: value, id: id};
+                })
+            };
+        }
+        }).filter(Boolean) : [];
+
+        let filteredFieldValues = values.map((x, ind) => {
+            const apiName = Object.keys(x)[0];
+            const options = Object.values(x)[0]
+                .sort((a, b) => {
+                    const valueA = (a.value || '').trim().toLowerCase();
+                    const valueB = (b.value || '').trim().toLowerCase();
+                    if (valueA === 'nullcheck') return -1;
+                    if (valueB === 'nullcheck') return 1;
+                    return valueA.localeCompare(valueB);
+                });
+
+            return {
+                id: ind,
+                filterField: apiName,
+                filterFieldApiName: apiName,
+                filteredFieldValue: options,
+                showValues: true,
+                // ✅ restore from saved selections
+                selectedValue: this.selectedFiltersdata[apiName] || [],
+                icon: 'utility:chevrondown',
+            };
+        });
+
+      
+
+        this._filteredFieldValues = [...filteredFieldValues];
+        this._filterOptionsBackup = [...filteredFieldValues];
+          // Build the new filter block for Status/Stage
+       
+      const clean = label =>
+    label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+const selectedStatusValues = this.selectedFiltersdata['Status/Stage'] || [];
+const selectedStageValues = this.selectedFiltersdata['Stage'] || [];
+
+if (this.listStatusStage.length > 0) {
+    const statusStageFilter = {
+        id: this._filteredFieldValues.length,
+        filterField: "Status/Stage",
+        filterFieldApiName: "Status/Stage",
+        filteredFieldValue: this.listStatusStage.map(parent => {
+            const parentClean = clean(parent.label);
+            const isParentSelected =
+                this.isBackNavigation &&
+                selectedStatusValues.includes(parentClean);
+
+            return {
+                label: parent.label,
+                value: parent.label,
+                id: "nullcheck",
+                checked: isParentSelected,
+
+                children: (parent.domains || []).map(d => {
+                    const childClean = clean(d.label);
+
+                    return {
+                        count: d.count,
+                        label: d.label,
+
+                        // only check child if its parent is also selected
+                        checked: isParentSelected &&
+                            selectedStageValues.includes(childClean)
+                    };
+                })
+            };
+        }),
+        showValues: true,
+        selectedValue: [],
+        icon: "utility:chevrondown",
+        isStatusStage: true
+    };
+
+    this._filteredFieldValues.push(statusStageFilter);
+}
+
+this.isBackNavigation = false;
+        this.isLoadingFilter = false;
+        console.log('Restored _filteredFieldValues:', JSON.stringify(this._filteredFieldValues));
+    })
+    .catch(error => {
+        console.error('Error restoring filters:', error);
+    });
+}
+
+
+    handleActions(event){ 
+    const apiName = event.target.dataset.action;   // filterFieldApiName
+    const values = event.detail.value;             // selected values array
+
+    if (values && values.length > 0) {
+        this.selectedFiltersdata = {
+            ...this.selectedFiltersdata,
+            [apiName]: values
+        };
+    } else {
+        const { [apiName]: removed, ...rest } = this.selectedFiltersdata;
+        this.selectedFiltersdata = rest;
+    }
+
+    // ✅ Sync _filteredFieldValues so UI keeps checked items
+    this._filteredFieldValues = this._filteredFieldValues.map(f => {
+        if (f.filterFieldApiName === apiName) {
+            return { ...f, selectedValue: this.selectedFiltersdata[apiName] || [] };
+        }
+        return f;
+    });
+    this.syncFiltersFromUI();
+
+    // Dispatch clean array to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.filters }
+        })
+    );
+    this.filters = this.selectedFiltersArray;
+
+    console.log('Selected Filters Map:', JSON.stringify(this.selectedFiltersdata));
+    console.log('Selected Filters Array:', JSON.stringify(this.selectedFiltersArray));
+}
+
+     // Convert to array format [{ key, values }]
+   get selectedFiltersArray() {
+        return Object.keys(this.selectedFiltersdata).map(key => {
+            return { [key]: this.selectedFiltersdata[key] };
+        });
+    }
+  /*  handleResetButton(event){
+        this._filteredFieldValues=[];
+        this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
+       
+        
+    this.template.querySelector('c-technology-decision-custom-pick').reset();
+    } */
+    handleResetButton(event) {
+    // Clear selected filter data
+    this.selectedFiltersdata = {};
+    this.filters = [];
+    this.selectedFilters = [];
+    this.checkedAffStdArray = [];
+    this._filteredFieldValues=[];
+
+    // Clear checked and selectedValue from UI filter options
+    this._filteredFieldValues = this._filteredFieldValues.map(filter => ({
+        ...filter,
+        selectedValue: [],
+        filteredFieldValue: filter.filteredFieldValue.map(option => ({
+            ...option,
+            checked: false,
+            children: option.children
+                ? option.children.map(child => ({
+                    ...child,
+                    checked: false
+                }))
+                : option.children
+        }))
+    }));
+
+    // Also reset backup so search does not bring old selected values back
+    this._filterOptionsBackup = JSON.parse(JSON.stringify(this._filteredFieldValues));
+
+    // Reset child picklist component safely
+    const customPick = this.template.querySelector('c-technology-decision-custom-pick');
+    if (customPick) {
+        customPick.reset();
+    }
+
+    // Send empty filters to parent
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: [] }
+        })
+    );
+
+    this.dispatchEvent(new CustomEvent('handlerestbuttonclick'));
+}
+    handlefilterToggle(event){
+         this.showFilter = !this.showFilter;  // toggle between true/false
+    }
+    handleFilterExpand(event){
+            
+            console.log('index', event.currentTarget.dataset.index);
+            
+           // defensive: event.currentTarget.dataset might be undefined in some event propagation cases
+        const ds = (event.currentTarget && event.currentTarget.dataset) || (event.target && event.target.dataset);
+        if (!ds || typeof ds.index === 'undefined') {
+            // debug - helpful to open browser console to see why click didn't carry data-index
+            // eslint-disable-next-line no-console
+            console.warn('toggleFilter: data-index not found on event target', event);
+            return;
+        }
+
+        const index = Number(ds.index); // convert to number to match ids like 0,1,2
+
+        // Create a new array copying objects; update only the clicked item
+        const newArray = this._filteredFieldValues.map(item => {
+            if (Number(item.id) === index) {
+                const newShow = !item.showValues;
+                // return a new object (important for reactivity)
+                return {
+                    ...item,
+                    showValues: newShow,
+                    icon: newShow ? 'utility:chevrondown' : 'utility:chevronright'
+                };
+            }
+            return { ...item }; // shallow copy of unchanged items
+        });
+        console.log('newArray ', JSON.stringify(newArray));
+        // Assign the new array back to the tracked private field
+        this._filteredFieldValues = newArray;
+    }
+    handleFilterSearch(event) {
+    const searchTerm = event.target.value ? event.target.value.toLowerCase() : '';
+    console.log('Search filter term: ', searchTerm);
+
+    // If no search term, show all filters
+    if (!searchTerm) {
+        this._filteredFieldValues = [...this._filterOptionsBackup];
+        return;
+    }
+
+    // Filter logic
+    const filtered = this._filterOptionsBackup
+        .map(filter => {
+            const matchingValues = filter.filteredFieldValue.filter(opt =>
+                opt.label.toLowerCase().includes(searchTerm)
+            );
+            if (
+                filter.filterField.toLowerCase().includes(searchTerm) ||
+                matchingValues.length > 0
+            ) {
+                return {
+                    ...filter,
+                    filteredFieldValue: matchingValues,
+                    showValues: true
+                };
+            }
+            return null;
+        })
+        .filter(Boolean);
+
+    this._filteredFieldValues = filtered;
+}
+
+handleChildCheckboxChangeNewOne(event) {
+    const parentName = event.target.dataset.parent;
+    const childId = event.target.dataset.id;
+    const isChecked = event.target.checked;
+
+    console.log('childId 2310', childId);
+    console.log('parentName 2310', parentName);
+    console.log('isChecked 2310', isChecked);
+
+    const clean = label =>
+        label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+    const childFieldMap = {
+        "Affected Standard": "Domain Standard",
+        "Status/Stage": "Stage"
+    };
+
+    const updated = JSON.parse(JSON.stringify(this._filteredFieldValues));
+
+    const blockIndex = updated.findIndex(block =>
+        block.filterFieldApiName === 'Status/Stage'
+    );
+
+    if (blockIndex !== -1) {
+        const block = updated[blockIndex];
+
+        block.filteredFieldValue = block.filteredFieldValue.map(cat => {
+            if (clean(cat.label) === clean(parentName)) {
+                cat.children = cat.children.map(child => {
+                    if (clean(child.label) === clean(childId)) {
+                        child.checked = isChecked;
+                    }
+                    return child;
+                });
+            }
+            return cat;
+        });
+
+        updated[blockIndex] = { ...block };
+    }
+
+    this._filteredFieldValues = updated;
+    this.syncFiltersFromUI();
+
+    // ✅ CHANGED: preserve existing filters like Decision Reason
+    let finalFilters = (this.filters || []).filter(f =>
+        !f['Status/Stage'] &&
+        !f['Stage']
+    );
+
+    const statusStageBlock = updated.find(
+        f => f.filterFieldApiName === 'Status/Stage'
+    );
+
+    if (statusStageBlock) {
+        const parentField = statusStageBlock.filterField;
+        const childField = childFieldMap[parentField] || (parentField + "_child");
+
+        const parentSelected = [];
+        const childSelected = [];
+
+        statusStageBlock.filteredFieldValue.forEach(cat => {
+            if (cat.checked) {
+                parentSelected.push(clean(cat.label));
+            }
+
+            const checkedChildren = cat.children
+                ?.filter(c => c.checked)
+                .map(c => clean(c.label));
+
+            if (checkedChildren?.length) {
+                childSelected.push(...checkedChildren);
+            }
+        });
+
+        if (parentSelected.length) {
+            finalFilters.push({
+                [parentField]: parentSelected
+            });
+        }
+
+        if (childSelected.length) {
+            finalFilters.push({
+                [childField]: childSelected
+            });
+        }
+    }
+
+    this.filters = finalFilters;
+
+    // ✅ ADDED: save for Back to Test restore
+    this.selectedFiltersdata = { ...this.selectedFiltersdata };
+
+    this.filters.forEach(f => {
+        Object.keys(f).forEach(key => {
+            if (key !== 'uniqueKey') {
+                this.selectedFiltersdata[key] = f[key];
+            }
+        });
+    });
+
+    console.log("Final Filters:", JSON.stringify(this.filters, null, 2));
+
+    this.checkedAffStdArray = this._filteredFieldValues;
+    this.rowOffSet = 0;
+    this.records = [];
+
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.filters }
+        })
+    );
+}
+
+handleParentCheckboxChangeNewOne(event) {
+    const categoryName = event.target.dataset.id;
+    const isChecked = event.target.checked;
+
+    console.log('categoryName ', categoryName);
+    console.log('categoryName ', isChecked);
+
+    const clean = label =>
+        label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+    const childFieldMap = {
+        "Status/Stage": "Stage"
+    };
+
+    const updatedFilters = JSON.parse(JSON.stringify(this._filteredFieldValues));
+
+    const parentIndex = updatedFilters.findIndex(parent =>
+        parent.filterFieldApiName === 'Status/Stage'
+    );
+
+    if (parentIndex !== -1) {
+        const parentBucket = updatedFilters[parentIndex];
+
+        parentBucket.filteredFieldValue = parentBucket.filteredFieldValue.map(category => {
+            const isParentMatch = clean(category.label) === clean(categoryName);
+
+            if (isParentMatch) {
+                category.checked = isChecked;
+
+                if (!isChecked) {
+                    category.children = category.children?.map(child => ({
+                        ...child,
+                        checked: false
+                    })) || [];
+                }
+            }
+
+            // ❌ REMOVE / COMMENT OLD CODE
+            // category.children = category.children?.map(child => {
+            //     if (clean(child.label) === clean(categoryName)) {
+            //         return { ...child, checked: isChecked };
+            //     }
+            //     return child;
+            // }) || [];
+
+            return category;
+        });
+    }
+
+    this._filteredFieldValues = updatedFilters;
+    this.syncFiltersFromUI();
+
+    // ✅ CHANGED: preserve existing filters like Decision Reason
+    let finalFilters = (this.filters || []).filter(f =>
+        !f['Status/Stage'] &&
+        !f['Stage']
+    );
+
+    const filterBucket = updatedFilters.find(
+        f => f.filterFieldApiName === 'Status/Stage'
+    );
+
+    if (filterBucket) {
+        const parentField = filterBucket.filterField;
+        const childField = childFieldMap[parentField];
+
+        let parentSelections = [];
+        let childSelections = [];
+
+        filterBucket.filteredFieldValue.forEach(parent => {
+            if (parent.checked) {
+                parentSelections.push(clean(parent.label));
+            }
+
+            parent.children?.forEach(child => {
+                if (child.checked) {
+                    childSelections.push(clean(child.label));
+                }
+            });
+        });
+
+        if (parentSelections.length > 0) {
+            finalFilters.push({
+                [parentField]: parentSelections
+            });
+        }
+
+        if (childSelections.length > 0) {
+            finalFilters.push({
+                [childField]: childSelections
+            });
+        }
+    }
+
+    this.filters = finalFilters;
+
+    // ✅ ADDED: save for Back to Test restore
+   this.selectedFiltersdata = { ...this.selectedFiltersdata };
+
+    this.filters.forEach(f => {
+        Object.keys(f).forEach(key => {
+            if (key !== 'uniqueKey') {
+                this.selectedFiltersdata[key] = f[key];
+            }
+        });
+    });
+
+    console.log("FINAL FILTERS => ", JSON.stringify(this.filters, null, 2));
+
+    this.checkedAffStdArray = this._filteredFieldValues;
+    this.rowOffSet = 0;
+    this.records = [];
+
+    this.dispatchEvent(
+        new CustomEvent('filterdata', {
+            detail: { value: this.filters }
+        })
+    );
+}
+syncFiltersFromUI() {
+    const clean = label =>
+        label?.replace(/\s*\(.*?\)\s*/g, '').trim() || '';
+
+    let finalFilters = [];
+
+    // 1. Add normal filters like Decision Reason
+    Object.keys(this.selectedFiltersdata || {}).forEach(key => {
+        if (
+            key !== 'Status/Stage' &&
+            key !== 'Stage' &&
+            this.selectedFiltersdata[key]?.length > 0
+        ) {
+            finalFilters.push({
+                [key]: this.selectedFiltersdata[key]
+            });
+        }
+    });
+
+    // 2. Add Status/Stage from current UI checked values
+    const statusStageBlock = this._filteredFieldValues.find(
+        f => f.filterFieldApiName === 'Status/Stage'
+    );
+
+    if (statusStageBlock) {
+        let statusValues = [];
+        let stageValues = [];
+
+        statusStageBlock.filteredFieldValue.forEach(parent => {
+            if (parent.checked) {
+                statusValues.push(clean(parent.label));
+            }
+
+            parent.children?.forEach(child => {
+                if (child.checked) {
+                    stageValues.push(clean(child.label));
+                }
+            });
+        });
+
+        if (statusValues.length > 0) {
+            finalFilters.push({
+                'Status/Stage': statusValues
+            });
+        }
+
+        if (stageValues.length > 0) {
+            finalFilters.push({
+                'Stage': stageValues
+            });
+        }
+
+        // keep selectedFiltersdata also exactly synced
+        delete this.selectedFiltersdata['Status/Stage'];
+        delete this.selectedFiltersdata['Stage'];
+
+        if (statusValues.length > 0) {
+            this.selectedFiltersdata['Status/Stage'] = statusValues;
+        }
+
+        if (stageValues.length > 0) {
+            this.selectedFiltersdata['Stage'] = stageValues;
+        }
+    }
+
+    this.filters = finalFilters;
+
+    console.log('SYNCED FINAL FILTERS => ', JSON.stringify(this.filters));
+}
+
+}
