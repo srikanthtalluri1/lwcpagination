@@ -1,3 +1,1 @@
-if(labelName=='Status/Stage'){
-            labelName='Status';
-        }
+ if(fieldApiName.contains('Status') || fieldApiName.contains('Status/Stage'))
