@@ -1,14 +1,32 @@
- if (clean(cat.label) === clean(parentName)) {
-
-    // ✅ ADD: when child is checked, also check parent
-    if (isChecked) {
-        cat.checked = true;
+@AuraEnabled(cacheable=true)
+    public static Boolean hasTpmReadyOnlyPermission() {
+        String userId = UserInfo.getUserId();
+        List<PermissionSetAssignment> assignments = [
+            SELECT Id 
+            FROM PermissionSetAssignment 
+            WHERE AssigneeId = :userId 
+            AND PermissionSet.Name = 'TPM_Ready_Only'
+            LIMIT 1
+        ];
+        return !assignments.isEmpty();
     }
 
-    cat.children = cat.children.map(child => {
-        if (clean(child.label) === clean(childId)) {
-            child.checked = isChecked;
-        }
-        return child;
-    });
-}
+import hasTpmReadyOnlyPermission from '@salesforce/apex/PermissionSetController.hasTpmReadyOnlyPermission';
+@track showNewButton = false;
+
+    connectedCallback() {
+        hasTpmReadyOnlyPermission()
+            .then(result => {
+                this.showNewButton = result;
+            })
+            .catch(error => {
+                console.error('Error checking permission:', error);
+                this.showNewButton = false;
+            });
+    }
+
+    openModal() {
+        // your existing openModal logic
+    }
+
+<template if:true={showNewButton}>
