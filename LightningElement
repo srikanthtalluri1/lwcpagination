@@ -1,1 +1,14 @@
- if(fieldApiName.contains('Status') || fieldApiName.contains('Status/Stage'))
+ if (clean(cat.label) === clean(parentName)) {
+
+    // ✅ ADD: when child is checked, also check parent
+    if (isChecked) {
+        cat.checked = true;
+    }
+
+    cat.children = cat.children.map(child => {
+        if (clean(child.label) === clean(childId)) {
+            child.checked = isChecked;
+        }
+        return child;
+    });
+}
