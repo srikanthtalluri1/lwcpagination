@@ -1,5 +1,6 @@
-  this.selectedFilters=[];
+Verify whether record counts can be enabled for the Standards left navigation options, similar to how counts are currently displayed for Waivers.
 
- this.handleResetButton(event);
 
-this.filters=[];
+
+Analyze the current Waivers left navigation count functionality and confirm if the same approach can be applied to Standards.
+Identify the required configuration/code changes needed to display record counts for Standards.
