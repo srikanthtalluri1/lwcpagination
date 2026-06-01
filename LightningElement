@@ -1,8 +1,589 @@
-Build a POC for PAAM using Lightning Web Components and Salesforce Lightning Design System. The POC should demonstrate the basic UI structure, reusable LWC components, SLDS styling, and key screen layout needed for the PAAM functionality. This will help validate the approach before moving forward with full development.
+<template>
+    <div class="paam-page">
+        <!-- Hero -->
+        <section class="paam-hero">
+            <div>
+                <div class="paam-eyebrow">PAAM Conflicts</div>
+                <h1>Application <span>Conflict Review</span></h1>
+                <p>Review manual and discovered PAAM stack-layer differences.</p>
+            </div>
+        </section>
 
-Acceptance Criteria:
+        <!-- Stats -->
+        <div class="paam-stats">
+            <div class="paam-stat total">
+                <div class="accent"></div>
+                <div class="label">Total Apps</div>
+                <div class="value">{totalCount}</div>
+                <div class="hint">Applications reviewed</div>
+            </div>
 
-Create a new LWC component for the PAAM POC.
-UI should follow Salesforce Lightning Design System standards.
-Page should include the basic PAAM layout and required sections.
-Component should be responsive and display properly in Salesforce Lightning.
+            <div class="paam-stat conflict">
+                <div class="accent"></div>
+                <div class="label">Conflicts</div>
+                <div class="value">{conflictCount}</div>
+                <div class="hint">Need attention</div>
+            </div>
+
+            <div class="paam-stat sync">
+                <div class="accent"></div>
+                <div class="label">In Sync</div>
+                <div class="value">{syncCount}</div>
+                <div class="hint">No action needed</div>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <section class="paam-card">
+            <div class="paam-card-header">
+                <div>
+                    <h2>PAAM Conflict Details</h2>
+                    <p>Search, filter, and accept discovered values.</p>
+                </div>
+
+                <div class="toolbar">
+                    <lightning-input
+                        type="search"
+                        label="Search"
+                        variant="label-hidden"
+                        placeholder="Search applications..."
+                        value={searchKey}
+                        onchange={handleSearch}>
+                    </lightning-input>
+
+                    <lightning-combobox
+                        label="Status"
+                        variant="label-hidden"
+                        value={statusFilter}
+                        options={statusOptions}
+                        onchange={handleStatusChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="slds-table slds-table_cell-buffer paam-table">
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>Environment</th>
+                            <th>PAAM Manual</th>
+                            <th></th>
+                            <th>Discovered</th>
+                            <th>Status</th>
+                            <th class="action-col">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={filteredRows} for:item="row">
+                            <tr key={row.id} class={row.rowClass}>
+                                <th scope="row">
+                                    <div class="app-cell">
+                                        <div class="avatar">{row.initials}</div>
+                                        <div>
+                                            <div class="app-name">{row.name}</div>
+                                            <div class="app-meta">{row.owner}</div>
+                                        </div>
+                                    </div>
+                                </th>
+
+                                <td>{row.environment}</td>
+
+                                <td>
+                                    <span class={row.manualClass}>
+                                        {row.manualValue}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <template if:true={row.isConflict}>
+                                        <span class="diff-arrow">→</span>
+                                    </template>
+                                </td>
+
+                                <td>
+                                    <span class={row.discoveredClass}>
+                                        {row.discoveredValue}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class={row.statusClass}>
+                                        {row.status}
+                                    </span>
+                                </td>
+
+                                <td class="action-col">
+                                    <template if:true={row.isConflict}>
+                                        <lightning-button
+                                            label="Accept"
+                                            variant="brand"
+                                            data-id={row.id}
+                                            onclick={handleAccept}>
+                                        </lightning-button>
+                                    </template>
+
+                                    <template if:false={row.isConflict}>
+                                        <span class="no-action">—</span>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="paam-card-footer">
+                Showing {filteredRows.length} of {totalCount} applications
+            </div>
+        </section>
+    </div>
+</template>
+
+
+import { LightningElement, track } from 'lwc';
+
+export default class PocUI extends LightningElement {
+    searchKey = '';
+    statusFilter = 'All';
+
+    @track rows = [
+        {
+            id: '1',
+            name: 'Salesforce - Enterprise Licensing Consolidation',
+            owner: 'Enterprise Architecture',
+            environment: 'Production',
+            manualValue: 'Preferred',
+            discoveredValue: 'Restricted'
+        },
+        {
+            id: '2',
+            name: 'Copado',
+            owner: 'DevOps',
+            environment: 'Production',
+            manualValue: 'Preferred',
+            discoveredValue: 'Preferred'
+        },
+        {
+            id: '3',
+            name: 'ServiceNow - Change Management',
+            owner: 'ITSM',
+            environment: 'Production',
+            manualValue: 'Acceptable',
+            discoveredValue: 'Deprecated'
+        }
+    ];
+
+    statusOptions = [
+        { label: 'All', value: 'All' },
+        { label: 'Conflict', value: 'Conflict' },
+        { label: 'In Sync', value: 'In Sync' }
+    ];
+
+    get totalCount() {
+        return this.rows.length;
+    }
+
+    get conflictCount() {
+        return this.rows.filter(row => row.manualValue !== row.discoveredValue).length;
+    }
+
+    get syncCount() {
+        return this.rows.filter(row => row.manualValue === row.discoveredValue).length;
+    }
+
+    get filteredRows() {
+        let data = this.rows.map(row => {
+            const isConflict = row.manualValue !== row.discoveredValue;
+            const status = isConflict ? 'Conflict' : 'In Sync';
+
+            return {
+                ...row,
+                isConflict,
+                status,
+                initials: this.getInitials(row.name),
+                rowClass: isConflict ? 'conflict-row' : '',
+                manualClass: `pill ${this.getPillClass(row.manualValue)} ${isConflict ? 'pill-diff' : ''}`,
+                discoveredClass: `pill ${this.getPillClass(row.discoveredValue)} ${isConflict ? 'pill-diff' : ''}`,
+                statusClass: isConflict ? 'status status-conflict' : 'status status-sync'
+            };
+        });
+
+        if (this.searchKey) {
+            const key = this.searchKey.toLowerCase();
+            data = data.filter(row =>
+                row.name.toLowerCase().includes(key) ||
+                row.environment.toLowerCase().includes(key) ||
+                row.manualValue.toLowerCase().includes(key) ||
+                row.discoveredValue.toLowerCase().includes(key)
+            );
+        }
+
+        if (this.statusFilter !== 'All') {
+            data = data.filter(row => row.status === this.statusFilter);
+        }
+
+        return data;
+    }
+
+    handleSearch(event) {
+        this.searchKey = event.target.value;
+    }
+
+    handleStatusChange(event) {
+        this.statusFilter = event.detail.value;
+    }
+
+    handleAccept(event) {
+        const rowId = event.target.dataset.id;
+
+        this.rows = this.rows.map(row => {
+            if (row.id === rowId) {
+                return {
+                    ...row,
+                    manualValue: row.discoveredValue
+                };
+            }
+            return row;
+        });
+    }
+
+    getInitials(name) {
+        return name
+            .split(' ')
+            .filter(word => word.length > 0)
+            .slice(0, 2)
+            .map(word => word[0])
+            .join('')
+            .toUpperCase();
+    }
+
+    getPillClass(value) {
+        const cleanValue = value.toLowerCase().replaceAll(' ', '-');
+
+        switch (cleanValue) {
+            case 'preferred':
+                return 'pill-preferred';
+            case 'acceptable':
+                return 'pill-acceptable';
+            case 'restricted':
+                return 'pill-restricted';
+            case 'deprecated':
+                return 'pill-deprecated';
+            case 'denied':
+                return 'pill-denied';
+            default:
+                return 'pill-unknown';
+        }
+    }
+}
+
+
+:host {
+    --paam-primary: #003b5c;
+    --paam-primary-dark: #002855;
+    --paam-gold: #c2a77e;
+    --paam-border: #d9e0e6;
+    --paam-text: #0d2436;
+    --paam-muted: #5b6b78;
+    --paam-danger: #b3261e;
+    --paam-success: #1f7a4d;
+}
+
+.paam-page {
+    padding: 1.5rem;
+    background:
+        radial-gradient(800px 400px at 0% -10%, #d6e2eb 0%, transparent 60%),
+        radial-gradient(700px 400px at 100% 0%, #efe6d2 0%, transparent 55%),
+        linear-gradient(180deg, #eef3f7 0%, #f7f3ea 100%);
+    min-height: 100%;
+}
+
+.paam-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--paam-primary-dark), var(--paam-primary), #0a4d72);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 14px 32px -16px rgba(0, 40, 85, 0.55);
+    overflow: hidden;
+}
+
+.paam-hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--paam-gold);
+}
+
+.paam-eyebrow {
+    display: inline-flex;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    color: var(--paam-gold);
+    border: 1px solid rgba(194, 167, 126, 0.5);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+
+.paam-hero h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.paam-hero h1 span {
+    color: var(--paam-gold);
+}
+
+.paam-hero p {
+    margin-top: 0.35rem;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.paam-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.paam-stat {
+    background: white;
+    border: 1px solid var(--paam-border);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 10px 30px -12px rgba(0, 40, 85, 0.22);
+    position: relative;
+    overflow: hidden;
+}
+
+.paam-stat .accent {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+}
+
+.paam-stat.total .accent {
+    background: var(--paam-primary);
+}
+
+.paam-stat.conflict .accent {
+    background: var(--paam-danger);
+}
+
+.paam-stat.sync .accent {
+    background: var(--paam-success);
+}
+
+.label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--paam-muted);
+}
+
+.value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+}
+
+.hint {
+    font-size: 0.78rem;
+    color: var(--paam-muted);
+}
+
+.conflict .value {
+    color: var(--paam-danger);
+}
+
+.sync .value {
+    color: var(--paam-success);
+}
+
+.paam-card {
+    background: white;
+    border: 1px solid var(--paam-border);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -12px rgba(0, 40, 85, 0.22);
+    overflow: hidden;
+}
+
+.paam-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--paam-border);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: linear-gradient(180deg, #f6f8fa 0%, #ffffff 100%);
+}
+
+.paam-card-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.paam-card-header p {
+    font-size: 0.82rem;
+    color: var(--paam-muted);
+    margin: 0.1rem 0 0;
+}
+
+.toolbar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.paam-table thead th {
+    background: #f8fafc;
+    color: var(--paam-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--paam-border);
+}
+
+.paam-table tbody tr:hover {
+    background-color: #f4f7fa;
+}
+
+.conflict-row {
+    background-color: rgba(220, 38, 38, 0.04);
+}
+
+.app-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--paam-primary), var(--paam-primary-dark));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.app-name {
+    font-weight: 600;
+    color: var(--paam-text);
+}
+
+.app-meta {
+    font-size: 0.72rem;
+    color: var(--paam-muted);
+}
+
+.pill {
+    display: inline-flex;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.pill-preferred {
+    background: #e6f4ea;
+    color: #1f7a3a;
+    border-color: #b7dcc3;
+}
+
+.pill-acceptable {
+    background: #e5edf3;
+    color: var(--paam-primary);
+    border-color: #b8c8d6;
+}
+
+.pill-restricted {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f3d98a;
+}
+
+.pill-deprecated {
+    background: #ffedd5;
+    color: #c2410c;
+    border-color: #f5c79a;
+}
+
+.pill-denied {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #f5b5b5;
+}
+
+.pill-unknown {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+.pill-diff {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.diff-arrow {
+    color: var(--paam-danger);
+    font-weight: 700;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.status-sync {
+    background: #e6f2ec;
+    color: var(--paam-success);
+}
+
+.status-conflict {
+    background: #fbeae8;
+    color: var(--paam-danger);
+}
+
+.action-col {
+    text-align: right;
+}
+
+.no-action {
+    color: var(--paam-muted);
+}
+
+.paam-card-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--paam-border);
+    font-size: 0.82rem;
+    color: var(--paam-muted);
+    background: #f6f8fa;
+}
