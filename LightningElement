@@ -1,6 +1,8 @@
-Verify whether record counts can be enabled for the Standards left navigation options, similar to how counts are currently displayed for Waivers.
+Build a POC for PAAM using Lightning Web Components and Salesforce Lightning Design System. The POC should demonstrate the basic UI structure, reusable LWC components, SLDS styling, and key screen layout needed for the PAAM functionality. This will help validate the approach before moving forward with full development.
 
+Acceptance Criteria:
 
-
-Analyze the current Waivers left navigation count functionality and confirm if the same approach can be applied to Standards.
-Identify the required configuration/code changes needed to display record counts for Standards.
+Create a new LWC component for the PAAM POC.
+UI should follow Salesforce Lightning Design System standards.
+Page should include the basic PAAM layout and required sections.
+Component should be responsive and display properly in Salesforce Lightning.
