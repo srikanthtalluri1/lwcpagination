@@ -1,46 +1,1091 @@
-public with sharing class POCUI {
-    @AuraEnabled(cacheable=true)
-    public static List<PaamRowWrapper> getStackLayJunction() {
-        List<PaamRowWrapper> rows = new List<PaamRowWrapper>();
+ @AuraEnabled(cacheable=true)
+public static PaamPageResult getStackLayJunction(
+    Integer pageSize,
+    Datetime lastCreatedDate,
+    Id lastRecordId
+) {
+    Integer safeLimit = pageSize == null
+        ? 50
+        : Math.min(Math.max(pageSize, 1), 200);
 
-        // Replace object and field API names based on your org
-        for (TPM_Stack_Layer_Junction__c rec : [
+    Integer queryLimit = safeLimit + 1;
+
+    Integer totalRecordCount = [
+        SELECT COUNT()
+        FROM TPM_Stack_Layer_Junction__c
+    ];
+
+    List<TPM_Stack_Layer_Junction__c> queriedRecords;
+
+    if (lastCreatedDate == null || lastRecordId == null) {
+        queriedRecords = [
             SELECT Id,
-                 Stack_Layer_Status__c,Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name, Stack_Layer_Config__r.Name,TPM_App_Stack__r.App__r.Operational_Status__c  
+                   CreatedDate,
+                   Stack_Layer_Status__c,
+                   Stack_Layer_Config__r.Name,
+                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name,
+                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Operational_Status__c
             FROM TPM_Stack_Layer_Junction__c
-            LIMIT 5000
-        ]) {
-            PaamRowWrapper row = new PaamRowWrapper();
-            row.Id = rec.Id;
-            row.appName = rec.Stack_Layer_Config__r.TPM_App_Stack__r.App__r != null ? rec.Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name : '';
-            row.operationalStatus = rec.TPM_App_Stack__r.App__r  != null ? rec.TPM_App_Stack__r.App__r.Operational_Status__c  : '';
-            //row.attribute = rec.PAAM_Attribute__c;
+            ORDER BY CreatedDate DESC, Id DESC
+            LIMIT :queryLimit
+        ];
+    } else {
+        queriedRecords = [
+            SELECT Id,
+                   CreatedDate,
+                   Stack_Layer_Status__c,
+                   Stack_Layer_Config__r.Name,
+                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name,
+                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Operational_Status__c
+            FROM TPM_Stack_Layer_Junction__c
+            WHERE CreatedDate < :lastCreatedDate
+               OR (
+                   CreatedDate = :lastCreatedDate
+                   AND Id < :lastRecordId
+               )
+            ORDER BY CreatedDate DESC, Id DESC
+            LIMIT :queryLimit
+        ];
+    }
 
-            row.paamManual = rec.Stack_Layer_Config__r != null ? rec.Stack_Layer_Config__r.Name : '';
-           // row.manualStatus = rec.PAAM_Manual__r != null ? rec.PAAM_Manual__r.Stack_Layer_Status__c : '';
+    Boolean hasMore = queriedRecords.size() > safeLimit;
 
-           // row.paamDiscovered = rec.PAAM_Discovered__r != null ? rec.PAAM_Discovered__r.Name : '';
-           // row.discoveredStatus = rec.PAAM_Discovered__r != null ? rec.PAAM_Discovered__r.Stack_Layer_Status__c : '';
+    List<TPM_Stack_Layer_Junction__c> pageRecords =
+        new List<TPM_Stack_Layer_Junction__c>();
 
-            //row.isMine = rec.Is_Mine__c;
-            //row.isPrimary = rec.Is_Primary__c;
+    Integer recordsToReturn = Math.min(
+        safeLimit,
+        queriedRecords.size()
+    );
 
-            rows.add(row);
+    for (Integer index = 0; index < recordsToReturn; index++) {
+        pageRecords.add(queriedRecords[index]);
+    }
+
+    List<PaamRowWrapper> rows = new List<PaamRowWrapper>();
+
+    for (TPM_Stack_Layer_Junction__c rec : pageRecords) {
+        PaamRowWrapper row = new PaamRowWrapper();
+
+        row.Id = rec.Id;
+        row.createdDate = rec.CreatedDate;
+        row.manualStatus = rec.Stack_Layer_Status__c;
+
+        if (rec.Stack_Layer_Config__r != null) {
+            row.paamManual = rec.Stack_Layer_Config__r.Name;
+
+            if (
+                rec.Stack_Layer_Config__r.TPM_App_Stack__r != null &&
+                rec.Stack_Layer_Config__r.TPM_App_Stack__r.App__r != null
+            ) {
+                row.appName =
+                    rec.Stack_Layer_Config__r
+                        .TPM_App_Stack__r
+                        .App__r
+                        .Name;
+
+                row.operationalStatus =
+                    rec.Stack_Layer_Config__r
+                        .TPM_App_Stack__r
+                        .App__r
+                        .Operational_Status__c;
+            }
         }
 
-        return rows;
+        row.appName = row.appName == null ? '' : row.appName;
+
+        row.operationalStatus =
+            row.operationalStatus == null
+                ? ''
+                : row.operationalStatus;
+
+        row.paamManual =
+            row.paamManual == null
+                ? ''
+                : row.paamManual;
+
+        row.paamDiscovered =
+            row.paamDiscovered == null
+                ? ''
+                : row.paamDiscovered;
+
+        row.manualStatus =
+            row.manualStatus == null
+                ? ''
+                : row.manualStatus;
+
+        row.discoveredStatus =
+            row.discoveredStatus == null
+                ? ''
+                : row.discoveredStatus;
+
+        rows.add(row);
     }
 
-    public class PaamRowWrapper {
-        @AuraEnabled public Id Id;
-        @AuraEnabled public String appName;
-        @AuraEnabled public String operationalStatus;
-        @AuraEnabled public String attribute;
-        @AuraEnabled public String paamManual;
-        @AuraEnabled public String paamDiscovered;
-        @AuraEnabled public String manualStatus;
-        @AuraEnabled public String discoveredStatus;
-        @AuraEnabled public Boolean isMine;
-        @AuraEnabled public Boolean isPrimary;
+    PaamPageResult result = new PaamPageResult();
+
+    result.rows = rows;
+    result.hasMore = hasMore;
+    result.totalRecords = totalRecordCount;
+
+    if (!pageRecords.isEmpty()) {
+        TPM_Stack_Layer_Junction__c finalRecord =
+            pageRecords[pageRecords.size() - 1];
+
+        result.lastCreatedDate = finalRecord.CreatedDate;
+        result.lastRecordId = finalRecord.Id;
     }
+
+    return result;
+}
+
+    public class PaamPageResult {
+    @AuraEnabled public List<PaamRowWrapper> rows;
+    @AuraEnabled public Boolean hasMore;
+    @AuraEnabled public Integer totalRecords;
+    @AuraEnabled public Datetime lastCreatedDate;
+    @AuraEnabled public Id lastRecordId;
+}
+
+    public class PaamRowWrapper {
+    @AuraEnabled public Id Id;
+    @AuraEnabled public Datetime createdDate;
+    @AuraEnabled public String appName;
+    @AuraEnabled public String operationalStatus;
+    @AuraEnabled public String paamManual;
+    @AuraEnabled public String paamDiscovered;
+    @AuraEnabled public String manualStatus;
+    @AuraEnabled public String discoveredStatus;
+    @AuraEnabled public Boolean isMine;
+    @AuraEnabled public Boolean isPrimary;
+}
+
+
+
+<template>
+  <div class="paam-page">
+    <!-- Hero -->
+    <div class="paam-hero">
+      <div>
+        <span class="paam-eyebrow">USAA · Application Insights</span>
+        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
+        <p>
+          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="paam-stats">
+      <div class="paam-stat paam-stat--total">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Total Apps</div>
+        <div class="paam-stat__value">{totalAppsDisplay}</div>
+        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
+      </div>
+
+      <div class="paam-stat paam-stat--sync">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">In Sync</div>
+        <div class="paam-stat__value">{totalSyncDisplay}</div>
+        <div class="paam-stat__hint">Manual matches discovered</div>
+      </div>
+
+      <div class="paam-stat paam-stat--conflict">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Conflicts</div>
+        <div class="paam-stat__value">{totalConflictsDisplay}</div>
+        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="paam-card">
+      <div class="paam-card__header">
+        <div>
+          <h3 class="paam-card__title">Application PAAM Records</h3>
+          <p class="paam-card__subtitle">
+            Showing {filteredCountDisplay} of {totalRecordsDisplay} records
+          </p>
+        </div>
+
+        <div class="paam-toolbar">
+          <!-- Search -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-search-input">Search</label>
+            <div class="paam-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="paam-search-input"
+                type="search"
+                placeholder="Search app, status or PAAM…"
+                value={query}
+                oninput={handleSearch}
+              />
+            </div>
+          </div>
+
+          <!-- Ownership -->
+          <div class="paam-field">
+            <span class="paam-field__label">Ownership</span>
+            <div class="paam-segmented" role="tablist" aria-label="Ownership">
+              <button
+                type="button"
+                class={primaryScopeClass}
+                data-scope="primary"
+                onclick={handleScopeChange}
+                title="Apps where you are the primary owner">
+                My Primary Apps
+              </button>
+              <button
+                type="button"
+                class={mineScopeClass}
+                data-scope="mine"
+                onclick={handleScopeChange}
+                title="All apps you own or co-own">
+                My All Apps
+              </button>
+              <button
+                type="button"
+                class={allScopeClass}
+                data-scope="all"
+                onclick={handleScopeChange}>
+                All Apps
+              </button>
+            </div>
+          </div>
+
+          <!-- Sync Status -->
+          <div class="paam-field">
+            <span class="paam-field__label">Sync Status</span>
+            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
+              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
+                Conflicts
+              </button>
+              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
+                All
+              </button>
+              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
+                In Sync
+              </button>
+            </div>
+          </div>
+
+          <!-- Stack Layer Status -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
+            <select
+              id="paam-status-select"
+              class="paam-select"
+              value={statusFilter}
+              onchange={handleStatusFilterChange}
+              aria-label="Filter by Stack Layer Status"
+              title="Filter by Stack Layer Status">
+              <option value="all">All Statuses</option>
+              <template for:each={stackStatusOptions} for:item="opt">
+                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="paam-table-wrap slds-scope">
+        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" data-field="appName" onclick={handleSort}>
+                  Application <span>{appSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="status" onclick={handleSort}>
+                  Operational Status <span>{statusSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamManual" onclick={handleSort}>
+                  PAAM Manual <span>{manualSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
+                  PAAM Discovered <span>{discoveredSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">Sync Status</th>
+              <template if:true={isPrimaryScope}>
+                <th scope="col" class="paam-action-heading">Action</th>
+              </template>
+            </tr>
+          </thead>
+
+          <tbody>
+            <template if:true={hasPageRows}>
+              <template for:each={pageRows} for:item="row">
+                <tr key={row.id} class={row.rowClass}>
+                  <th scope="row">
+                    <div class="paam-app-cell">
+                      <span class="paam-app-name">{row.appName}</span>
+                    </div>
+                  </th>
+
+                  <td>
+                    <span class="paam-attr">{row.status}</span>
+                  </td>
+
+                  <td class="paam-cell--manual">
+                    <span class="paam-diff-cell">
+                      <span class={row.manualPillClass} title={row.manualTitle}>
+                        <span class="paam-pill__label">{row.paamManual}</span>
+                      </span>
+
+                      <template if:true={row.isConflict}>
+                        <span class="paam-diff-arrow" title={row.diffTitle}>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                               stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="13 6 19 12 13 18"></polyline>
+                          </svg>
+                        </span>
+                      </template>
+                    </span>
+
+                    <template if:true={row.wasOverridden}>
+                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                             stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Accepted
+                      </div>
+                    </template>
+                  </td>
+
+                  <td class="paam-cell--discovered">
+                    <span class="paam-diff-cell">
+                      <span class={row.discoveredPillClass} title={row.discoveredTitle}>
+                        <span class="paam-pill__label">{row.paamDiscovered}</span>
+                      </span>
+                    </span>
+                  </td>
+
+                  <td>
+                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
+                  </td>
+
+                  <template if:true={isPrimaryScope}>
+                    <td class="paam-action-cell">
+                      <template if:true={row.isConflict}>
+                        <button
+                          type="button"
+                          class="paam-btn paam-btn--accept"
+                          data-id={row.id}
+                          onclick={handleAccept}
+                          title={row.acceptTitle}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                               aria-hidden="true">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Accept
+                        </button>
+                      </template>
+
+                      <template if:false={row.isConflict}>
+                        <template if:true={row.wasOverridden}>
+                          <div class="paam-action-stack">
+                            <span class="paam-accepted-tag">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                   aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                              Accepted
+                            </span>
+                            <button
+                              type="button"
+                              class="paam-action-undo"
+                              data-id={row.id}
+                              onclick={handleUndo}>
+                              Undo
+                            </button>
+                          </div>
+                        </template>
+
+                        <template if:false={row.wasOverridden}>
+                          <span class="paam-action-empty" aria-hidden="true">—</span>
+                        </template>
+                      </template>
+                    </td>
+                  </template>
+                </tr>
+              </template>
+            </template>
+
+            <template if:false={hasPageRows}>
+              <tr>
+                <td colspan={emptyColspan} class="paam-empty">
+                  <div class="paam-empty__icon">∅</div>
+                  <div>No records match your filters.</div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Pagination -->
+      <div class="paam-card__footer">
+        <span>{footerRangeLabel}</span>
+
+        <span class="paam-pager">
+          <label class="paam-page-size-label">
+            Rows:
+            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+
+          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
+          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
+          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
+          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
+          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <template if:true={toastMessage}>
+      <div class="paam-toast-region" role="status" aria-live="polite">
+        <div class={toastClass}>
+          <span>{toastMessage}</span>
+          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+
+
+const STACK_LAYERS = [
+  { n: 'Snowflake', s: 'Preferred' },
+  { n: 'NA', s: 'Not Applicable' },
+  { n: 'Apache Airflow within Domino', s: 'Acceptable' },
+  { n: 'Other Application Bundled Schedulers without ITGC', s: 'Acceptable' },
+  { n: 'BMC Control-M', s: 'Preferred' },
+  { n: 'Native OS Schedulers on Unix, Linux, or Win platforms', s: 'Acceptable' },
+  { n: 'IBM Integrated Analytics System (IIAS)', s: 'Restricted' },
+  { n: 'AWS DynamoDB', s: 'Preferred' },
+  { n: 'AWS RDS Postgresql', s: 'Acceptable' },
+  { n: 'Public Cloud - FaaS', s: 'Preferred' },
+  { n: 'Public Cloud - Container', s: 'Preferred' },
+  { n: 'Oracle WebLogic v12c', s: 'Deprecated' },
+  { n: 'Apache Tomcat 8.0.x', s: 'Denied' },
+  { n: 'JBoss EAP - 5.x', s: 'Denied' },
+  { n: 'gRPC', s: 'Preferred' },
+  { n: 'GraphQL', s: 'Preferred' },
+  { n: 'SOAP 1.2', s: 'Acceptable' }
+];
+
+const APPLICATIONS = [
+  { n: 'Bugcrowd Bug Bounty Platform', s: 'Production' },
+  { n: 'eCommerce Deposits - Stop Check Payment', s: 'Production' },
+  { n: 'Intezer Analyze', s: 'Production' },
+  { n: 'Contact Center recording - APIs', s: 'Production' },
+  { n: 'Personal Lines Quotes Aggregator', s: 'Production' },
+  { n: 'IBM Personal Communications', s: 'Production' },
+  { n: 'Credit Card Capture Income', s: 'Production' },
+  { n: 'Credit Card Storefront', s: 'Production' },
+  { n: 'Cobalt Strike Adversary Simulation Software', s: 'Production' },
+  { n: 'USAA Labs Reporting and Analytics Environment', s: 'Production' },
+  { n: 'Consumer Lending Pricing', s: 'Production' },
+  { n: 'File Transfer Activity Manager', s: 'Production' },
+  { n: 'ServiceNow - Regulatory Change Management', s: 'Production' },
+  { n: 'API Authorizer for AWS', s: 'Production' },
+  { n: 'Risk Board of Directors Automation', s: 'Production' },
+  { n: 'Cloud Reference Apps (AWS and GCP)', s: 'Production' },
+  { n: 'Mobile App Review Analysis Tool - AppBot', s: 'Production' },
+  { n: 'Salesforce - Enterprise Licensing Consolidation', s: 'Production' },
+  { n: 'Salesforce Dataloader', s: 'Production' },
+  { n: 'Copado', s: 'Production' },
+  { n: 'Visual Studio Code', s: 'Production' },
+  { n: 'ServiceNow - Change Management', s: 'Production' },
+  { n: 'Slack', s: 'Production' },
+  { n: 'Enterprise Architecture Standards', s: 'In Development' },
+  { n: 'Pathfinder', s: 'In Development' },
+  { n: 'Claims Contact Analytics', s: 'Sunsetting' },
+  { n: 'Bank Offers', s: 'Sunsetting' }
+];
+
+const PAAM_ATTRIBUTES = ['Confidentiality', 'Integrity', 'Availability', 'Data Classification'];
+const STACK_STATUS_OPTIONS = [
+  { label: 'Preferred', slug: 'preferred' },
+  { label: 'Acceptable', slug: 'acceptable' },
+  { label: 'Under Consideration', slug: 'under-consideration' },
+  { label: 'Restricted', slug: 'restricted' },
+  { label: 'Deprecated', slug: 'deprecated' },
+  { label: 'Denied', slug: 'denied' },
+  { label: 'Not Applicable', slug: 'not-applicable' }
+];
+
+function hash(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+}
+
+function statusSlug(status) {
+  return (status || 'unknown')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'unknown';
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+const PAAM_VALUES = STACK_LAYERS.map((s) => s.n);
+const STACK_STATUS = new Map(STACK_LAYERS.map((s) => [s.n, s.s || 'Unknown']));
+
+function paamFor(seed) {
+  return PAAM_VALUES[hash(seed) % PAAM_VALUES.length];
+}
+
+function buildRecords(apps) {
+  const out = [];
+  let idCounter = 1;
+
+  apps.forEach((app) => {
+    const appName = app.n || 'Unknown';
+    const status = app.s || 'Unknown';
+
+    const ownerBucket = hash('owner::' + appName) % 100;
+    const isMine = ownerBucket < 40;        // sample UI: more visible rows
+    const isPrimary = isMine && (hash('primary::' + appName) % 2 === 0);
+
+    PAAM_ATTRIBUTES.forEach((attr) => {
+      const manual = paamFor('manual::' + appName + '::' + attr);
+      const conflictBucket = hash('conflict::' + appName + '::' + attr) % 10;
+      let discovered = manual;
+
+      if (conflictBucket < 3) {
+        const other = PAAM_VALUES.filter((v) => v !== manual);
+        discovered = other[conflictBucket % other.length];
+      }
+
+      out.push({
+        id: String(idCounter++),
+        appName,
+        status,
+        attribute: attr,
+        paamManual: manual,
+        paamDiscovered: discovered,
+        isMine,
+        isPrimary
+      });
+    });
+  });
+
+  return out;
+}
+
+export default class PaamConflicts extends LightningElement {
+  //@track rows = buildRecords(APPLICATIONS);
+  @track overrides = {};
+  @track rows = [];
+  @track isLoading = false;
+  @track errorMessage = '';
+  //pageSize = 50;
+  lastCreatedDate = null;
+  lastRecordId = null;
+  hasMore = true;
+  totalRecordCount = 0;
+  page = 1;
+  query = '';
+  view = 'conflicts';        // conflicts | all | sync
+  scope = 'primary';         // primary | mine | all
+  statusFilter = 'all';
+  sortField = 'appName';
+  sortDir = 'asc';
+  page = 1;
+  pageSize ='50';
+
+  toastMessage = '';
+  toastKind = 'success';
+
+  stackStatusOptions = STACK_STATUS_OPTIONS;
+  connectedCallback() {
+    this.loadRecords();
+}
+  renderedCallback() {
+    const pageSizeSelect = this.template.querySelector('.paam-page-size');
+
+    if (pageSizeSelect && pageSizeSelect.value !== String(this.pageSize)) {
+        pageSizeSelect.value = String(this.pageSize);
+    }
+  }
+
+   loadRecords(isNextPage = false) {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    getStackLayJunction({
+        pageSize: Number(this.pageSize),
+        lastCreatedDate: this.lastCreatedDate,
+        lastRecordId: this.lastRecordId
+    })
+        .then((result) => {
+            const returnedRows = result?.rows || [];
+
+            this.rows = returnedRows.map((row) => ({
+                ...row,
+                id: row.Id,
+                appName: row.appName || '',
+                status: row.operationalStatus || '',
+                paamManual: row.paamManual || '',
+                paamDiscovered: row.paamDiscovered || '',
+                manualStatus: row.manualStatus || '',
+                discoveredStatus: row.discoveredStatus || ''
+            }));
+
+            this.hasMore = result?.hasMore === true;
+            this.totalRecordCount = result?.totalRecords || 0;
+
+            this.lastCreatedDate =
+                result?.lastCreatedDate || null;
+
+            this.lastRecordId =
+                result?.lastRecordId || null;
+
+            // Increase page only after Apex successfully returns data.
+            if (isNextPage && returnedRows.length > 0) {
+                this.page += 1;
+            }
+        })
+        .catch((error) => {
+            console.error('Error loading records:', error);
+
+            this.errorMessage =
+                error?.body?.message ||
+                error?.message ||
+                'Unable to load records.';
+        })
+        .finally(() => {
+            this.isLoading = false;
+        });
+}
+
+get disableNext() {
+    return this.isLoading || !this.hasMore;
+}
+  get isPrimaryScope() {
+    return this.scope === 'primary';
+  }
+
+  get primaryScopeClass() {
+    return this.scope === 'primary' ? 'is-active' : '';
+  }
+
+  get mineScopeClass() {
+    return this.scope === 'mine' ? 'is-active' : '';
+  }
+
+  get allScopeClass() {
+    return this.scope === 'all' ? 'is-active' : '';
+  }
+
+  get conflictsViewClass() {
+    return this.view === 'conflicts' ? 'is-active' : '';
+  }
+
+  get allViewClass() {
+    return this.view === 'all' ? 'is-active' : '';
+  }
+
+  get syncViewClass() {
+    return this.view === 'sync' ? 'is-active' : '';
+  }
+
+  get totalApps() {
+    return new Set(this.rows.map((r) => r.appName)).size;
+  }
+
+  get totalRecords() {
+    return this.rows.length;
+  }
+
+  get totalConflicts() {
+    return this.rows.filter((r) => r.paamManual !== r.paamDiscovered).length;
+  }
+
+  get totalSync() {
+    return this.totalRecords - this.totalConflicts;
+  }
+
+  get conflictPct() {
+    return this.totalRecords ? Math.round((this.totalConflicts / this.totalRecords) * 100) : 0;
+  }
+
+  get totalAppsDisplay() {
+    return formatNumber(this.totalApps);
+  }
+
+  get totalRecordsDisplay() {
+     return formatNumber(this.totalRecordCount);
+  }
+
+  get totalConflictsDisplay() {
+    return formatNumber(this.totalConflicts);
+  }
+
+  get totalSyncDisplay() {
+    return formatNumber(this.totalSync);
+  }
+
+  get filteredRowsRaw() {
+    let out = this.rows.map((r) => ({
+      ...r,
+      isConflict: r.paamManual !== r.paamDiscovered
+    }));
+
+    if (this.scope === 'mine') {
+      out = out.filter((r) => r.isMine);
+    } else if (this.scope === 'primary') {
+      out = out.filter((r) => r.isPrimary);
+    }
+
+    if (this.view === 'conflicts') {
+      out = out.filter((r) => r.isConflict);
+    } else if (this.view === 'sync') {
+      out = out.filter((r) => !r.isConflict);
+    }
+
+   /* if (this.statusFilter !== 'all') {
+      out = out.filter((r) => {
+        const manualStatus = statusSlug(STACK_STATUS.get(r.paamManual) || 'Unknown');
+        const discoveredStatus = statusSlug(STACK_STATUS.get(r.paamDiscovered) || 'Unknown');
+        return manualStatus === this.statusFilter || discoveredStatus === this.statusFilter;
+      });
+    } */
+    if (this.statusFilter !== 'all') {
+    out = out.filter((r) => {
+        const manualStatus = statusSlug(r.manualStatus || 'Unknown');
+        const discoveredStatus = statusSlug(r.discoveredStatus || 'Unknown');
+
+        return manualStatus === this.statusFilter || discoveredStatus === this.statusFilter;
+    });
+}
+
+    if (this.query.trim()) {
+      const q = this.query.trim().toLowerCase();
+      out = out.filter((r) =>
+        r.appName.toLowerCase().includes(q) ||
+        (r.status || '').toLowerCase().includes(q) ||
+        (r.attribute || '').toLowerCase().includes(q) ||
+        r.paamManual.toLowerCase().includes(q) ||
+        r.paamDiscovered.toLowerCase().includes(q)
+      );
+    }
+
+    out.sort((a, b) => {
+      if (a.appName !== b.appName && this.sortField !== 'appName') {
+        return a.appName.toLowerCase() < b.appName.toLowerCase() ? -1 : 1;
+      }
+
+      const va = String(a[this.sortField] ?? '').toLowerCase();
+      const vb = String(b[this.sortField] ?? '').toLowerCase();
+
+      if (va < vb) return this.sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return this.sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return out;
+  }
+
+  get filteredCountDisplay() {
+    return formatNumber(this.filteredRowsRaw.length);
+  }
+
+ /* get totalPages() {
+    return Math.max(
+        1,
+        Math.ceil(
+            this.totalRecordCount / Number(this.pageSize)
+        )
+    );
+  } */
+
+  get currentPage() {
+    return Math.min(this.page, this.totalPages);
+  }
+
+  get pageStart() {
+    return (this.currentPage - 1) * Number(this.pageSize);
+  }
+
+  get pageRows() {
+    return this.filteredRowsRaw.map((row) => {
+        const manualStatus = row.manualStatus || 'Unknown';
+        const discoveredStatus = row.discoveredStatus || 'Unknown';
+        const manualSlug = statusSlug(manualStatus);
+        const discoveredSlug = statusSlug(discoveredStatus);
+        const wasOverridden = this.overrides[row.id] !== undefined;
+
+        return {
+            ...row,
+            rowClass:
+                (row.isConflict ? 'paam-row-conflict ' : '') +
+                'paam-row-group-start',
+
+            manualPillClass:
+                `paam-pill paam-pill--${manualSlug} ` +
+                `${row.isConflict ? 'paam-pill--diff' : ''}`,
+
+            discoveredPillClass:
+                `paam-pill paam-pill--${discoveredSlug} ` +
+                `${row.isConflict ? 'paam-pill--diff' : ''}`,
+
+            manualTitle:
+                `${row.paamManual} — ${manualStatus}`,
+
+            discoveredTitle:
+                `${row.paamDiscovered} — ${discoveredStatus}`,
+
+            diffTitle:
+                `Will change to ${row.paamDiscovered}`,
+
+            syncStatusClass:
+                row.isConflict
+                    ? 'paam-status paam-status--conflict'
+                    : 'paam-status paam-status--sync',
+
+            syncStatusLabel:
+                row.isConflict
+                    ? 'Conflict'
+                    : 'In Sync',
+
+            acceptTitle:
+                `Replace PAAM Manual (${row.paamManual}) ` +
+                `with PAAM Discovered (${row.paamDiscovered})`,
+
+            wasOverridden
+        };
+    });
+}
+
+get totalPages() {
+    return Math.max(
+        1,
+        Math.ceil(
+            this.totalRecordCount / Number(this.pageSize)
+        )
+    );
+}
+
+get footerRangeLabel() {
+    if (this.totalRecordCount === 0) {
+        return 'Showing 0–0 of 0';
+    }
+
+    const start =
+        ((this.page - 1) * Number(this.pageSize)) + 1;
+
+    const end = Math.min(
+        start + this.rows.length - 1,
+        this.totalRecordCount
+    );
+
+    return `Showing ${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(this.totalRecordCount)}`;
+}
+
+  get hasPageRows() {
+    return this.pageRows.length > 0;
+  }
+
+  get emptyColspan() {
+    return this.isPrimaryScope ? 6 : 5;
+  }
+
+  get isFirstPage() {
+    return this.currentPage === 1;
+  }
+
+  get isLastPage() {
+    return this.currentPage === this.totalPages;
+  }
+
+ /* get footerRangeLabel() {
+    if (this.totalRecordCount === 0) {
+        return 'Showing 0–0 of 0';
+    }
+
+    const start =
+        ((this.page - 1) * Number(this.pageSize)) + 1;
+
+    const end = Math.min(
+        start + this.rows.length - 1,
+        this.totalRecordCount
+    );
+
+    return `Showing ${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(this.totalRecordCount)}`;
+} */
+
+  get appSortArrow() {
+    return this.getSortArrow('appName');
+  }
+
+  get statusSortArrow() {
+    return this.getSortArrow('status');
+  }
+
+  get manualSortArrow() {
+    return this.getSortArrow('paamManual');
+  }
+
+  get discoveredSortArrow() {
+    return this.getSortArrow('paamDiscovered');
+  }
+
+  get toastClass() {
+    return `paam-toast paam-toast--${this.toastKind}`;
+  }
+
+  getSortArrow(field) {
+    if (this.sortField !== field) return '↕';
+    return this.sortDir === 'asc' ? '↑' : '↓';
+  }
+
+  resetPage() {
+    this.page = 1;
+  }
+
+  handleSearch(event) {
+    this.query = event.target.value;
+    this.resetPage();
+  }
+
+  handleScopeChange(event) {
+    this.scope = event.currentTarget.dataset.scope;
+    this.resetPage();
+  }
+
+  handleViewChange(event) {
+    this.view = event.currentTarget.dataset.view;
+    this.resetPage();
+  }
+
+  handleStatusFilterChange(event) {
+    this.statusFilter = event.target.value;
+    this.resetPage();
+  }
+
+  handleSort(event) {
+    const field = event.currentTarget.dataset.field;
+
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir = 'asc';
+    }
+
+    this.resetPage();
+  }
+
+  handleAccept(event) {
+    const id = event.currentTarget.dataset.id;
+    const row = this.rows.find((r) => r.id === id);
+
+    if (!row || row.paamManual === row.paamDiscovered) return;
+
+    const originalManual = row.paamManual;
+
+    this.rows = this.rows.map((r) =>
+      r.id === id ? { ...r, paamManual: row.paamDiscovered } : r
+    );
+
+    this.overrides = {
+      ...this.overrides,
+      [id]: originalManual
+    };
+
+    this.showToast('success', `Accepted “${row.paamDiscovered}” for ${row.appName} · ${row.attribute}`);
+  }
+
+  handleUndo(event) {
+    const id = event.currentTarget.dataset.id;
+    const original = this.overrides[id];
+
+    if (original === undefined) return;
+
+    this.rows = this.rows.map((r) =>
+      r.id === id ? { ...r, paamManual: original } : r
+    );
+
+    const nextOverrides = { ...this.overrides };
+    delete nextOverrides[id];
+    this.overrides = nextOverrides;
+
+    this.showToast('success', `Reverted to “${original}”`);
+  }
+
+  handlePageSizeChange(event) {
+    this.pageSize = Number(event.target.value);
+    this.resetPage();
+  }
+
+  goFirst() {
+    this.page = 1;
+  }
+
+  goPrev() {
+    this.page = Math.max(1, this.page - 1);
+  }
+
+  goNext() {
+     if (this.isLoading || !this.hasMore) {
+        return;
+    }
+
+    this.page += 1;
+    this.loadRecords(true);
+  }
+
+  goLast() {
+    this.page = this.totalPages;
+  }
+
+  showToast(kind, message) {
+    this.toastKind = kind;
+    this.toastMessage = message;
+
+    window.clearTimeout(this.toastTimeout);
+    this.toastTimeout = window.setTimeout(() => {
+      this.toastMessage = '';
+    }, 3500);
+  }
+
+  dismissToast() {
+    this.toastMessage = '';
+  }
 }
