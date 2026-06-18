@@ -1,52 +1,97 @@
- @AuraEnabled(cacheable=true)
+/**
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ * Class Name      : POCUI
+ * Author          : <YourName>
+ * Created Date    : Jun 9, 2026
+ * Last Modified By: <YourName>
+ * Last Modified On: Jun 9, 2026
+ * Description     : This class implements for......
+ *  
+ * Change History  :
+ *  Date          │   Author     │   Change
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *  Jun 9, 2026  │ <YourName>   │ Initial version
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ */
+
+
+public with sharing class POCUI {
+
+   @AuraEnabled(cacheable=true)
 public static PaamPageResult getStackLayJunction(
     Integer pageSize,
     Datetime lastCreatedDate,
-    Id lastRecordId
+    Id lastRecordId,
+    String ownedBy
 ) {
     Integer safeLimit = pageSize == null
         ? 50
         : Math.min(Math.max(pageSize, 1), 200);
 
     Integer queryLimit = safeLimit + 1;
+    Id currentUserId = UserInfo.getUserId();
 
-    Integer totalRecordCount = [
-        SELECT COUNT()
-        FROM TPM_Stack_Layer_Junction__c
-    ];
+    String ownershipCondition = buildOwnershipCondition(ownedBy);
 
-    List<TPM_Stack_Layer_Junction__c> queriedRecords;
+    /*
+     * The count query must use the same ownership filter as the
+     * records query. Otherwise, totalRecords will show the count
+     * for all records.
+     */
+    String countQuery =
+        'SELECT COUNT() ' +
+        'FROM TPM_Stack_Layer_Junction__c';
 
-    if (lastCreatedDate == null || lastRecordId == null) {
-        queriedRecords = [
-            SELECT Id,
-                   CreatedDate,
-                   Stack_Layer_Status__c,
-                   Stack_Layer_Config__r.Name,
-                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name,
-                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Operational_Status__c
-            FROM TPM_Stack_Layer_Junction__c
-            ORDER BY CreatedDate DESC, Id DESC
-            LIMIT :queryLimit
-        ];
-    } else {
-        queriedRecords = [
-            SELECT Id,
-                   CreatedDate,
-                   Stack_Layer_Status__c,
-                   Stack_Layer_Config__r.Name,
-                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Name,
-                   Stack_Layer_Config__r.TPM_App_Stack__r.App__r.Operational_Status__c
-            FROM TPM_Stack_Layer_Junction__c
-            WHERE CreatedDate < :lastCreatedDate
-               OR (
-                   CreatedDate = :lastCreatedDate
-                   AND Id < :lastRecordId
-               )
-            ORDER BY CreatedDate DESC, Id DESC
-            LIMIT :queryLimit
-        ];
+    if (String.isNotBlank(ownershipCondition)) {
+        countQuery += ' WHERE ' + ownershipCondition;
     }
+
+    Integer totalRecordCount = Database.countQuery(countQuery);
+
+    String recordQuery =
+        'SELECT Id, ' +
+        'CreatedDate, ' +
+        'Stack_Layer_Status__c, ' +
+        'Stack_Layer_Config__r.Name, ' +
+        'TPM_App_Stack__r.App__r.Name, ' +
+        'TPM_App_Stack__r.App__r.Operational_Status__c ' +
+        'FROM TPM_Stack_Layer_Junction__c';
+
+    List<String> whereConditions = new List<String>();
+
+    if (String.isNotBlank(ownershipCondition)) {
+        whereConditions.add(ownershipCondition);
+    }
+
+    /*
+     * Keyset pagination condition.
+     * Keep the OR expression inside parentheses so that it works
+     * correctly when combined with the ownership condition.
+     */
+    if (lastCreatedDate != null && lastRecordId != null) {
+        whereConditions.add(
+            '(' +
+                'CreatedDate < :lastCreatedDate ' +
+                'OR (' +
+                    'CreatedDate = :lastCreatedDate ' +
+                    'AND Id < :lastRecordId' +
+                ')' +
+            ')'
+        );
+    }
+
+    if (!whereConditions.isEmpty()) {
+        recordQuery +=
+            ' WHERE ' +
+            String.join(whereConditions, ' AND ');
+    }
+
+    recordQuery +=
+        ' ORDER BY CreatedDate DESC, Id DESC' +
+        ' LIMIT :queryLimit';
+
+    List<TPM_Stack_Layer_Junction__c> queriedRecords =
+        Database.query(recordQuery);
 
     Boolean hasMore = queriedRecords.size() > safeLimit;
 
@@ -72,27 +117,27 @@ public static PaamPageResult getStackLayJunction(
         row.manualStatus = rec.Stack_Layer_Status__c;
 
         if (rec.Stack_Layer_Config__r != null) {
-            row.paamManual = rec.Stack_Layer_Config__r.Name;
-
-            if (
-                rec.Stack_Layer_Config__r.TPM_App_Stack__r != null &&
-                rec.Stack_Layer_Config__r.TPM_App_Stack__r.App__r != null
-            ) {
-                row.appName =
-                    rec.Stack_Layer_Config__r
-                        .TPM_App_Stack__r
-                        .App__r
-                        .Name;
-
-                row.operationalStatus =
-                    rec.Stack_Layer_Config__r
-                        .TPM_App_Stack__r
-                        .App__r
-                        .Operational_Status__c;
-            }
+            row.paamManual =
+                rec.Stack_Layer_Config__r.Name;
         }
 
-        row.appName = row.appName == null ? '' : row.appName;
+        if (
+            rec.TPM_App_Stack__r != null &&
+            rec.TPM_App_Stack__r.App__r != null
+        ) {
+            row.appName =
+                rec.TPM_App_Stack__r.App__r.Name;
+
+            row.operationalStatus =
+                rec.TPM_App_Stack__r
+                    .App__r
+                    .Operational_Status__c;
+        }
+
+        row.appName =
+            row.appName == null
+                ? ''
+                : row.appName;
 
         row.operationalStatus =
             row.operationalStatus == null
@@ -132,8 +177,11 @@ public static PaamPageResult getStackLayJunction(
         TPM_Stack_Layer_Junction__c finalRecord =
             pageRecords[pageRecords.size() - 1];
 
-        result.lastCreatedDate = finalRecord.CreatedDate;
-        result.lastRecordId = finalRecord.Id;
+        result.lastCreatedDate =
+            finalRecord.CreatedDate;
+
+        result.lastRecordId =
+            finalRecord.Id;
     }
 
     return result;
@@ -158,328 +206,66 @@ public static PaamPageResult getStackLayJunction(
     @AuraEnabled public String discoveredStatus;
     @AuraEnabled public Boolean isMine;
     @AuraEnabled public Boolean isPrimary;
+ }
+private static String buildOwnershipCondition(String ownedBy) {
+    /*
+     * All Apps should not have an ownership condition.
+     */
+    if (
+        String.isBlank(ownedBy) ||
+        'All'.equalsIgnoreCase(ownedBy)
+    ) {
+        return null;
+    }
+
+    List<String> ownedByFields;
+
+    if ('MyPrimary'.equalsIgnoreCase(ownedBy)) {
+        ownedByFields = new List<String>{
+            'IT_Architect__c',
+            'Application_Owner__c',
+            'Business_Owner__c'
+        };
+    } else if ('MyAll'.equalsIgnoreCase(ownedBy)) {
+        ownedByFields = new List<String>{
+            'IT_Architect__c',
+            'IT_Architect_Delegate_1__c',
+            'IT_Architect_Delegate_2__c',
+            'Application_Owner__c',
+            'Application_Owner_Delegate_1__c',
+            'Application_Owner_Delegate_2__c',
+            'Application_Owner_Delegate_3__c',
+            'Application_Owner_Delegate_4__c',
+            'Business_Owner__c',
+            'Business_Owner_Delegate_1__c',
+            'Business_Owner_Delegate_2__c',
+            'Business_Owner_Delegate_3__c'
+        };
+    } else {
+        return null;
+    }
+
+    List<String> ownershipConditions = new List<String>();
+
+    for (String fieldName : ownedByFields) {
+        ownershipConditions.add(
+            'TPM_App_Stack__r.App__r.' +
+            fieldName +
+            ' = :currentUserId'
+        );
+    }
+
+    return
+        '(' +
+        String.join(ownershipConditions, ' OR ') +
+        ')';
+}
 }
 
 
 
-<template>
-  <div class="paam-page">
-    <!-- Hero -->
-    <div class="paam-hero">
-      <div>
-        <span class="paam-eyebrow">USAA · Application Insights</span>
-        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
-        <p>
-          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
-        </p>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="paam-stats">
-      <div class="paam-stat paam-stat--total">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Total Apps</div>
-        <div class="paam-stat__value">{totalAppsDisplay}</div>
-        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
-      </div>
-
-      <div class="paam-stat paam-stat--sync">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">In Sync</div>
-        <div class="paam-stat__value">{totalSyncDisplay}</div>
-        <div class="paam-stat__hint">Manual matches discovered</div>
-      </div>
-
-      <div class="paam-stat paam-stat--conflict">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Conflicts</div>
-        <div class="paam-stat__value">{totalConflictsDisplay}</div>
-        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
-      </div>
-    </div>
-
-    <!-- Main Card -->
-    <div class="paam-card">
-      <div class="paam-card__header">
-        <div>
-          <h3 class="paam-card__title">Application PAAM Records</h3>
-          <p class="paam-card__subtitle">
-            Showing {filteredCountDisplay} of {totalRecordsDisplay} records
-          </p>
-        </div>
-
-        <div class="paam-toolbar">
-          <!-- Search -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-search-input">Search</label>
-            <div class="paam-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                id="paam-search-input"
-                type="search"
-                placeholder="Search app, status or PAAM…"
-                value={query}
-                oninput={handleSearch}
-              />
-            </div>
-          </div>
-
-          <!-- Ownership -->
-          <div class="paam-field">
-            <span class="paam-field__label">Ownership</span>
-            <div class="paam-segmented" role="tablist" aria-label="Ownership">
-              <button
-                type="button"
-                class={primaryScopeClass}
-                data-scope="primary"
-                onclick={handleScopeChange}
-                title="Apps where you are the primary owner">
-                My Primary Apps
-              </button>
-              <button
-                type="button"
-                class={mineScopeClass}
-                data-scope="mine"
-                onclick={handleScopeChange}
-                title="All apps you own or co-own">
-                My All Apps
-              </button>
-              <button
-                type="button"
-                class={allScopeClass}
-                data-scope="all"
-                onclick={handleScopeChange}>
-                All Apps
-              </button>
-            </div>
-          </div>
-
-          <!-- Sync Status -->
-          <div class="paam-field">
-            <span class="paam-field__label">Sync Status</span>
-            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
-              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
-                Conflicts
-              </button>
-              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
-                All
-              </button>
-              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
-                In Sync
-              </button>
-            </div>
-          </div>
-
-          <!-- Stack Layer Status -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
-            <select
-              id="paam-status-select"
-              class="paam-select"
-              value={statusFilter}
-              onchange={handleStatusFilterChange}
-              aria-label="Filter by Stack Layer Status"
-              title="Filter by Stack Layer Status">
-              <option value="all">All Statuses</option>
-              <template for:each={stackStatusOptions} for:item="opt">
-                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
-              </template>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="paam-table-wrap slds-scope">
-        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
-          <thead>
-            <tr>
-              <th scope="col">
-                <button type="button" data-field="appName" onclick={handleSort}>
-                  Application <span>{appSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="status" onclick={handleSort}>
-                  Operational Status <span>{statusSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamManual" onclick={handleSort}>
-                  PAAM Manual <span>{manualSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
-                  PAAM Discovered <span>{discoveredSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">Sync Status</th>
-              <template if:true={isPrimaryScope}>
-                <th scope="col" class="paam-action-heading">Action</th>
-              </template>
-            </tr>
-          </thead>
-
-          <tbody>
-            <template if:true={hasPageRows}>
-              <template for:each={pageRows} for:item="row">
-                <tr key={row.id} class={row.rowClass}>
-                  <th scope="row">
-                    <div class="paam-app-cell">
-                      <span class="paam-app-name">{row.appName}</span>
-                    </div>
-                  </th>
-
-                  <td>
-                    <span class="paam-attr">{row.status}</span>
-                  </td>
-
-                  <td class="paam-cell--manual">
-                    <span class="paam-diff-cell">
-                      <span class={row.manualPillClass} title={row.manualTitle}>
-                        <span class="paam-pill__label">{row.paamManual}</span>
-                      </span>
-
-                      <template if:true={row.isConflict}>
-                        <span class="paam-diff-arrow" title={row.diffTitle}>
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                               stroke-linejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="13 6 19 12 13 18"></polyline>
-                          </svg>
-                        </span>
-                      </template>
-                    </span>
-
-                    <template if:true={row.wasOverridden}>
-                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
-                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                             stroke-linejoin="round" aria-hidden="true">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Accepted
-                      </div>
-                    </template>
-                  </td>
-
-                  <td class="paam-cell--discovered">
-                    <span class="paam-diff-cell">
-                      <span class={row.discoveredPillClass} title={row.discoveredTitle}>
-                        <span class="paam-pill__label">{row.paamDiscovered}</span>
-                      </span>
-                    </span>
-                  </td>
-
-                  <td>
-                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
-                  </td>
-
-                  <template if:true={isPrimaryScope}>
-                    <td class="paam-action-cell">
-                      <template if:true={row.isConflict}>
-                        <button
-                          type="button"
-                          class="paam-btn paam-btn--accept"
-                          data-id={row.id}
-                          onclick={handleAccept}
-                          title={row.acceptTitle}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                               aria-hidden="true">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          Accept
-                        </button>
-                      </template>
-
-                      <template if:false={row.isConflict}>
-                        <template if:true={row.wasOverridden}>
-                          <div class="paam-action-stack">
-                            <span class="paam-accepted-tag">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                   aria-hidden="true">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                              Accepted
-                            </span>
-                            <button
-                              type="button"
-                              class="paam-action-undo"
-                              data-id={row.id}
-                              onclick={handleUndo}>
-                              Undo
-                            </button>
-                          </div>
-                        </template>
-
-                        <template if:false={row.wasOverridden}>
-                          <span class="paam-action-empty" aria-hidden="true">—</span>
-                        </template>
-                      </template>
-                    </td>
-                  </template>
-                </tr>
-              </template>
-            </template>
-
-            <template if:false={hasPageRows}>
-              <tr>
-                <td colspan={emptyColspan} class="paam-empty">
-                  <div class="paam-empty__icon">∅</div>
-                  <div>No records match your filters.</div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Footer / Pagination -->
-      <div class="paam-card__footer">
-        <span>{footerRangeLabel}</span>
-
-        <span class="paam-pager">
-          <label class="paam-page-size-label">
-            Rows:
-            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-
-          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
-          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
-          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
-          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
-          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
-        </span>
-      </div>
-    </div>
-
-    <!-- Toast -->
-    <template if:true={toastMessage}>
-      <div class="paam-toast-region" role="status" aria-live="polite">
-        <div class={toastClass}>
-          <span>{toastMessage}</span>
-          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>
-
-
+import { LightningElement, track } from 'lwc';
+import getStackLayJunction from '@salesforce/apex/POCUI.getStackLayJunction';
 
 const STACK_LAYERS = [
   { n: 'Snowflake', s: 'Preferred' },
@@ -644,6 +430,18 @@ export default class PaamConflicts extends LightningElement {
     }
   }
 
+  get ownedBy() {
+    if (this.scope === 'primary') {
+        return 'MyPrimary';
+    }
+
+    if (this.scope === 'mine') {
+        return 'MyAll';
+    }
+
+    return 'All';
+}
+
    loadRecords(isNextPage = false) {
     this.isLoading = true;
     this.errorMessage = '';
@@ -651,7 +449,8 @@ export default class PaamConflicts extends LightningElement {
     getStackLayJunction({
         pageSize: Number(this.pageSize),
         lastCreatedDate: this.lastCreatedDate,
-        lastRecordId: this.lastRecordId
+        lastRecordId: this.lastRecordId,
+        ownedBy: this.ownedBy
     })
         .then((result) => {
             const returnedRows = result?.rows || [];
@@ -669,14 +468,9 @@ export default class PaamConflicts extends LightningElement {
 
             this.hasMore = result?.hasMore === true;
             this.totalRecordCount = result?.totalRecords || 0;
+            this.lastCreatedDate = result?.lastCreatedDate || null;
+            this.lastRecordId = result?.lastRecordId || null;
 
-            this.lastCreatedDate =
-                result?.lastCreatedDate || null;
-
-            this.lastRecordId =
-                result?.lastRecordId || null;
-
-            // Increase page only after Apex successfully returns data.
             if (isNextPage && returnedRows.length > 0) {
                 this.page += 1;
             }
@@ -767,11 +561,11 @@ get disableNext() {
       isConflict: r.paamManual !== r.paamDiscovered
     }));
 
-    if (this.scope === 'mine') {
+   /* if (this.scope === 'mine') {
       out = out.filter((r) => r.isMine);
     } else if (this.scope === 'primary') {
       out = out.filter((r) => r.isPrimary);
-    }
+    } */
 
     if (this.view === 'conflicts') {
       out = out.filter((r) => r.isConflict);
@@ -975,9 +769,17 @@ get footerRangeLabel() {
     return this.sortDir === 'asc' ? '↑' : '↓';
   }
 
-  resetPage() {
+  /*resetServerPagination() {
     this.page = 1;
-  }
+  } */
+  resetServerPagination() {
+    this.page = 1;
+    this.rows = [];
+    this.lastCreatedDate = null;
+    this.lastRecordId = null;
+    this.hasMore = true;
+    this.totalRecordCount = 0;
+}
 
   handleSearch(event) {
     this.query = event.target.value;
@@ -985,9 +787,16 @@ get footerRangeLabel() {
   }
 
   handleScopeChange(event) {
-    this.scope = event.currentTarget.dataset.scope;
-    this.resetPage();
-  }
+    const selectedScope = event.currentTarget.dataset.scope;
+
+    if (this.scope === selectedScope || this.isLoading) {
+        return;
+    }
+
+    this.scope = selectedScope;
+    this.resetServerPagination();
+    this.loadRecords();
+}
 
   handleViewChange(event) {
     this.view = event.currentTarget.dataset.view;
@@ -1067,7 +876,7 @@ get footerRangeLabel() {
         return;
     }
 
-    this.page += 1;
+    //this.page += 1;
     this.loadRecords(true);
   }
 
