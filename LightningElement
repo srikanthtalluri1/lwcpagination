@@ -1,1064 +1,963 @@
-import { LightningElement, track } from 'lwc';
-import getStackLayJunction from '@salesforce/apex/POCUI.getStackLayJunction';
+@IsTest
+private class POCUITest {
 
-const STACK_LAYERS = [
-  { n: 'Snowflake', s: 'Preferred' },
-  { n: 'NA', s: 'Not Applicable' },
-  { n: 'Apache Airflow within Domino', s: 'Acceptable' },
-  { n: 'Other Application Bundled Schedulers without ITGC', s: 'Acceptable' },
-  { n: 'BMC Control-M', s: 'Preferred' },
-  { n: 'Native OS Schedulers on Unix, Linux, or Win platforms', s: 'Acceptable' },
-  { n: 'IBM Integrated Analytics System (IIAS)', s: 'Restricted' },
-  { n: 'AWS DynamoDB', s: 'Preferred' },
-  { n: 'AWS RDS Postgresql', s: 'Acceptable' },
-  { n: 'Public Cloud - FaaS', s: 'Preferred' },
-  { n: 'Public Cloud - Container', s: 'Preferred' },
-  { n: 'Oracle WebLogic v12c', s: 'Deprecated' },
-  { n: 'Apache Tomcat 8.0.x', s: 'Denied' },
-  { n: 'JBoss EAP - 5.x', s: 'Denied' },
-  { n: 'gRPC', s: 'Preferred' },
-  { n: 'GraphQL', s: 'Preferred' },
-  { n: 'SOAP 1.2', s: 'Acceptable' }
-];
+    private static final String PRIMARY_ACTIVE_APP =
+        'Primary Active Application';
 
-const APPLICATIONS = [
-  { n: 'Bugcrowd Bug Bounty Platform', s: 'Production' },
-  { n: 'eCommerce Deposits - Stop Check Payment', s: 'Production' },
-  { n: 'Intezer Analyze', s: 'Production' },
-  { n: 'Contact Center recording - APIs', s: 'Production' },
-  { n: 'Personal Lines Quotes Aggregator', s: 'Production' },
-  { n: 'IBM Personal Communications', s: 'Production' },
-  { n: 'Credit Card Capture Income', s: 'Production' },
-  { n: 'Credit Card Storefront', s: 'Production' },
-  { n: 'Cobalt Strike Adversary Simulation Software', s: 'Production' },
-  { n: 'USAA Labs Reporting and Analytics Environment', s: 'Production' },
-  { n: 'Consumer Lending Pricing', s: 'Production' },
-  { n: 'File Transfer Activity Manager', s: 'Production' },
-  { n: 'ServiceNow - Regulatory Change Management', s: 'Production' },
-  { n: 'API Authorizer for AWS', s: 'Production' },
-  { n: 'Risk Board of Directors Automation', s: 'Production' },
-  { n: 'Cloud Reference Apps (AWS and GCP)', s: 'Production' },
-  { n: 'Mobile App Review Analysis Tool - AppBot', s: 'Production' },
-  { n: 'Salesforce - Enterprise Licensing Consolidation', s: 'Production' },
-  { n: 'Salesforce Dataloader', s: 'Production' },
-  { n: 'Copado', s: 'Production' },
-  { n: 'Visual Studio Code', s: 'Production' },
-  { n: 'ServiceNow - Change Management', s: 'Production' },
-  { n: 'Slack', s: 'Production' },
-  { n: 'Enterprise Architecture Standards', s: 'In Development' },
-  { n: 'Pathfinder', s: 'In Development' },
-  { n: 'Claims Contact Analytics', s: 'Sunsetting' },
-  { n: 'Bank Offers', s: 'Sunsetting' }
-];
+    private static final String DELEGATE_ACTIVE_APP =
+        'Delegate Active Application';
 
-const PAAM_ATTRIBUTES = ['Confidentiality', 'Integrity', 'Availability', 'Data Classification'];
-const STACK_STATUS_OPTIONS = [
-  { label: 'Preferred', slug: 'preferred' },
-  { label: 'Acceptable', slug: 'acceptable' },
-  { label: 'Under Consideration', slug: 'under-consideration' },
-  { label: 'Restricted', slug: 'restricted' },
-  { label: 'Deprecated', slug: 'deprecated' },
-  { label: 'Denied', slug: 'denied' },
-  { label: 'Not Applicable', slug: 'not-applicable' }
-];
+    private static final String UNOWNED_ACTIVE_APP =
+        'Unowned Active Application';
 
-function hash(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i += 1) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h;
-}
+    private static final String INACTIVE_PRIMARY_APP =
+        'Inactive Primary Application';
 
-function statusSlug(status) {
-  return (status || 'unknown')
-    .toString()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'unknown';
-}
 
-function formatNumber(value) {
-  return Number(value || 0).toLocaleString();
-}
-
-const PAAM_VALUES = STACK_LAYERS.map((s) => s.n);
-const STACK_STATUS = new Map(STACK_LAYERS.map((s) => [s.n, s.s || 'Unknown']));
-
-function paamFor(seed) {
-  return PAAM_VALUES[hash(seed) % PAAM_VALUES.length];
-}
-
-function buildRecords(apps) {
-  const out = [];
-  let idCounter = 1;
-
-  apps.forEach((app) => {
-    const appName = app.n || 'Unknown';
-    const status = app.s || 'Unknown';
-
-    const ownerBucket = hash('owner::' + appName) % 100;
-    const isMine = ownerBucket < 40;        // sample UI: more visible rows
-    const isPrimary = isMine && (hash('primary::' + appName) % 2 === 0);
-
-    PAAM_ATTRIBUTES.forEach((attr) => {
-      const manual = paamFor('manual::' + appName + '::' + attr);
-      const conflictBucket = hash('conflict::' + appName + '::' + attr) % 10;
-      let discovered = manual;
-
-      if (conflictBucket < 3) {
-        const other = PAAM_VALUES.filter((v) => v !== manual);
-        discovered = other[conflictBucket % other.length];
-      }
-
-      out.push({
-        id: String(idCounter++),
-        appName,
-        status,
-        attribute: attr,
-        paamManual: manual,
-        paamDiscovered: discovered,
-        isMine,
-        isPrimary
-      });
-    });
-  });
-
-  return out;
-}
-
-export default class PaamConflicts extends LightningElement {
-  //@track rows = buildRecords(APPLICATIONS);
-  @track overrides = {};
-  @track rows = [];
-  @track isLoading = false;
-  @track errorMessage = '';
-  //pageSize = 50;
-  lastCreatedDate = null;
-  lastRecordId = null;
-  hasMore = true;
-  totalRecordCount = 0;
-  page = 1;
-  query = '';
-  view = 'conflicts';        // conflicts | all | sync
-  scope = 'primary';         // primary | mine | all
-  statusFilter = 'all';
-  sortField = 'appName';
-  sortDir = 'asc';
-  page = 1;
-  pageSize ='50';
-
-  toastMessage = '';
-  toastKind = 'success';
-
-  stackStatusOptions = STACK_STATUS_OPTIONS;
-  connectedCallback() {
-    this.loadRecords();
-}
-  renderedCallback() {
-    const pageSizeSelect = this.template.querySelector('.paam-page-size');
-
-    if (pageSizeSelect && pageSizeSelect.value !== String(this.pageSize)) {
-        pageSizeSelect.value = String(this.pageSize);
-    }
-  }
-
-  get ownedBy() {
-    if (this.scope === 'primary') {
-        return 'MyPrimary';
-    }
-
-    if (this.scope === 'mine') {
-        return 'MyAll';
-    }
-
-    return 'All';
-}
-
-   loadRecords(isNextPage = false) {
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    getStackLayJunction({
-        pageSize: Number(this.pageSize),
-        lastCreatedDate: this.lastCreatedDate,
-        lastRecordId: this.lastRecordId,
-        ownedBy: this.ownedBy,
-        searchKey: this.query
-    })
-        .then((result) => {
-            const returnedRows = result?.rows || [];
-
-            this.rows = returnedRows.map((row) => ({
-                ...row,
-                id: row.Id,
-                appName: row.appName || '',
-                status: row.operationalStatus || '',
-                paamManual: row.paamManual || '',
-                paamDiscovered: row.paamDiscovered || '',
-                manualStatus: row.manualStatus || '',
-                discoveredStatus: row.discoveredStatus || ''
-            }));
-
-            this.hasMore = result?.hasMore === true;
-            this.totalRecordCount = result?.totalRecords || 0;
-            this.lastCreatedDate = result?.lastCreatedDate || null;
-            this.lastRecordId = result?.lastRecordId || null;
-
-            if (isNextPage && returnedRows.length > 0) {
-                this.page += 1;
-            }
-        })
-        .catch((error) => {
-            console.error('Error loading records:', error);
-
-            this.errorMessage =
-                error?.body?.message ||
-                error?.message ||
-                'Unable to load records.';
-        })
-        .finally(() => {
-            this.isLoading = false;
-        });
-}
-
-get disableNext() {
-    return this.isLoading || !this.hasMore;
-}
-  get isPrimaryScope() {
-    return this.scope === 'primary';
-  }
-
-  get primaryScopeClass() {
-    return this.scope === 'primary' ? 'is-active' : '';
-  }
-
-  get mineScopeClass() {
-    return this.scope === 'mine' ? 'is-active' : '';
-  }
-
-  get allScopeClass() {
-    return this.scope === 'all' ? 'is-active' : '';
-  }
-
-  get conflictsViewClass() {
-    return this.view === 'conflicts' ? 'is-active' : '';
-  }
-
-  get allViewClass() {
-    return this.view === 'all' ? 'is-active' : '';
-  }
-
-  get syncViewClass() {
-    return this.view === 'sync' ? 'is-active' : '';
-  }
-
-  get totalApps() {
-    return new Set(this.rows.map((r) => r.appName)).size;
-  }
-
-  get totalRecords() {
-    return this.rows.length;
-  }
-
-  get totalConflicts() {
-    return this.rows.filter((r) => r.paamManual !== r.paamDiscovered).length;
-  }
-
-  get totalSync() {
-    return this.totalRecords - this.totalConflicts;
-  }
-
-  get conflictPct() {
-    return this.totalRecords ? Math.round((this.totalConflicts / this.totalRecords) * 100) : 0;
-  }
-
-  get totalAppsDisplay() {
-    return formatNumber(this.totalApps);
-  }
-
-  get totalRecordsDisplay() {
-     return formatNumber(this.totalRecordCount);
-  }
-
-  get totalConflictsDisplay() {
-    return formatNumber(this.totalConflicts);
-  }
-
-  get totalSyncDisplay() {
-    return formatNumber(this.totalSync);
-  }
-
-  get filteredRowsRaw() {
-    let out = this.rows.map((r) => ({
-      ...r,
-      isConflict: r.paamManual !== r.paamDiscovered
-    }));
-
-   /* if (this.scope === 'mine') {
-      out = out.filter((r) => r.isMine);
-    } else if (this.scope === 'primary') {
-      out = out.filter((r) => r.isPrimary);
-    } */
-
-    if (this.view === 'conflicts') {
-      out = out.filter((r) => r.isConflict);
-    } else if (this.view === 'sync') {
-      out = out.filter((r) => !r.isConflict);
-    }
-
-   /* if (this.statusFilter !== 'all') {
-      out = out.filter((r) => {
-        const manualStatus = statusSlug(STACK_STATUS.get(r.paamManual) || 'Unknown');
-        const discoveredStatus = statusSlug(STACK_STATUS.get(r.paamDiscovered) || 'Unknown');
-        return manualStatus === this.statusFilter || discoveredStatus === this.statusFilter;
-      });
-    } */
-    if (this.statusFilter !== 'all') {
-    out = out.filter((r) => {
-        const manualStatus = statusSlug(r.manualStatus || 'Unknown');
-        const discoveredStatus = statusSlug(r.discoveredStatus || 'Unknown');
-
-        return manualStatus === this.statusFilter || discoveredStatus === this.statusFilter;
-    });
-}
-
-    /*if (this.query.trim()) {
-      const q = this.query.trim().toLowerCase();
-      out = out.filter((r) =>
-        r.appName.toLowerCase().includes(q) ||
-        (r.status || '').toLowerCase().includes(q) ||
-        (r.attribute || '').toLowerCase().includes(q) ||
-        r.paamManual.toLowerCase().includes(q) ||
-        r.paamDiscovered.toLowerCase().includes(q)
-      );
-    } */
-
-    out.sort((a, b) => {
-      if (a.appName !== b.appName && this.sortField !== 'appName') {
-        return a.appName.toLowerCase() < b.appName.toLowerCase() ? -1 : 1;
-      }
-
-      const va = String(a[this.sortField] ?? '').toLowerCase();
-      const vb = String(b[this.sortField] ?? '').toLowerCase();
-
-      if (va < vb) return this.sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return this.sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return out;
-  }
-
-  get filteredCountDisplay() {
-    return formatNumber(this.filteredRowsRaw.length);
-  }
-
- /* get totalPages() {
-    return Math.max(
-        1,
-        Math.ceil(
-            this.totalRecordCount / Number(this.pageSize)
-        )
-    );
-  } */
-
-  get currentPage() {
-    return Math.min(this.page, this.totalPages);
-  }
-
-  get pageStart() {
-    return (this.currentPage - 1) * Number(this.pageSize);
-  }
-
-  get pageRows() {
-    return this.filteredRowsRaw.map((row) => {
-        const manualStatus = row.manualStatus || 'Unknown';
-        const discoveredStatus = row.discoveredStatus || 'Unknown';
-        const manualSlug = statusSlug(manualStatus);
-        const discoveredSlug = statusSlug(discoveredStatus);
-        const wasOverridden = this.overrides[row.id] !== undefined;
-
-        return {
-            ...row,
-            rowClass:
-                (row.isConflict ? 'paam-row-conflict ' : '') +
-                'paam-row-group-start',
-
-            manualPillClass:
-                `paam-pill paam-pill--${manualSlug} ` +
-                `${row.isConflict ? 'paam-pill--diff' : ''}`,
-
-            discoveredPillClass:
-                `paam-pill paam-pill--${discoveredSlug} ` +
-                `${row.isConflict ? 'paam-pill--diff' : ''}`,
-
-            manualTitle:
-                `${row.paamManual} — ${manualStatus}`,
-
-            discoveredTitle:
-                `${row.paamDiscovered} — ${discoveredStatus}`,
-
-            diffTitle:
-                `Will change to ${row.paamDiscovered}`,
-
-            syncStatusClass:
-                row.isConflict
-                    ? 'paam-status paam-status--conflict'
-                    : 'paam-status paam-status--sync',
-
-            syncStatusLabel:
-                row.isConflict
-                    ? 'Conflict'
-                    : 'In Sync',
-
-            acceptTitle:
-                `Replace PAAM Manual (${row.paamManual}) ` +
-                `with PAAM Discovered (${row.paamDiscovered})`,
-
-            wasOverridden
-        };
-    });
-}
-
-get totalPages() {
-    return Math.max(
-        1,
-        Math.ceil(
-            this.totalRecordCount / Number(this.pageSize)
-        )
-    );
-}
-
-get footerRangeLabel() {
-    if (this.totalRecordCount === 0) {
-        return 'Showing 0–0 of 0';
-    }
-
-    const start =
-        ((this.page - 1) * Number(this.pageSize)) + 1;
-
-    const end = Math.min(
-        start + this.rows.length - 1,
-        this.totalRecordCount
-    );
-
-    return `Showing ${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(this.totalRecordCount)}`;
-}
-
-  get hasPageRows() {
-    return this.pageRows.length > 0;
-  }
-
-  get emptyColspan() {
-    return this.isPrimaryScope ? 6 : 5;
-  }
-
-  get isFirstPage() {
-    return this.currentPage === 1;
-  }
-
-  get isLastPage() {
-    return this.currentPage === this.totalPages;
-  }
-
- /* get footerRangeLabel() {
-    if (this.totalRecordCount === 0) {
-        return 'Showing 0–0 of 0';
-    }
-
-    const start =
-        ((this.page - 1) * Number(this.pageSize)) + 1;
-
-    const end = Math.min(
-        start + this.rows.length - 1,
-        this.totalRecordCount
-    );
-
-    return `Showing ${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(this.totalRecordCount)}`;
-} */
-
-  get appSortArrow() {
-    return this.getSortArrow('appName');
-  }
-
-  get statusSortArrow() {
-    return this.getSortArrow('status');
-  }
-
-  get manualSortArrow() {
-    return this.getSortArrow('paamManual');
-  }
-
-  get discoveredSortArrow() {
-    return this.getSortArrow('paamDiscovered');
-  }
-
-  get toastClass() {
-    return `paam-toast paam-toast--${this.toastKind}`;
-  }
-
-  getSortArrow(field) {
-    if (this.sortField !== field) return '↕';
-    return this.sortDir === 'asc' ? '↑' : '↓';
-  }
-
-  /*resetServerPagination() {
-    this.page = 1;
-  } */
-  resetServerPagination() {
-    this.page = 1;
-    this.rows = [];
-    this.lastCreatedDate = null;
-    this.lastRecordId = null;
-    this.hasMore = true;
-    this.totalRecordCount = 0;
-}
-
-  searchTimeout;
-
-handleSearch(event) {
-    const searchValue = event.target.value || '';
-
-    this.query = searchValue;
-
-    window.clearTimeout(this.searchTimeout);
-
-    this.searchTimeout = window.setTimeout(() => {
-        const trimmedSearch = this.query.trim();
+    @TestSetup
+    static void createTestData() {
 
         /*
-         * Do not search when only 1 or 2 characters
-         * have been entered.
+         * Active app where the current user is a
+         * primary owner.
          */
-        if (
-            trimmedSearch.length > 0 &&
-            trimmedSearch.length < 3
-        ) {
+        Id primaryAppId = createApp(
+            PRIMARY_ACTIVE_APP,
+            false,
+            'IT_Architect__c'
+        );
+
+        /*
+         * Active app where the current user is a
+         * delegate owner.
+         */
+        Id delegateAppId = createApp(
+            DELEGATE_ACTIVE_APP,
+            false,
+            'IT_Architect_Delegate_1__c'
+        );
+
+        /*
+         * Active app that is not owned by the current user.
+         */
+        Id unownedAppId = createApp(
+            UNOWNED_ACTIVE_APP,
+            false,
+            null
+        );
+
+        /*
+         * Inactive app owned by the current user.
+         * This record must never be returned.
+         */
+        Id inactiveAppId = createApp(
+            INACTIVE_PRIMARY_APP,
+            true,
+            'IT_Architect__c'
+        );
+
+        Id primaryAppStackId = createAppStack(
+            primaryAppId,
+            'Primary Application Stack'
+        );
+
+        Id delegateAppStackId = createAppStack(
+            delegateAppId,
+            'Delegate Application Stack'
+        );
+
+        Id unownedAppStackId = createAppStack(
+            unownedAppId,
+            'Unowned Application Stack'
+        );
+
+        Id inactiveAppStackId = createAppStack(
+            inactiveAppId,
+            'Inactive Application Stack'
+        );
+
+        Id primaryConfigId = createStackLayerConfig(
+            'Primary Manual Layer'
+        );
+
+        Id delegateConfigId = createStackLayerConfig(
+            'Delegate Manual Layer'
+        );
+
+        Id unownedConfigId = createStackLayerConfig(
+            'Unowned Manual Layer'
+        );
+
+        Id inactiveConfigId = createStackLayerConfig(
+            'Inactive Manual Layer'
+        );
+
+        TPM_Stack_Layer_Junction__c primaryJunction =
+            createJunction(
+                primaryAppStackId,
+                primaryConfigId
+            );
+
+        TPM_Stack_Layer_Junction__c delegateJunction =
+            createJunction(
+                delegateAppStackId,
+                delegateConfigId
+            );
+
+        TPM_Stack_Layer_Junction__c unownedJunction =
+            createJunction(
+                unownedAppStackId,
+                unownedConfigId
+            );
+
+        TPM_Stack_Layer_Junction__c inactiveJunction =
+            createJunction(
+                inactiveAppStackId,
+                inactiveConfigId
+            );
+
+        /*
+         * Set different CreatedDate values so pagination
+         * order can be tested reliably.
+         *
+         * Newest:
+         * 1. Inactive record — must be excluded
+         * 2. Unowned active record
+         * 3. Delegate active record
+         * 4. Primary active record
+         */
+        Datetime currentTime = System.now();
+
+        Test.setCreatedDate(
+            inactiveJunction.Id,
+            currentTime.addDays(-1)
+        );
+
+        Test.setCreatedDate(
+            unownedJunction.Id,
+            currentTime.addDays(-2)
+        );
+
+        Test.setCreatedDate(
+            delegateJunction.Id,
+            currentTime.addDays(-3)
+        );
+
+        Test.setCreatedDate(
+            primaryJunction.Id,
+            currentTime.addDays(-4)
+        );
+    }
+
+
+    @IsTest
+    static void testAllReturnsOnlyActiveApps() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                null,
+                null,
+                null,
+                'All',
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            3,
+            result.totalRecords,
+            'Only the three active applications should be counted.'
+        );
+
+        System.assertEquals(
+            3,
+            result.rows.size(),
+            'Only active application records should be returned.'
+        );
+
+        System.assertEquals(
+            false,
+            result.hasMore,
+            'There should not be another page.'
+        );
+
+        Set<String> returnedAppNames =
+            getReturnedAppNames(result.rows);
+
+        System.assert(
+            returnedAppNames.contains(PRIMARY_ACTIVE_APP),
+            'Primary active application should be returned.'
+        );
+
+        System.assert(
+            returnedAppNames.contains(DELEGATE_ACTIVE_APP),
+            'Delegate active application should be returned.'
+        );
+
+        System.assert(
+            returnedAppNames.contains(UNOWNED_ACTIVE_APP),
+            'Unowned active application should be returned.'
+        );
+
+        System.assert(
+            !returnedAppNames.contains(INACTIVE_PRIMARY_APP),
+            'Inactive application must not be returned.'
+        );
+    }
+
+
+    @IsTest
+    static void testMyPrimaryOwnershipFilter() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'MyPrimary',
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            result.totalRecords,
+            'MyPrimary should return only active apps where the user is a primary owner.'
+        );
+
+        System.assertEquals(
+            1,
+            result.rows.size()
+        );
+
+        System.assertEquals(
+            PRIMARY_ACTIVE_APP,
+            result.rows[0].appName
+        );
+
+        System.assertNotEquals(
+            INACTIVE_PRIMARY_APP,
+            result.rows[0].appName,
+            'Inactive primary-owned app must not be returned.'
+        );
+    }
+
+
+    @IsTest
+    static void testMyAllOwnershipFilter() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'MyAll',
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            2,
+            result.totalRecords,
+            'MyAll should return primary-owned and delegate-owned active apps.'
+        );
+
+        System.assertEquals(
+            2,
+            result.rows.size()
+        );
+
+        Set<String> returnedAppNames =
+            getReturnedAppNames(result.rows);
+
+        System.assert(
+            returnedAppNames.contains(PRIMARY_ACTIVE_APP),
+            'Primary-owned active app should be returned.'
+        );
+
+        System.assert(
+            returnedAppNames.contains(DELEGATE_ACTIVE_APP),
+            'Delegate-owned active app should be returned.'
+        );
+
+        System.assert(
+            !returnedAppNames.contains(UNOWNED_ACTIVE_APP),
+            'Unowned app should not be returned for MyAll.'
+        );
+
+        System.assert(
+            !returnedAppNames.contains(INACTIVE_PRIMARY_APP),
+            'Inactive app should not be returned for MyAll.'
+        );
+    }
+
+
+    @IsTest
+    static void testSearchWithThreeOrMoreCharacters() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'All',
+                'Primary Active'
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            result.totalRecords,
+            'Search should return the matching active application.'
+        );
+
+        System.assertEquals(
+            1,
+            result.rows.size()
+        );
+
+        System.assertEquals(
+            PRIMARY_ACTIVE_APP,
+            result.rows[0].appName
+        );
+    }
+
+
+    @IsTest
+    static void testSearchDoesNotReturnInactiveApp() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'All',
+                'Inactive Primary'
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            result.totalRecords,
+            'An inactive app must not be returned even when it matches the search.'
+        );
+
+        System.assertEquals(
+            0,
+            result.rows.size()
+        );
+    }
+
+
+    @IsTest
+    static void testSearchLessThanThreeCharactersIsIgnored() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'All',
+                ' Pr '
+            );
+
+        Test.stopTest();
+
+        /*
+         * After trimming, "Pr" contains only two characters,
+         * so the search filter should not be applied.
+         */
+        System.assertEquals(
+            3,
+            result.totalRecords,
+            'Search values shorter than three characters should be ignored.'
+        );
+
+        System.assertEquals(
+            3,
+            result.rows.size()
+        );
+    }
+
+
+    @IsTest
+    static void testKeysetPagination() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult firstPage =
+            POCUI.getStackLayJunction(
+                2,
+                null,
+                null,
+                'All',
+                null
+            );
+
+        POCUI.PaamPageResult secondPage =
+            POCUI.getStackLayJunction(
+                2,
+                firstPage.lastCreatedDate,
+                firstPage.lastRecordId,
+                'All',
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            3,
+            firstPage.totalRecords,
+            'Total record count should include all active records.'
+        );
+
+        System.assertEquals(
+            2,
+            firstPage.rows.size(),
+            'First page should contain two records.'
+        );
+
+        System.assertEquals(
+            true,
+            firstPage.hasMore,
+            'First page should indicate that another page exists.'
+        );
+
+        System.assertNotEquals(
+            null,
+            firstPage.lastCreatedDate,
+            'First page should return a CreatedDate cursor.'
+        );
+
+        System.assertNotEquals(
+            null,
+            firstPage.lastRecordId,
+            'First page should return a record ID cursor.'
+        );
+
+        /*
+         * Based on the CreatedDate values set in @TestSetup,
+         * these should be the first two active records.
+         */
+        System.assertEquals(
+            UNOWNED_ACTIVE_APP,
+            firstPage.rows[0].appName
+        );
+
+        System.assertEquals(
+            DELEGATE_ACTIVE_APP,
+            firstPage.rows[1].appName
+        );
+
+        System.assertEquals(
+            3,
+            secondPage.totalRecords,
+            'Total count should remain three on the second page.'
+        );
+
+        System.assertEquals(
+            1,
+            secondPage.rows.size(),
+            'Second page should contain the remaining record.'
+        );
+
+        System.assertEquals(
+            false,
+            secondPage.hasMore,
+            'Second page should not have another page.'
+        );
+
+        System.assertEquals(
+            PRIMARY_ACTIVE_APP,
+            secondPage.rows[0].appName
+        );
+    }
+
+
+    @IsTest
+    static void testInvalidOwnershipValueUsesNoOwnershipFilter() {
+
+        Test.startTest();
+
+        POCUI.PaamPageResult result =
+            POCUI.getStackLayJunction(
+                50,
+                null,
+                null,
+                'UnknownValue',
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            3,
+            result.totalRecords,
+            'An unsupported ownership value should not add an ownership condition.'
+        );
+    }
+
+
+    /*
+     * Creates the App record dynamically.
+     *
+     * This avoids hard-coding the App object's API name.
+     */
+    private static Id createApp(
+        String appName,
+        Boolean isInactive,
+        String ownershipField
+    ) {
+        Schema.SObjectType appStackType =
+            getReferenceType(
+                TPM_Stack_Layer_Junction__c
+                    .TPM_App_Stack__c
+            );
+
+        Map<String, Schema.SObjectField> appStackFields =
+            appStackType
+                .getDescribe()
+                .fields
+                .getMap();
+
+        System.assert(
+            appStackFields.containsKey('App__c'),
+            'App__c was not found on the TPM App Stack object.'
+        );
+
+        Schema.SObjectType appType =
+            getReferenceType(
+                appStackFields.get('App__c')
+            );
+
+        SObject appRecord =
+            appType.newSObject();
+
+        setNameIfCreateable(
+            appRecord,
+            appName
+        );
+
+        setRequiredField(
+            appRecord,
+            'Inactive__c',
+            isInactive
+        );
+
+        if (String.isNotBlank(ownershipField)) {
+            setRequiredField(
+                appRecord,
+                ownershipField,
+                UserInfo.getUserId()
+            );
+        }
+
+        setFirstPicklistValue(
+            appRecord,
+            'Operational_Status__c'
+        );
+
+        populateRequiredFields(appRecord);
+
+        insert appRecord;
+
+        return appRecord.Id;
+    }
+
+
+    /*
+     * Creates the TPM App Stack parent record dynamically.
+     */
+    private static Id createAppStack(
+        Id appId,
+        String stackName
+    ) {
+        Schema.SObjectType appStackType =
+            getReferenceType(
+                TPM_Stack_Layer_Junction__c
+                    .TPM_App_Stack__c
+            );
+
+        SObject appStackRecord =
+            appStackType.newSObject();
+
+        setNameIfCreateable(
+            appStackRecord,
+            stackName
+        );
+
+        setRequiredField(
+            appStackRecord,
+            'App__c',
+            appId
+        );
+
+        populateRequiredFields(appStackRecord);
+
+        insert appStackRecord;
+
+        return appStackRecord.Id;
+    }
+
+
+    /*
+     * Creates the Stack Layer Config parent dynamically.
+     */
+    private static Id createStackLayerConfig(
+        String configName
+    ) {
+        Schema.SObjectType configType =
+            getReferenceType(
+                TPM_Stack_Layer_Junction__c
+                    .Stack_Layer_Config__c
+            );
+
+        SObject configRecord =
+            configType.newSObject();
+
+        setNameIfCreateable(
+            configRecord,
+            configName
+        );
+
+        populateRequiredFields(configRecord);
+
+        insert configRecord;
+
+        return configRecord.Id;
+    }
+
+
+    private static TPM_Stack_Layer_Junction__c createJunction(
+        Id appStackId,
+        Id configId
+    ) {
+        TPM_Stack_Layer_Junction__c junctionRecord =
+            new TPM_Stack_Layer_Junction__c();
+
+        junctionRecord.put(
+            'TPM_App_Stack__c',
+            appStackId
+        );
+
+        junctionRecord.put(
+            'Stack_Layer_Config__c',
+            configId
+        );
+
+        setFirstPicklistValue(
+            junctionRecord,
+            'Stack_Layer_Status__c'
+        );
+
+        populateRequiredFields(junctionRecord);
+
+        insert junctionRecord;
+
+        return junctionRecord;
+    }
+
+
+    private static Set<String> getReturnedAppNames(
+        List<POCUI.PaamRowWrapper> rows
+    ) {
+        Set<String> appNames =
+            new Set<String>();
+
+        for (POCUI.PaamRowWrapper row : rows) {
+            appNames.add(row.appName);
+        }
+
+        return appNames;
+    }
+
+
+    private static Schema.SObjectType getReferenceType(
+        Schema.SObjectField lookupField
+    ) {
+        List<Schema.SObjectType> referenceTypes =
+            lookupField
+                .getDescribe()
+                .getReferenceTo();
+
+        System.assert(
+            !referenceTypes.isEmpty(),
+            'The supplied field is not a lookup or master-detail field.'
+        );
+
+        return referenceTypes[0];
+    }
+
+
+    private static void setRequiredField(
+        SObject recordItem,
+        String fieldApiName,
+        Object fieldValue
+    ) {
+        Map<String, Schema.SObjectField> fieldMap =
+            recordItem
+                .getSObjectType()
+                .getDescribe()
+                .fields
+                .getMap();
+
+        System.assert(
+            fieldMap.containsKey(fieldApiName),
+            'Field not found: ' + fieldApiName
+        );
+
+        Schema.DescribeFieldResult fieldDescribe =
+            fieldMap
+                .get(fieldApiName)
+                .getDescribe();
+
+        System.assert(
+            fieldDescribe.isCreateable(),
+            'Field is not createable: ' + fieldApiName
+        );
+
+        recordItem.put(
+            fieldApiName,
+            fieldValue
+        );
+    }
+
+
+    private static void setNameIfCreateable(
+        SObject recordItem,
+        String nameValue
+    ) {
+        Map<String, Schema.SObjectField> fieldMap =
+            recordItem
+                .getSObjectType()
+                .getDescribe()
+                .fields
+                .getMap();
+
+        if (!fieldMap.containsKey('Name')) {
             return;
         }
 
-        this.resetServerPagination();
-        this.loadRecords();
-    }, 400);
-}
+        Schema.DescribeFieldResult nameDescribe =
+            fieldMap
+                .get('Name')
+                .getDescribe();
 
-  handleScopeChange(event) {
-    const selectedScope = event.currentTarget.dataset.scope;
-
-    if (this.scope === selectedScope || this.isLoading) {
-        return;
+        if (
+            nameDescribe.isCreateable() &&
+            !nameDescribe.isAutoNumber()
+        ) {
+            recordItem.put(
+                'Name',
+                nameValue
+            );
+        }
     }
 
-    this.scope = selectedScope;
-    this.resetServerPagination();
-    this.loadRecords();
-}
 
-  handleViewChange(event) {
-    this.view = event.currentTarget.dataset.view;
-    this.resetPage();
-  }
-
-  handleStatusFilterChange(event) {
-    this.statusFilter = event.target.value;
-    this.resetPage();
-  }
-
-  handleSort(event) {
-    const field = event.currentTarget.dataset.field;
-
-    if (this.sortField === field) {
-      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortField = field;
-      this.sortDir = 'asc';
-    }
-
-    this.resetPage();
-  }
-
-  handleAccept(event) {
-    const id = event.currentTarget.dataset.id;
-    const row = this.rows.find((r) => r.id === id);
-
-    if (!row || row.paamManual === row.paamDiscovered) return;
-
-    const originalManual = row.paamManual;
-
-    this.rows = this.rows.map((r) =>
-      r.id === id ? { ...r, paamManual: row.paamDiscovered } : r
-    );
-
-    this.overrides = {
-      ...this.overrides,
-      [id]: originalManual
-    };
-
-    this.showToast('success', `Accepted “${row.paamDiscovered}” for ${row.appName} · ${row.attribute}`);
-  }
-
-  handleUndo(event) {
-    const id = event.currentTarget.dataset.id;
-    const original = this.overrides[id];
-
-    if (original === undefined) return;
-
-    this.rows = this.rows.map((r) =>
-      r.id === id ? { ...r, paamManual: original } : r
-    );
-
-    const nextOverrides = { ...this.overrides };
-    delete nextOverrides[id];
-    this.overrides = nextOverrides;
-
-    this.showToast('success', `Reverted to “${original}”`);
-  }
-
-  handlePageSizeChange(event) {
-    this.pageSize = Number(event.target.value);
-    this.resetPage();
-  }
-
-  goFirst() {
-    this.page = 1;
-  }
-
-  goPrev() {
-    this.page = Math.max(1, this.page - 1);
-  }
-
-  goNext() {
-     if (this.isLoading || !this.hasMore) {
-        return;
-    }
-
-    //this.page += 1;
-    this.loadRecords(true);
-  }
-
-  goLast() {
-    this.page = this.totalPages;
-  }
-
-  showToast(kind, message) {
-    this.toastKind = kind;
-    this.toastMessage = message;
-
-    window.clearTimeout(this.toastTimeout);
-    this.toastTimeout = window.setTimeout(() => {
-      this.toastMessage = '';
-    }, 3500);
-  }
-
-  dismissToast() {
-    this.toastMessage = '';
-  }
-}
-
-
-public with sharing class POCUI {
-
-    @AuraEnabled(cacheable=true)
-    public static PaamPageResult getStackLayJunction(
-        Integer pageSize,
-        Datetime lastCreatedDate,
-        Id lastRecordId,
-        String ownedBy,
-        String searchKey
+    private static void setFirstPicklistValue(
+        SObject recordItem,
+        String fieldApiName
     ) {
-        Integer safeLimit = pageSize == null
-            ? 50
-            : Math.min(Math.max(pageSize, 1), 200);
+        Map<String, Schema.SObjectField> fieldMap =
+            recordItem
+                .getSObjectType()
+                .getDescribe()
+                .fields
+                .getMap();
 
-        Integer queryLimit = safeLimit + 1;
-
-        Id currentUserId = UserInfo.getUserId();
-
-        /*
-         * Ownership condition:
-         *
-         * MyPrimary:
-         *   Primary ownership fields only.
-         *
-         * MyAll:
-         *   Primary and delegate ownership fields.
-         *
-         * All:
-         *   No ownership condition.
-         */
-        String ownershipCondition =
-            buildOwnershipCondition(ownedBy);
-
-        /*
-         * Search is applied only when at least three
-         * non-space characters are entered.
-         */
-        String normalizedSearchKey =
-            String.isBlank(searchKey)
-                ? null
-                : searchKey.trim();
-
-        String searchPattern;
-
-        if (
-            normalizedSearchKey != null &&
-            normalizedSearchKey.length() >= 3
-        ) {
-            searchPattern =
-                '%' + normalizedSearchKey + '%';
+        if (!fieldMap.containsKey(fieldApiName)) {
+            return;
         }
 
-        /*
-         * These conditions apply to both the count query
-         * and the record query.
-         */
-        List<String> baseConditions =
-            new List<String>();
+        Schema.DescribeFieldResult fieldDescribe =
+            fieldMap
+                .get(fieldApiName)
+                .getDescribe();
 
-        if (String.isNotBlank(ownershipCondition)) {
-            baseConditions.add(ownershipCondition);
+        if (!fieldDescribe.isCreateable()) {
+            return;
         }
-
-        if (String.isNotBlank(searchPattern)) {
-            baseConditions.add(
-                '(' +
-                    'TPM_App_Stack__r.App__r.Name ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR TPM_App_Stack__r.App__r.' +
-                    'Operational_Status__c ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR Stack_Layer_Config__r.Name ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR Stack_Layer_Status__c ' +
-                    'LIKE :searchPattern' +
-                ')'
-            );
-        }
-
-        /*
-         * Count query.
-         *
-         * The same ownership and search filters must be
-         * used here so totalRecords is accurate.
-         */
-        String countQuery =
-            'SELECT COUNT() ' +
-            'FROM TPM_Stack_Layer_Junction__c';
-
-        if (!baseConditions.isEmpty()) {
-            countQuery +=
-                ' WHERE ' +
-                String.join(baseConditions, ' AND ');
-        }
-
-        Integer totalRecordCount =
-            Database.countQuery(countQuery);
-
-        /*
-         * Record query conditions start with the ownership
-         * and search conditions.
-         */
-        List<String> recordConditions =
-            new List<String>();
-
-        recordConditions.addAll(baseConditions);
-
-        /*
-         * Keyset pagination.
-         */
-        if (
-            lastCreatedDate != null &&
-            lastRecordId != null
-        ) {
-            recordConditions.add(
-                '(' +
-                    'CreatedDate < :lastCreatedDate ' +
-                    'OR (' +
-                        'CreatedDate = :lastCreatedDate ' +
-                        'AND Id < :lastRecordId' +
-                    ')' +
-                ')'
-            );
-        }
-
-        String recordQuery =
-            'SELECT ' +
-                'Id, ' +
-                'CreatedDate, ' +
-                'Stack_Layer_Status__c, ' +
-                'Stack_Layer_Config__r.Name, ' +
-                'TPM_App_Stack__r.App__r.Name, ' +
-                'TPM_App_Stack__r.App__r.' +
-                    'Operational_Status__c ' +
-            'FROM TPM_Stack_Layer_Junction__c';
-
-        if (!recordConditions.isEmpty()) {
-            recordQuery +=
-                ' WHERE ' +
-                String.join(recordConditions, ' AND ');
-        }
-
-        recordQuery +=
-            ' ORDER BY CreatedDate DESC, Id DESC' +
-            ' LIMIT :queryLimit';
-
-        List<TPM_Stack_Layer_Junction__c> queriedRecords =
-            Database.query(recordQuery);
-
-        Boolean hasMore =
-            queriedRecords.size() > safeLimit;
-
-        /*
-         * The query requests one extra record to determine
-         * whether another page exists.
-         */
-        List<TPM_Stack_Layer_Junction__c> pageRecords =
-            new List<TPM_Stack_Layer_Junction__c>();
-
-        Integer recordsToReturn = Math.min(
-            safeLimit,
-            queriedRecords.size()
-        );
 
         for (
-            Integer index = 0;
-            index < recordsToReturn;
-            index++
+            Schema.PicklistEntry picklistEntry :
+            fieldDescribe.getPicklistValues()
         ) {
-            pageRecords.add(queriedRecords[index]);
-        }
+            if (picklistEntry.isActive()) {
+                recordItem.put(
+                    fieldApiName,
+                    picklistEntry.getValue()
+                );
 
-        List<PaamRowWrapper> rows =
-            new List<PaamRowWrapper>();
-
-        for (
-            TPM_Stack_Layer_Junction__c recordItem :
-            pageRecords
-        ) {
-            PaamRowWrapper row =
-                new PaamRowWrapper();
-
-            row.Id = recordItem.Id;
-            row.createdDate = recordItem.CreatedDate;
-
-            row.manualStatus =
-                recordItem.Stack_Layer_Status__c;
-
-            if (
-                recordItem.Stack_Layer_Config__r != null
-            ) {
-                row.paamManual =
-                    recordItem
-                        .Stack_Layer_Config__r
-                        .Name;
+                return;
             }
-
-            if (
-                recordItem.TPM_App_Stack__r != null &&
-                recordItem.TPM_App_Stack__r.App__r != null
-            ) {
-                row.appName =
-                    recordItem
-                        .TPM_App_Stack__r
-                        .App__r
-                        .Name;
-
-                row.operationalStatus =
-                    recordItem
-                        .TPM_App_Stack__r
-                        .App__r
-                        .Operational_Status__c;
-            }
-
-            row.appName =
-                String.isBlank(row.appName)
-                    ? ''
-                    : row.appName;
-
-            row.operationalStatus =
-                String.isBlank(row.operationalStatus)
-                    ? ''
-                    : row.operationalStatus;
-
-            row.paamManual =
-                String.isBlank(row.paamManual)
-                    ? ''
-                    : row.paamManual;
-
-            row.paamDiscovered =
-                String.isBlank(row.paamDiscovered)
-                    ? ''
-                    : row.paamDiscovered;
-
-            row.manualStatus =
-                String.isBlank(row.manualStatus)
-                    ? ''
-                    : row.manualStatus;
-
-            row.discoveredStatus =
-                String.isBlank(row.discoveredStatus)
-                    ? ''
-                    : row.discoveredStatus;
-
-            rows.add(row);
         }
-
-        PaamPageResult result =
-            new PaamPageResult();
-
-        result.rows = rows;
-        result.hasMore = hasMore;
-        result.totalRecords = totalRecordCount;
-
-        /*
-         * Return the final record's values as the cursor
-         * for the next page.
-         */
-        if (!pageRecords.isEmpty()) {
-            TPM_Stack_Layer_Junction__c finalRecord =
-                pageRecords[
-                    pageRecords.size() - 1
-                ];
-
-            result.lastCreatedDate =
-                finalRecord.CreatedDate;
-
-            result.lastRecordId =
-                finalRecord.Id;
-        }
-
-        return result;
     }
 
-    /**
-     * Builds the ownership condition for the TPM App.
+
+    /*
+     * Populates basic required fields automatically.
      *
-     * MyPrimary:
-     * Checks only the three primary ownership fields.
-     *
-     * MyAll:
-     * Checks primary and delegate ownership fields.
-     *
-     * All:
-     * Returns null so no ownership filter is applied.
+     * If your org has validation rules requiring additional
+     * business-specific fields, add those fields in the
+     * relevant createApp, createAppStack, createStackLayerConfig,
+     * or createJunction method.
      */
-    private static String buildOwnershipCondition(
-        String ownedBy
+    private static void populateRequiredFields(
+        SObject recordItem
     ) {
-        if (
-            String.isBlank(ownedBy) ||
-            'All'.equalsIgnoreCase(ownedBy)
-        ) {
-            return null;
-        }
+        Map<String, Schema.SObjectField> fieldMap =
+            recordItem
+                .getSObjectType()
+                .getDescribe()
+                .fields
+                .getMap();
 
-        List<String> ownedByFields =
-            new List<String>();
+        for (String fieldApiName : fieldMap.keySet()) {
 
-        if ('MyPrimary'.equalsIgnoreCase(ownedBy)) {
-            ownedByFields.addAll(
-                new List<String>{
-                    'IT_Architect__c',
-                    'Application_Owner__c',
-                    'Business_Owner__c'
+            Schema.DescribeFieldResult fieldDescribe =
+                fieldMap
+                    .get(fieldApiName)
+                    .getDescribe();
+
+            if (
+                !fieldDescribe.isCreateable() ||
+                fieldDescribe.isCalculated() ||
+                fieldDescribe.isAutoNumber() ||
+                fieldDescribe.isDefaultedOnCreate() ||
+                fieldDescribe.isNillable() ||
+                recordItem.get(fieldApiName) != null
+            ) {
+                continue;
+            }
+
+            Schema.DisplayType fieldType =
+                fieldDescribe.getType();
+
+            if (fieldType == Schema.DisplayType.Boolean) {
+                recordItem.put(fieldApiName, false);
+
+            } else if (
+                fieldType == Schema.DisplayType.Date
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    Date.today()
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.DateTime
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    System.now()
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.Time
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    Time.newInstance(12, 0, 0, 0)
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.Integer
+            ) {
+                recordItem.put(fieldApiName, 1);
+
+            } else if (
+                fieldType == Schema.DisplayType.Double ||
+                fieldType == Schema.DisplayType.Currency ||
+                fieldType == Schema.DisplayType.Percent
+            ) {
+                recordItem.put(fieldApiName, 1);
+
+            } else if (
+                fieldType == Schema.DisplayType.Email
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    'test@example.com'
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.Url
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    'https://example.com'
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.Phone
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    '5125550100'
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.String ||
+                fieldType == Schema.DisplayType.TextArea
+            ) {
+                recordItem.put(
+                    fieldApiName,
+                    'Test'
+                );
+
+            } else if (
+                fieldType == Schema.DisplayType.Picklist ||
+                fieldType == Schema.DisplayType.MultiPicklist
+            ) {
+                for (
+                    Schema.PicklistEntry picklistEntry :
+                    fieldDescribe.getPicklistValues()
+                ) {
+                    if (picklistEntry.isActive()) {
+                        recordItem.put(
+                            fieldApiName,
+                            picklistEntry.getValue()
+                        );
+
+                        break;
+                    }
                 }
-            );
-        } else if (
-            'MyAll'.equalsIgnoreCase(ownedBy)
-        ) {
-            ownedByFields.addAll(
-                new List<String>{
-                    'IT_Architect__c',
-                    'IT_Architect_Delegate_1__c',
-                    'IT_Architect_Delegate_2__c',
 
-                    'Application_Owner__c',
-                    'Application_Owner_Delegate_1__c',
-                    'Application_Owner_Delegate_2__c',
-                    'Application_Owner_Delegate_3__c',
-                    'Application_Owner_Delegate_4__c',
+            } else if (
+                fieldType == Schema.DisplayType.Reference
+            ) {
+                for (
+                    Schema.SObjectType referenceType :
+                    fieldDescribe.getReferenceTo()
+                ) {
+                    if (referenceType == User.SObjectType) {
+                        recordItem.put(
+                            fieldApiName,
+                            UserInfo.getUserId()
+                        );
 
-                    'Business_Owner__c',
-                    'Business_Owner_Delegate_1__c',
-                    'Business_Owner_Delegate_2__c',
-                    'Business_Owner_Delegate_3__c'
+                        break;
+                    }
                 }
-            );
-        } else {
-            return null;
+            }
         }
-
-        List<String> ownershipConditions =
-            new List<String>();
-
-        for (String fieldName : ownedByFields) {
-            ownershipConditions.add(
-                'TPM_App_Stack__r.App__r.' +
-                fieldName +
-                ' = :currentUserId'
-            );
-        }
-
-        return
-            '(' +
-            String.join(
-                ownershipConditions,
-                ' OR '
-            ) +
-            ')';
-    }
-
-    public class PaamPageResult {
-        @AuraEnabled
-        public List<PaamRowWrapper> rows;
-
-        @AuraEnabled
-        public Boolean hasMore;
-
-        @AuraEnabled
-        public Integer totalRecords;
-
-        @AuraEnabled
-        public Datetime lastCreatedDate;
-
-        @AuraEnabled
-        public Id lastRecordId;
-    }
-
-    public class PaamRowWrapper {
-        @AuraEnabled
-        public Id Id;
-
-        @AuraEnabled
-        public Datetime createdDate;
-
-        @AuraEnabled
-        public String appName;
-
-        @AuraEnabled
-        public String operationalStatus;
-
-        @AuraEnabled
-        public String paamManual;
-
-        @AuraEnabled
-        public String paamDiscovered;
-
-        @AuraEnabled
-        public String manualStatus;
-
-        @AuraEnabled
-        public String discoveredStatus;
-
-        @AuraEnabled
-        public Boolean isMine;
-
-        @AuraEnabled
-        public Boolean isPrimary;
     }
 }
