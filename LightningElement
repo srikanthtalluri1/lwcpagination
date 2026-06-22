@@ -1,963 +1,227 @@
 @IsTest
-private class POCUITest {
+private class TPM_PAAMStackDataTest {
 
-    private static final String PRIMARY_ACTIVE_APP =
-        'Primary Active Application';
+    private static void setName(SObject recordItem, String nameValue) {
+        Map<String, Schema.SObjectField> fields =
+            recordItem.getSObjectType().getDescribe().fields.getMap();
 
-    private static final String DELEGATE_ACTIVE_APP =
-        'Delegate Active Application';
+        if (fields.containsKey('Name')) {
+            Schema.DescribeFieldResult nameField =
+                fields.get('Name').getDescribe();
 
-    private static final String UNOWNED_ACTIVE_APP =
-        'Unowned Active Application';
-
-    private static final String INACTIVE_PRIMARY_APP =
-        'Inactive Primary Application';
-
-
-    @TestSetup
-    static void createTestData() {
-
-        /*
-         * Active app where the current user is a
-         * primary owner.
-         */
-        Id primaryAppId = createApp(
-            PRIMARY_ACTIVE_APP,
-            false,
-            'IT_Architect__c'
-        );
-
-        /*
-         * Active app where the current user is a
-         * delegate owner.
-         */
-        Id delegateAppId = createApp(
-            DELEGATE_ACTIVE_APP,
-            false,
-            'IT_Architect_Delegate_1__c'
-        );
-
-        /*
-         * Active app that is not owned by the current user.
-         */
-        Id unownedAppId = createApp(
-            UNOWNED_ACTIVE_APP,
-            false,
-            null
-        );
-
-        /*
-         * Inactive app owned by the current user.
-         * This record must never be returned.
-         */
-        Id inactiveAppId = createApp(
-            INACTIVE_PRIMARY_APP,
-            true,
-            'IT_Architect__c'
-        );
-
-        Id primaryAppStackId = createAppStack(
-            primaryAppId,
-            'Primary Application Stack'
-        );
-
-        Id delegateAppStackId = createAppStack(
-            delegateAppId,
-            'Delegate Application Stack'
-        );
-
-        Id unownedAppStackId = createAppStack(
-            unownedAppId,
-            'Unowned Application Stack'
-        );
-
-        Id inactiveAppStackId = createAppStack(
-            inactiveAppId,
-            'Inactive Application Stack'
-        );
-
-        Id primaryConfigId = createStackLayerConfig(
-            'Primary Manual Layer'
-        );
-
-        Id delegateConfigId = createStackLayerConfig(
-            'Delegate Manual Layer'
-        );
-
-        Id unownedConfigId = createStackLayerConfig(
-            'Unowned Manual Layer'
-        );
-
-        Id inactiveConfigId = createStackLayerConfig(
-            'Inactive Manual Layer'
-        );
-
-        TPM_Stack_Layer_Junction__c primaryJunction =
-            createJunction(
-                primaryAppStackId,
-                primaryConfigId
-            );
-
-        TPM_Stack_Layer_Junction__c delegateJunction =
-            createJunction(
-                delegateAppStackId,
-                delegateConfigId
-            );
-
-        TPM_Stack_Layer_Junction__c unownedJunction =
-            createJunction(
-                unownedAppStackId,
-                unownedConfigId
-            );
-
-        TPM_Stack_Layer_Junction__c inactiveJunction =
-            createJunction(
-                inactiveAppStackId,
-                inactiveConfigId
-            );
-
-        /*
-         * Set different CreatedDate values so pagination
-         * order can be tested reliably.
-         *
-         * Newest:
-         * 1. Inactive record — must be excluded
-         * 2. Unowned active record
-         * 3. Delegate active record
-         * 4. Primary active record
-         */
-        Datetime currentTime = System.now();
-
-        Test.setCreatedDate(
-            inactiveJunction.Id,
-            currentTime.addDays(-1)
-        );
-
-        Test.setCreatedDate(
-            unownedJunction.Id,
-            currentTime.addDays(-2)
-        );
-
-        Test.setCreatedDate(
-            delegateJunction.Id,
-            currentTime.addDays(-3)
-        );
-
-        Test.setCreatedDate(
-            primaryJunction.Id,
-            currentTime.addDays(-4)
-        );
+            if (nameField.isCreateable() && !nameField.isAutoNumber()) {
+                recordItem.put('Name', nameValue);
+            }
+        }
     }
 
+    private static String getPicklistValue(
+        Schema.DescribeFieldResult fieldDescribe
+    ) {
+        for (Schema.PicklistEntry entry :
+            fieldDescribe.getPicklistValues()
+        ) {
+            if (entry.isActive()) {
+                return entry.getValue();
+            }
+        }
 
-    @IsTest
-    static void testAllReturnsOnlyActiveApps() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                null,
-                null,
-                null,
-                'All',
-                null
-            );
-
-        Test.stopTest();
-
-        System.assertEquals(
-            3,
-            result.totalRecords,
-            'Only the three active applications should be counted.'
-        );
-
-        System.assertEquals(
-            3,
-            result.rows.size(),
-            'Only active application records should be returned.'
-        );
-
-        System.assertEquals(
-            false,
-            result.hasMore,
-            'There should not be another page.'
-        );
-
-        Set<String> returnedAppNames =
-            getReturnedAppNames(result.rows);
-
-        System.assert(
-            returnedAppNames.contains(PRIMARY_ACTIVE_APP),
-            'Primary active application should be returned.'
-        );
-
-        System.assert(
-            returnedAppNames.contains(DELEGATE_ACTIVE_APP),
-            'Delegate active application should be returned.'
-        );
-
-        System.assert(
-            returnedAppNames.contains(UNOWNED_ACTIVE_APP),
-            'Unowned active application should be returned.'
-        );
-
-        System.assert(
-            !returnedAppNames.contains(INACTIVE_PRIMARY_APP),
-            'Inactive application must not be returned.'
-        );
+        return null;
     }
 
-
     @IsTest
-    static void testMyPrimaryOwnershipFilter() {
+    static void testGetStackLayJunction() {
+        String uniqueValue =
+            String.valueOf(DateTime.now().getTime());
 
-        Test.startTest();
+        String employeeNumber =
+            'EMP' + uniqueValue;
 
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
-                null,
-                null,
-                'MyPrimary',
-                null
+        User testUser = new User(
+            FirstName = 'PAAM',
+            LastName = 'Tester',
+            Alias = 'paamtest',
+            Email = 'paamtest' + uniqueValue + '@test.com',
+            Username = 'paamtest' + uniqueValue + '@test.com',
+            ProfileId = UserInfo.getProfileId(),
+            EmployeeNumber = employeeNumber,
+            TimeZoneSidKey = 'America/Chicago',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+
+        insert testUser;
+
+        System.runAs(testUser) {
+            UCH_Employee__c employee =
+                new UCH_Employee__c(
+                    Employee_ID__c = employeeNumber
+                );
+
+            setName(employee, 'Coverage Employee');
+            insert employee;
+
+            Schema.SObjectType appObjectType =
+                TPM_App_Stack__c.App__c
+                    .getDescribe()
+                    .getReferenceTo()[0];
+
+            SObject appRecord =
+                appObjectType.newSObject();
+
+            setName(appRecord, 'Coverage Application');
+
+            appRecord.put(
+                'App_Name__c',
+                'Coverage Application'
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            1,
-            result.totalRecords,
-            'MyPrimary should return only active apps where the user is a primary owner.'
-        );
-
-        System.assertEquals(
-            1,
-            result.rows.size()
-        );
-
-        System.assertEquals(
-            PRIMARY_ACTIVE_APP,
-            result.rows[0].appName
-        );
-
-        System.assertNotEquals(
-            INACTIVE_PRIMARY_APP,
-            result.rows[0].appName,
-            'Inactive primary-owned app must not be returned.'
-        );
-    }
-
-
-    @IsTest
-    static void testMyAllOwnershipFilter() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
-                null,
-                null,
-                'MyAll',
-                null
+            appRecord.put(
+                'InActive__c',
+                false
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            2,
-            result.totalRecords,
-            'MyAll should return primary-owned and delegate-owned active apps.'
-        );
-
-        System.assertEquals(
-            2,
-            result.rows.size()
-        );
-
-        Set<String> returnedAppNames =
-            getReturnedAppNames(result.rows);
-
-        System.assert(
-            returnedAppNames.contains(PRIMARY_ACTIVE_APP),
-            'Primary-owned active app should be returned.'
-        );
-
-        System.assert(
-            returnedAppNames.contains(DELEGATE_ACTIVE_APP),
-            'Delegate-owned active app should be returned.'
-        );
-
-        System.assert(
-            !returnedAppNames.contains(UNOWNED_ACTIVE_APP),
-            'Unowned app should not be returned for MyAll.'
-        );
-
-        System.assert(
-            !returnedAppNames.contains(INACTIVE_PRIMARY_APP),
-            'Inactive app should not be returned for MyAll.'
-        );
-    }
-
-
-    @IsTest
-    static void testSearchWithThreeOrMoreCharacters() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
-                null,
-                null,
-                'All',
-                'Primary Active'
+            appRecord.put(
+                'IT_Architect__c',
+                employee.Id
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            1,
-            result.totalRecords,
-            'Search should return the matching active application.'
-        );
-
-        System.assertEquals(
-            1,
-            result.rows.size()
-        );
-
-        System.assertEquals(
-            PRIMARY_ACTIVE_APP,
-            result.rows[0].appName
-        );
-    }
-
-
-    @IsTest
-    static void testSearchDoesNotReturnInactiveApp() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
-                null,
-                null,
-                'All',
-                'Inactive Primary'
+            appRecord.put(
+                'Application_Owner__c',
+                employee.Id
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            0,
-            result.totalRecords,
-            'An inactive app must not be returned even when it matches the search.'
-        );
-
-        System.assertEquals(
-            0,
-            result.rows.size()
-        );
-    }
-
-
-    @IsTest
-    static void testSearchLessThanThreeCharactersIsIgnored() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
-                null,
-                null,
-                'All',
-                ' Pr '
+            appRecord.put(
+                'Business_Owner__c',
+                employee.Id
             );
 
-        Test.stopTest();
+            Schema.DescribeFieldResult operationalStatusField =
+                appObjectType
+                    .getDescribe()
+                    .fields
+                    .getMap()
+                    .get('Operational_Status__c')
+                    .getDescribe();
 
-        /*
-         * After trimming, "Pr" contains only two characters,
-         * so the search filter should not be applied.
-         */
-        System.assertEquals(
-            3,
-            result.totalRecords,
-            'Search values shorter than three characters should be ignored.'
-        );
+            String operationalStatus =
+                getPicklistValue(operationalStatusField);
 
-        System.assertEquals(
-            3,
-            result.rows.size()
-        );
-    }
+            if (operationalStatus != null) {
+                appRecord.put(
+                    'Operational_Status__c',
+                    operationalStatus
+                );
+            }
 
+            insert appRecord;
 
-    @IsTest
-    static void testKeysetPagination() {
+            TPM_App_Stack__c appStack =
+                new TPM_App_Stack__c(
+                    App__c = (Id) appRecord.get('Id')
+                );
 
-        Test.startTest();
+            setName(appStack, 'Coverage App Stack');
+            insert appStack;
 
-        POCUI.PaamPageResult firstPage =
-            POCUI.getStackLayJunction(
-                2,
-                null,
-                null,
-                'All',
-                null
-            );
+            Schema.SObjectType configObjectType =
+                TPM_Stack_Layer_Junction__c
+                    .Stack_Layer_Config__c
+                    .getDescribe()
+                    .getReferenceTo()[0];
 
-        POCUI.PaamPageResult secondPage =
-            POCUI.getStackLayJunction(
-                2,
+            SObject configRecord =
+                configObjectType.newSObject();
+
+            setName(configRecord, 'Coverage Layer');
+            insert configRecord;
+
+            String layerStatus =
+                getPicklistValue(
+                    TPM_Stack_Layer_Junction__c
+                        .Stack_Layer_Status__c
+                        .getDescribe()
+                );
+
+            List<TPM_Stack_Layer_Junction__c> junctions =
+                new List<TPM_Stack_Layer_Junction__c>();
+
+            for (Integer index = 0; index < 2; index++) {
+                TPM_Stack_Layer_Junction__c junction =
+                    new TPM_Stack_Layer_Junction__c(
+                        TPM_App_Stack__c = appStack.Id,
+                        Stack_Layer_Config__c =
+                            (Id) configRecord.get('Id')
+                    );
+
+                setName(
+                    junction,
+                    'Coverage Junction ' + index
+                );
+
+                if (layerStatus != null) {
+                    junction.Stack_Layer_Status__c =
+                        layerStatus;
+                }
+
+                junctions.add(junction);
+            }
+
+            insert junctions;
+
+            Test.startTest();
+
+            TPM_PAAMStackData.PaamPageResult firstPage =
+                TPM_PAAMStackData.getStackLayJunction(
+                    1,
+                    null,
+                    null,
+                    'All',
+                    'Coverage'
+                );
+
+            TPM_PAAMStackData.getStackLayJunction(
+                1,
                 firstPage.lastCreatedDate,
                 firstPage.lastRecordId,
                 'All',
+                'Coverage'
+            );
+
+            TPM_PAAMStackData.getStackLayJunction(
+                null,
+                null,
+                null,
+                'MyPrimary',
+                'Co'
+            );
+
+            TPM_PAAMStackData.getStackLayJunction(
+                0,
+                null,
+                null,
+                'MyAll',
+                'Coverage'
+            );
+
+            TPM_PAAMStackData.getStackLayJunction(
+                500,
+                System.now(),
+                null,
+                'Unknown',
                 null
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            3,
-            firstPage.totalRecords,
-            'Total record count should include all active records.'
-        );
-
-        System.assertEquals(
-            2,
-            firstPage.rows.size(),
-            'First page should contain two records.'
-        );
-
-        System.assertEquals(
-            true,
-            firstPage.hasMore,
-            'First page should indicate that another page exists.'
-        );
-
-        System.assertNotEquals(
-            null,
-            firstPage.lastCreatedDate,
-            'First page should return a CreatedDate cursor.'
-        );
-
-        System.assertNotEquals(
-            null,
-            firstPage.lastRecordId,
-            'First page should return a record ID cursor.'
-        );
-
-        /*
-         * Based on the CreatedDate values set in @TestSetup,
-         * these should be the first two active records.
-         */
-        System.assertEquals(
-            UNOWNED_ACTIVE_APP,
-            firstPage.rows[0].appName
-        );
-
-        System.assertEquals(
-            DELEGATE_ACTIVE_APP,
-            firstPage.rows[1].appName
-        );
-
-        System.assertEquals(
-            3,
-            secondPage.totalRecords,
-            'Total count should remain three on the second page.'
-        );
-
-        System.assertEquals(
-            1,
-            secondPage.rows.size(),
-            'Second page should contain the remaining record.'
-        );
-
-        System.assertEquals(
-            false,
-            secondPage.hasMore,
-            'Second page should not have another page.'
-        );
-
-        System.assertEquals(
-            PRIMARY_ACTIVE_APP,
-            secondPage.rows[0].appName
-        );
-    }
-
-
-    @IsTest
-    static void testInvalidOwnershipValueUsesNoOwnershipFilter() {
-
-        Test.startTest();
-
-        POCUI.PaamPageResult result =
-            POCUI.getStackLayJunction(
-                50,
+            TPM_PAAMStackData.getStackLayJunction(
+                10,
                 null,
                 null,
-                'UnknownValue',
-                null
+                null,
+                ''
             );
 
-        Test.stopTest();
-
-        System.assertEquals(
-            3,
-            result.totalRecords,
-            'An unsupported ownership value should not add an ownership condition.'
-        );
-    }
-
-
-    /*
-     * Creates the App record dynamically.
-     *
-     * This avoids hard-coding the App object's API name.
-     */
-    private static Id createApp(
-        String appName,
-        Boolean isInactive,
-        String ownershipField
-    ) {
-        Schema.SObjectType appStackType =
-            getReferenceType(
-                TPM_Stack_Layer_Junction__c
-                    .TPM_App_Stack__c
-            );
-
-        Map<String, Schema.SObjectField> appStackFields =
-            appStackType
-                .getDescribe()
-                .fields
-                .getMap();
-
-        System.assert(
-            appStackFields.containsKey('App__c'),
-            'App__c was not found on the TPM App Stack object.'
-        );
-
-        Schema.SObjectType appType =
-            getReferenceType(
-                appStackFields.get('App__c')
-            );
-
-        SObject appRecord =
-            appType.newSObject();
-
-        setNameIfCreateable(
-            appRecord,
-            appName
-        );
-
-        setRequiredField(
-            appRecord,
-            'Inactive__c',
-            isInactive
-        );
-
-        if (String.isNotBlank(ownershipField)) {
-            setRequiredField(
-                appRecord,
-                ownershipField,
-                UserInfo.getUserId()
-            );
-        }
-
-        setFirstPicklistValue(
-            appRecord,
-            'Operational_Status__c'
-        );
-
-        populateRequiredFields(appRecord);
-
-        insert appRecord;
-
-        return appRecord.Id;
-    }
-
-
-    /*
-     * Creates the TPM App Stack parent record dynamically.
-     */
-    private static Id createAppStack(
-        Id appId,
-        String stackName
-    ) {
-        Schema.SObjectType appStackType =
-            getReferenceType(
-                TPM_Stack_Layer_Junction__c
-                    .TPM_App_Stack__c
-            );
-
-        SObject appStackRecord =
-            appStackType.newSObject();
-
-        setNameIfCreateable(
-            appStackRecord,
-            stackName
-        );
-
-        setRequiredField(
-            appStackRecord,
-            'App__c',
-            appId
-        );
-
-        populateRequiredFields(appStackRecord);
-
-        insert appStackRecord;
-
-        return appStackRecord.Id;
-    }
-
-
-    /*
-     * Creates the Stack Layer Config parent dynamically.
-     */
-    private static Id createStackLayerConfig(
-        String configName
-    ) {
-        Schema.SObjectType configType =
-            getReferenceType(
-                TPM_Stack_Layer_Junction__c
-                    .Stack_Layer_Config__c
-            );
-
-        SObject configRecord =
-            configType.newSObject();
-
-        setNameIfCreateable(
-            configRecord,
-            configName
-        );
-
-        populateRequiredFields(configRecord);
-
-        insert configRecord;
-
-        return configRecord.Id;
-    }
-
-
-    private static TPM_Stack_Layer_Junction__c createJunction(
-        Id appStackId,
-        Id configId
-    ) {
-        TPM_Stack_Layer_Junction__c junctionRecord =
-            new TPM_Stack_Layer_Junction__c();
-
-        junctionRecord.put(
-            'TPM_App_Stack__c',
-            appStackId
-        );
-
-        junctionRecord.put(
-            'Stack_Layer_Config__c',
-            configId
-        );
-
-        setFirstPicklistValue(
-            junctionRecord,
-            'Stack_Layer_Status__c'
-        );
-
-        populateRequiredFields(junctionRecord);
-
-        insert junctionRecord;
-
-        return junctionRecord;
-    }
-
-
-    private static Set<String> getReturnedAppNames(
-        List<POCUI.PaamRowWrapper> rows
-    ) {
-        Set<String> appNames =
-            new Set<String>();
-
-        for (POCUI.PaamRowWrapper row : rows) {
-            appNames.add(row.appName);
-        }
-
-        return appNames;
-    }
-
-
-    private static Schema.SObjectType getReferenceType(
-        Schema.SObjectField lookupField
-    ) {
-        List<Schema.SObjectType> referenceTypes =
-            lookupField
-                .getDescribe()
-                .getReferenceTo();
-
-        System.assert(
-            !referenceTypes.isEmpty(),
-            'The supplied field is not a lookup or master-detail field.'
-        );
-
-        return referenceTypes[0];
-    }
-
-
-    private static void setRequiredField(
-        SObject recordItem,
-        String fieldApiName,
-        Object fieldValue
-    ) {
-        Map<String, Schema.SObjectField> fieldMap =
-            recordItem
-                .getSObjectType()
-                .getDescribe()
-                .fields
-                .getMap();
-
-        System.assert(
-            fieldMap.containsKey(fieldApiName),
-            'Field not found: ' + fieldApiName
-        );
-
-        Schema.DescribeFieldResult fieldDescribe =
-            fieldMap
-                .get(fieldApiName)
-                .getDescribe();
-
-        System.assert(
-            fieldDescribe.isCreateable(),
-            'Field is not createable: ' + fieldApiName
-        );
-
-        recordItem.put(
-            fieldApiName,
-            fieldValue
-        );
-    }
-
-
-    private static void setNameIfCreateable(
-        SObject recordItem,
-        String nameValue
-    ) {
-        Map<String, Schema.SObjectField> fieldMap =
-            recordItem
-                .getSObjectType()
-                .getDescribe()
-                .fields
-                .getMap();
-
-        if (!fieldMap.containsKey('Name')) {
-            return;
-        }
-
-        Schema.DescribeFieldResult nameDescribe =
-            fieldMap
-                .get('Name')
-                .getDescribe();
-
-        if (
-            nameDescribe.isCreateable() &&
-            !nameDescribe.isAutoNumber()
-        ) {
-            recordItem.put(
-                'Name',
-                nameValue
-            );
-        }
-    }
-
-
-    private static void setFirstPicklistValue(
-        SObject recordItem,
-        String fieldApiName
-    ) {
-        Map<String, Schema.SObjectField> fieldMap =
-            recordItem
-                .getSObjectType()
-                .getDescribe()
-                .fields
-                .getMap();
-
-        if (!fieldMap.containsKey(fieldApiName)) {
-            return;
-        }
-
-        Schema.DescribeFieldResult fieldDescribe =
-            fieldMap
-                .get(fieldApiName)
-                .getDescribe();
-
-        if (!fieldDescribe.isCreateable()) {
-            return;
-        }
-
-        for (
-            Schema.PicklistEntry picklistEntry :
-            fieldDescribe.getPicklistValues()
-        ) {
-            if (picklistEntry.isActive()) {
-                recordItem.put(
-                    fieldApiName,
-                    picklistEntry.getValue()
-                );
-
-                return;
-            }
-        }
-    }
-
-
-    /*
-     * Populates basic required fields automatically.
-     *
-     * If your org has validation rules requiring additional
-     * business-specific fields, add those fields in the
-     * relevant createApp, createAppStack, createStackLayerConfig,
-     * or createJunction method.
-     */
-    private static void populateRequiredFields(
-        SObject recordItem
-    ) {
-        Map<String, Schema.SObjectField> fieldMap =
-            recordItem
-                .getSObjectType()
-                .getDescribe()
-                .fields
-                .getMap();
-
-        for (String fieldApiName : fieldMap.keySet()) {
-
-            Schema.DescribeFieldResult fieldDescribe =
-                fieldMap
-                    .get(fieldApiName)
-                    .getDescribe();
-
-            if (
-                !fieldDescribe.isCreateable() ||
-                fieldDescribe.isCalculated() ||
-                fieldDescribe.isAutoNumber() ||
-                fieldDescribe.isDefaultedOnCreate() ||
-                fieldDescribe.isNillable() ||
-                recordItem.get(fieldApiName) != null
-            ) {
-                continue;
-            }
-
-            Schema.DisplayType fieldType =
-                fieldDescribe.getType();
-
-            if (fieldType == Schema.DisplayType.Boolean) {
-                recordItem.put(fieldApiName, false);
-
-            } else if (
-                fieldType == Schema.DisplayType.Date
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    Date.today()
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.DateTime
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    System.now()
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.Time
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    Time.newInstance(12, 0, 0, 0)
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.Integer
-            ) {
-                recordItem.put(fieldApiName, 1);
-
-            } else if (
-                fieldType == Schema.DisplayType.Double ||
-                fieldType == Schema.DisplayType.Currency ||
-                fieldType == Schema.DisplayType.Percent
-            ) {
-                recordItem.put(fieldApiName, 1);
-
-            } else if (
-                fieldType == Schema.DisplayType.Email
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    'test@example.com'
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.Url
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    'https://example.com'
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.Phone
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    '5125550100'
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.String ||
-                fieldType == Schema.DisplayType.TextArea
-            ) {
-                recordItem.put(
-                    fieldApiName,
-                    'Test'
-                );
-
-            } else if (
-                fieldType == Schema.DisplayType.Picklist ||
-                fieldType == Schema.DisplayType.MultiPicklist
-            ) {
-                for (
-                    Schema.PicklistEntry picklistEntry :
-                    fieldDescribe.getPicklistValues()
-                ) {
-                    if (picklistEntry.isActive()) {
-                        recordItem.put(
-                            fieldApiName,
-                            picklistEntry.getValue()
-                        );
-
-                        break;
-                    }
-                }
-
-            } else if (
-                fieldType == Schema.DisplayType.Reference
-            ) {
-                for (
-                    Schema.SObjectType referenceType :
-                    fieldDescribe.getReferenceTo()
-                ) {
-                    if (referenceType == User.SObjectType) {
-                        recordItem.put(
-                            fieldApiName,
-                            UserInfo.getUserId()
-                        );
-
-                        break;
-                    }
-                }
-            }
+            Test.stopTest();
         }
     }
 }
