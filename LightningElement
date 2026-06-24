@@ -1,19 +1,649 @@
-Send an email notification to Jeff and the Admin users when the Final Agenda Date is entered or updated. The email should confirm that the Final Agenda Date has been set and include the relevant record details.
+public with sharing class TPM_PAAMStackData {
 
-When the Final Agenda Date is populated for the first time, an email is sent to Jeff and the designated Admin users.
-When the Final Agenda Date is changed, a new email notification is sent.
-The email includes the record name, Final Agenda Date, and a link to the record.
-No email is sent when other fields are updated without changing the Final Agenda Date.
-The notification works for all applicable records and is successfully validated in QA/UAT.
+    @AuraEnabled(cacheable=true)
+    @SuppressWarnings('PMD.ExcessiveParameterList')
+    public static PaamPageResult getStackLayJunction(
+        Integer pageSize,
+        Datetime lastCreatedDate,
+        Id lastRecordId,
+        String ownedBy,
+        String searchKey
+    ) {
+        PaamRequest request = new PaamRequest();
+        request.pageSize = pageSize;
+        request.lastCreatedDate = lastCreatedDate;
+        request.lastRecordId = lastRecordId;
+        request.ownedBy = ownedBy;
+        request.searchKey = searchKey;
 
+        return getPageResult(request);
+    }
 
-Create Send Back Date and Recall Date fields for Waivers. These fields should automatically capture the date when a waiver is sent back or recalled, allowing users to track the history and current status of the waiver.
+    private static PaamPageResult getPageResult(
+        PaamRequest request
+    ) {
+        Integer safeLimit = getSafeLimit(request.pageSize);
+        Integer queryLimit = safeLimit + 1;
 
-A Send Back Date field is available on the Waiver record.
-When a waiver is sent back, the Send Back Date is automatically populated with the current date.
-A Recall Date field is available on the Waiver record.
-When a waiver is recalled, the Recall Date is automatically populated with the current date.
-The dates are updated only when the corresponding Send Back or Recall action occurs.
-Both fields are visible to the appropriate users on the Waiver page layout.
-Existing waiver functionality continues to work without impact.
-The changes are successfully tested and validated in QA/UAT.
+        String ownershipCondition =
+            buildOwnershipCondition(request.ownedBy);
+
+        Id currentEmployeeId;
+
+        if (String.isNotBlank(ownershipCondition)) {
+            currentEmployeeId = getCurrentEmployeeId();
+        }
+
+        String searchPattern =
+            getSearchPattern(request.searchKey);
+
+        List<String> baseConditions =
+            buildBaseConditions(
+                ownershipCondition,
+                searchPattern
+            );
+
+        Map<String, Object> baseBindValues =
+            buildBaseBindValues(
+                ownershipCondition,
+                currentEmployeeId,
+                searchPattern
+            );
+
+        Integer totalRecords =
+            getTotalRecords(
+                baseConditions,
+                baseBindValues
+            );
+
+        List<String> recordConditions =
+            new List<String>();
+
+        recordConditions.addAll(baseConditions);
+
+        addPaginationCondition(
+            recordConditions,
+            request
+        );
+
+        Map<String, Object> recordBindValues =
+            buildRecordBindValues(
+                baseBindValues,
+                request,
+                queryLimit
+            );
+
+        List<TPM_Stack_Layer_Junction__c> queriedRecords =
+            getJunctionRecords(
+                recordConditions,
+                recordBindValues
+            );
+
+        Boolean hasMore =
+            queriedRecords.size() > safeLimit;
+
+        List<TPM_Stack_Layer_Junction__c> pageRecords =
+            getPageRecords(
+                queriedRecords,
+                safeLimit
+            );
+
+        return createPageResult(
+            pageRecords,
+            totalRecords,
+            hasMore
+        );
+    }
+
+    private static Integer getSafeLimit(
+        Integer pageSize
+    ) {
+        if (pageSize == null) {
+            return 50;
+        }
+
+        return Math.min(
+            Math.max(pageSize, 1),
+            200
+        );
+    }
+
+    private static Id getCurrentEmployeeId() {
+        User currentUser = [
+            SELECT EmployeeNumber
+            FROM User
+            WHERE Id = :UserInfo.getUserId()
+            WITH USER_MODE
+            LIMIT 1
+        ];
+
+        if (String.isBlank(currentUser.EmployeeNumber)) {
+            return null;
+        }
+
+        List<UCH_Employee__c> employees = [
+            SELECT Id
+            FROM UCH_Employee__c
+            WHERE Employee_ID__c =
+                :currentUser.EmployeeNumber
+            WITH USER_MODE
+            LIMIT 1
+        ];
+
+        if (employees.isEmpty()) {
+            return null;
+        }
+
+        return employees[0].Id;
+    }
+
+    private static String getSearchPattern(
+        String searchKey
+    ) {
+        if (String.isBlank(searchKey)) {
+            return null;
+        }
+
+        String normalizedSearchKey =
+            searchKey.trim();
+
+        if (normalizedSearchKey.length() < 3) {
+            return null;
+        }
+
+        return '%' + normalizedSearchKey + '%';
+    }
+
+    private static List<String> buildBaseConditions(
+        String ownershipCondition,
+        String searchPattern
+    ) {
+        List<String> conditions =
+            new List<String>{
+                'TPM_App_Stack__r.App__r.InActive__c = false'
+            };
+
+        if (String.isNotBlank(ownershipCondition)) {
+            conditions.add(ownershipCondition);
+        }
+
+        if (String.isNotBlank(searchPattern)) {
+            conditions.add(getSearchCondition());
+        }
+
+        return conditions;
+    }
+
+    private static String getSearchCondition() {
+        return
+            '(' +
+                'TPM_App_Stack__r.App__r.App_Name__c ' +
+                    'LIKE :searchPattern ' +
+                'OR TPM_App_Stack__r.App__r.' +
+                    'Operational_Status__c ' +
+                    'LIKE :searchPattern ' +
+                'OR Stack_Layer_Config__r.Name ' +
+                    'LIKE :searchPattern ' +
+                'OR Stack_Layer_Status__c ' +
+                    'LIKE :searchPattern' +
+            ')';
+    }
+
+    private static Map<String, Object> buildBaseBindValues(
+        String ownershipCondition,
+        Id currentEmployeeId,
+        String searchPattern
+    ) {
+        Map<String, Object> bindValues =
+            new Map<String, Object>();
+
+        if (String.isNotBlank(ownershipCondition)) {
+            bindValues.put(
+                'currentEmployeeId',
+                currentEmployeeId
+            );
+        }
+
+        if (String.isNotBlank(searchPattern)) {
+            bindValues.put(
+                'searchPattern',
+                searchPattern
+            );
+        }
+
+        return bindValues;
+    }
+
+    private static Integer getTotalRecords(
+        List<String> conditions,
+        Map<String, Object> bindValues
+    ) {
+        String countQuery =
+            'SELECT COUNT() ' +
+            'FROM TPM_Stack_Layer_Junction__c' +
+            buildWhereClause(conditions);
+
+        return Database.countQueryWithBinds(
+            countQuery,
+            bindValues,
+            AccessLevel.USER_MODE
+        );
+    }
+
+    private static void addPaginationCondition(
+        List<String> conditions,
+        PaamRequest request
+    ) {
+        if (
+            request.lastCreatedDate == null ||
+            request.lastRecordId == null
+        ) {
+            return;
+        }
+
+        conditions.add(
+            '(' +
+                'CreatedDate < :lastCreatedDate ' +
+                'OR (' +
+                    'CreatedDate = :lastCreatedDate ' +
+                    'AND Id < :lastRecordId' +
+                ')' +
+            ')'
+        );
+    }
+
+    private static Map<String, Object> buildRecordBindValues(
+        Map<String, Object> baseBindValues,
+        PaamRequest request,
+        Integer queryLimit
+    ) {
+        Map<String, Object> bindValues =
+            new Map<String, Object>();
+
+        bindValues.putAll(baseBindValues);
+        bindValues.put('queryLimit', queryLimit);
+
+        if (
+            request.lastCreatedDate != null &&
+            request.lastRecordId != null
+        ) {
+            bindValues.put(
+                'lastCreatedDate',
+                request.lastCreatedDate
+            );
+
+            bindValues.put(
+                'lastRecordId',
+                request.lastRecordId
+            );
+        }
+
+        return bindValues;
+    }
+
+    private static List<TPM_Stack_Layer_Junction__c>
+        getJunctionRecords(
+            List<String> conditions,
+            Map<String, Object> bindValues
+        ) {
+        String recordQuery =
+            'SELECT ' +
+                'Id, ' +
+                'CreatedDate, ' +
+                'Stack_Layer_Status__c, ' +
+                'Stack_Layer_Config__r.Name, ' +
+                'TPM_App_Stack__r.App__r.App_Name__c, ' +
+                'TPM_App_Stack__r.App__r.' +
+                    'Operational_Status__c ' +
+            'FROM TPM_Stack_Layer_Junction__c' +
+            buildWhereClause(conditions) +
+            ' ORDER BY CreatedDate DESC, Id DESC' +
+            ' LIMIT :queryLimit';
+
+        List<TPM_Stack_Layer_Junction__c> records =
+            Database.queryWithBinds(
+                recordQuery,
+                bindValues,
+                AccessLevel.USER_MODE
+            );
+
+        return records;
+    }
+
+    private static String buildWhereClause(
+        List<String> conditions
+    ) {
+        if (conditions.isEmpty()) {
+            return '';
+        }
+
+        return
+            ' WHERE ' +
+            String.join(conditions, ' AND ');
+    }
+
+    private static List<TPM_Stack_Layer_Junction__c>
+        getPageRecords(
+            List<TPM_Stack_Layer_Junction__c> queriedRecords,
+            Integer safeLimit
+        ) {
+        List<TPM_Stack_Layer_Junction__c> pageRecords =
+            new List<TPM_Stack_Layer_Junction__c>();
+
+        Integer recordsToReturn =
+            Math.min(
+                safeLimit,
+                queriedRecords.size()
+            );
+
+        for (
+            Integer index = 0;
+            index < recordsToReturn;
+            index++
+        ) {
+            pageRecords.add(
+                queriedRecords[index]
+            );
+        }
+
+        return pageRecords;
+    }
+
+    private static PaamPageResult createPageResult(
+        List<TPM_Stack_Layer_Junction__c> pageRecords,
+        Integer totalRecords,
+        Boolean hasMore
+    ) {
+        PaamPageResult result =
+            new PaamPageResult();
+
+        result.rows = createRows(pageRecords);
+        result.totalRecords = totalRecords;
+        result.hasMore = hasMore;
+
+        setNextPageCursor(
+            result,
+            pageRecords
+        );
+
+        return result;
+    }
+
+    private static List<PaamRowWrapper> createRows(
+        List<TPM_Stack_Layer_Junction__c> records
+    ) {
+        List<PaamRowWrapper> rows =
+            new List<PaamRowWrapper>();
+
+        for (
+            TPM_Stack_Layer_Junction__c junction :
+            records
+        ) {
+            rows.add(createRow(junction));
+        }
+
+        return rows;
+    }
+
+    private static PaamRowWrapper createRow(
+        TPM_Stack_Layer_Junction__c junction
+    ) {
+        PaamRowWrapper row =
+            new PaamRowWrapper();
+
+        row.recordId = junction.Id;
+        row.createdDate = junction.CreatedDate;
+        row.manualStatus =
+            valueOrBlank(
+                junction.Stack_Layer_Status__c
+            );
+
+        setStackLayerValues(row, junction);
+        setApplicationValues(row, junction);
+
+        row.paamDiscovered =
+            valueOrBlank(row.paamDiscovered);
+
+        row.discoveredStatus =
+            valueOrBlank(row.discoveredStatus);
+
+        return row;
+    }
+
+    private static void setStackLayerValues(
+        PaamRowWrapper row,
+        TPM_Stack_Layer_Junction__c junction
+    ) {
+        if (junction.Stack_Layer_Config__r == null) {
+            row.paamManual = '';
+            return;
+        }
+
+        row.paamManual =
+            valueOrBlank(
+                junction.Stack_Layer_Config__r.Name
+            );
+    }
+
+    private static void setApplicationValues(
+        PaamRowWrapper row,
+        TPM_Stack_Layer_Junction__c junction
+    ) {
+        if (
+            junction.TPM_App_Stack__r == null ||
+            junction.TPM_App_Stack__r.App__r == null
+        ) {
+            row.appName = '';
+            row.operationalStatus = '';
+            return;
+        }
+
+        row.appName =
+            valueOrBlank(
+                junction.TPM_App_Stack__r
+                    .App__r
+                    .App_Name__c
+            );
+
+        row.operationalStatus =
+            valueOrBlank(
+                junction.TPM_App_Stack__r
+                    .App__r
+                    .Operational_Status__c
+            );
+    }
+
+    private static String valueOrBlank(
+        String fieldValue
+    ) {
+        return String.isBlank(fieldValue)
+            ? ''
+            : fieldValue;
+    }
+
+    private static void setNextPageCursor(
+        PaamPageResult result,
+        List<TPM_Stack_Layer_Junction__c> records
+    ) {
+        if (records.isEmpty()) {
+            return;
+        }
+
+        TPM_Stack_Layer_Junction__c finalRecord =
+            records[records.size() - 1];
+
+        result.lastCreatedDate =
+            finalRecord.CreatedDate;
+
+        result.lastRecordId =
+            finalRecord.Id;
+    }
+
+    private static String buildOwnershipCondition(
+        String ownedBy
+    ) {
+        List<String> ownershipFields =
+            getOwnershipFields(ownedBy);
+
+        if (ownershipFields.isEmpty()) {
+            return null;
+        }
+
+        List<String> conditions =
+            new List<String>();
+
+        for (String fieldName : ownershipFields) {
+            conditions.add(
+                'TPM_App_Stack__r.App__r.' +
+                fieldName +
+                ' = :currentEmployeeId'
+            );
+        }
+
+        return
+            '(' +
+            String.join(conditions, ' OR ') +
+            ')';
+    }
+
+    private static List<String> getOwnershipFields(
+        String ownedBy
+    ) {
+        if ('MyPrimary'.equalsIgnoreCase(ownedBy)) {
+            return getPrimaryOwnershipFields();
+        }
+
+        if ('MyAll'.equalsIgnoreCase(ownedBy)) {
+            return getAllOwnershipFields();
+        }
+
+        return new List<String>();
+    }
+
+    private static List<String> getPrimaryOwnershipFields() {
+        return new List<String>{
+            'IT_Architect__c',
+            'Application_Owner__c',
+            'Business_Owner__c'
+        };
+    }
+
+    private static List<String> getAllOwnershipFields() {
+        return new List<String>{
+            'IT_Architect__c',
+            'IT_Architect_Delegate_1__c',
+            'IT_Architect_Delegate_2__c',
+            'Application_Owner__c',
+            'Application_Owner_Delegate_1__c',
+            'Application_Owner_Delegate_2__c',
+            'Application_Owner_Delegate_3__c',
+            'Application_Owner_Delegate_4__c',
+            'Business_Owner__c',
+            'Business_Owner_Delegate_1__c',
+            'Business_Owner_Delegate_2__c',
+            'Business_Owner_Delegate_3__c'
+        };
+    }
+
+    private class PaamRequest {
+        private Integer pageSize;
+        private Datetime lastCreatedDate;
+        private Id lastRecordId;
+        private String ownedBy;
+        private String searchKey;
+    }
+
+    public class PaamPageResult {
+        @AuraEnabled
+        public List<PaamRowWrapper> rows {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Boolean hasMore {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Integer totalRecords {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Datetime lastCreatedDate {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Id lastRecordId {
+            get;
+            set;
+        }
+    }
+
+    public class PaamRowWrapper {
+        @AuraEnabled
+        public Id recordId {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Datetime createdDate {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String appName {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String operationalStatus {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String paamManual {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String paamDiscovered {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String manualStatus {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public String discoveredStatus {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Boolean isMine {
+            get;
+            set;
+        }
+
+        @AuraEnabled
+        public Boolean isPrimary {
+            get;
+            set;
+        }
+    }
+}s
