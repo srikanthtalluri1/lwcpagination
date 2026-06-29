@@ -1,11 +1,8 @@
-Create an Apex test class for the PAAM Conflict Page functionality. The test class should cover the main business logic, positive and negative scenarios, exception handling, and bulk processing where applicable. Review the related Apex code and test class for PMD violations and resolve all identified issues.
+Add pagination to the PAAM Conflict page to improve performance and make large result sets easier to review. Users should be able to navigate between pages while retaining the selected application, filters, sorting, and other relevant page criteria. Review the related Apex and LWC code for PMD violations and create or update the test class to cover the pagination functionality.
 
-Acceptance Criteria
-An Apex test class is created for the PAAM Conflict Page functionality.
-The test class provides at least 85% code coverage for the related Apex class.
-Positive, negative, null, and bulk-data scenarios are covered.
-All test methods execute successfully without failures.
-The implementation follows Salesforce Apex best practices.
-PMD analysis is completed for both the main Apex class and test class.
-All applicable PMD violations are resolved.
-Existing functionality is not impacted by the changes.
+Add pagination to the PAAM Conflict page.
+Provide Next and Previous navigation with page details.
+Retain filters, sorting, and application selection between pages.
+Handle empty, single-page, and large result sets.
+Achieve at least 85% Apex test coverage.
+Resolve applicable PMD issues without impacting existing functionality.
