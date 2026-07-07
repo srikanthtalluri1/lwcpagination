@@ -1,323 +1,907 @@
-<template>
-  <div class="paam-page">
-    <!-- Hero -->
-    <div class="paam-hero">
-      <div>
-        <span class="paam-eyebrow">USAA · Application Insights</span>
-        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
-        <p>
-          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
-        </p>
-      </div>
-    </div>
+:host {
+  /* USAA brand palette */
+  --paam-bg-start: #eef3f7;
+  --paam-bg-end: #f7f3ea;
+  --paam-card-bg: #ffffff;
+  --paam-border: #d9e0e6;
+  --paam-text: #0d2436;
+  --paam-muted: #5b6b78;
 
-    <!-- Stats -->
-    <div class="paam-stats">
-      <div class="paam-stat paam-stat--total">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Total Apps</div>
-        <div class="paam-stat__value">{totalAppsDisplay}</div>
-        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
-      </div>
+  --paam-primary: #003B5C;
+  --paam-primary-soft: #e5edf3;
+  --paam-primary-dark: #002855;
 
-      <div class="paam-stat paam-stat--sync">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">In Sync</div>
-        <div class="paam-stat__value">{totalSyncDisplay}</div>
-        <div class="paam-stat__hint">Manual matches discovered</div>
-      </div>
+  --paam-gold: #C2A77E;
+  --paam-gold-dark: #a78a5e;
 
-      <div class="paam-stat paam-stat--conflict">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Conflicts</div>
-        <div class="paam-stat__value">{totalConflictsDisplay}</div>
-        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
-      </div>
-    </div>
+  --paam-danger: #B3261E;
+  --paam-danger-soft: #fbeae8;
+  --paam-success: #1f7a4d;
+  --paam-success-soft: #e6f2ec;
 
-    <!-- Main Card -->
-    <div class="paam-card">
-      <div class="paam-card__header">
-        <div>
-          <h3 class="paam-card__title">Application PAAM Records</h3>
-          <p class="paam-card__subtitle">
-            Showing {filteredCountDisplay} of {totalRecordsDisplay} records
-          </p>
-        </div>
+  --paam-shadow: 0 10px 30px -12px rgba(0, 40, 85, 0.22),
+    0 2px 6px -2px rgba(0, 40, 85, 0.08);
 
-        <div class="paam-toolbar">
-          <!-- Search -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-search-input">Search</label>
-            <div class="paam-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                id="paam-search-input"
-                type="search"
-                placeholder="Search app, PAAM…"
-                value={query}
-                oninput={handleSearch}
-              />
-            </div>
-          </div>
+  display: block;
+  color: var(--paam-text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
-          <!-- Ownership -->
-          <div class="paam-field">
-            <span class="paam-field__label">Ownership</span>
-            <div class="paam-segmented" role="tablist" aria-label="Ownership">
-              <button
-                type="button"
-                class={primaryScopeClass}
-                data-scope="primary"
-                onclick={handleScopeChange}
-                title="Apps where you are the primary owner">
-                My Primary Apps
-              </button>
-              <button
-                type="button"
-                class={mineScopeClass}
-                data-scope="mine"
-                onclick={handleScopeChange}
-                title="All apps you own or co-own">
-                My All Apps
-              </button>
-              <button
-                type="button"
-                class={allScopeClass}
-                data-scope="all"
-                onclick={handleScopeChange}>
-                All Apps
-              </button>
-            </div>
-          </div>
+.paam-page {
+  padding: 2.5rem 1.5rem 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background:
+    radial-gradient(1200px 600px at 0% -10%, #d6e2eb 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #efe6d2 0%, transparent 55%),
+    linear-gradient(180deg, var(--paam-bg-start) 0%, var(--paam-bg-end) 100%);
+  min-height: 100vh;
+}
 
-          <!-- Sync Status -->
-          <div class="paam-field">
-            <span class="paam-field__label">Sync Status</span>
-            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
-              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
-                Conflicts
-              </button>
-              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
-                All
-              </button>
-              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
-                In Sync
-              </button>
-            </div>
-          </div>
+/* Hero */
+.paam-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.75rem 1.75rem 1.5rem;
+  flex-wrap: wrap;
+  background:
+    linear-gradient(135deg, var(--paam-primary-dark) 0%, var(--paam-primary) 55%, #0a4d72 100%);
+  border-radius: 14px;
+  border: 1px solid var(--paam-primary-dark);
+  box-shadow: 0 14px 32px -16px rgba(0, 40, 85, 0.55);
+  overflow: hidden;
+}
 
-          <!-- Stack Layer Status -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
-            <select
-              id="paam-status-select"
-              class="paam-select"
-              value={statusFilter}
-              onchange={handleStatusFilterChange}
-              aria-label="Filter by Stack Layer Status"
-              title="Filter by Stack Layer Status">
-              <option value="all">All Statuses</option>
-              <template for:each={stackStatusOptions} for:item="opt">
-                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
-              </template>
-            </select>
-          </div>
-        </div>
-      </div>
+.paam-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--paam-gold) 0%, var(--paam-gold-dark) 100%);
+}
 
-      <!-- Table -->
-      <div class="paam-table-wrap slds-scope">
-        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
-          <thead>
-            <tr>
-              <th scope="col">
-                <button type="button" data-field="appName" onclick={handleSort}>
-                  Application <span>{appSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="status" onclick={handleSort}>
-                  Operational Status <span>{statusSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamManual" onclick={handleSort}>
-                  PAAM Manual <span>{manualSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
-                  PAAM Discovered <span>{discoveredSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">Sync Status</th>
-              <template if:true={isPrimaryScope}>
-                <th scope="col" class="paam-action-heading">Action</th>
-              </template>
-            </tr>
-          </thead>
+.paam-hero::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -80px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(194, 167, 126, 0.22) 0%, rgba(194, 167, 126, 0) 70%);
+  pointer-events: none;
+}
 
-          <tbody>
-            <template if:true={hasPageRows}>
-              <template for:each={pageRows} for:item="row">
-                <tr key={row.id} class={row.rowClass}>
-                  <template if:true={row.showApplication}>
-                    <th
-                      scope="rowgroup"
-                      rowspan={row.applicationRowSpan}
-                      class="paam-group-cell">
-                      <div class="paam-app-cell">
-                        <span class="paam-app-name">{row.appName}</span>
-                      </div>
-                    </th>
+.paam-hero > * {
+  position: relative;
+  z-index: 1;
+}
 
-                    <td
-                      rowspan={row.applicationRowSpan}
-                      class="paam-group-cell">
-                      <span class="paam-attr">{row.status}</span>
-                    </td>
-                  </template>
+.paam-hero h1 {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
 
-                  <td class="paam-cell--manual">
-                    <span class="paam-diff-cell">
-                      <span class={row.manualPillClass} title={row.manualTitle}>
-                        <span class="paam-pill__label">{row.paamManual}</span>
-                      </span>
+.paam-hero h1 .paam-hero__accent {
+  color: var(--paam-gold);
+}
 
-                      <template if:true={row.isConflict}>
-                        <span class="paam-diff-arrow" title={row.diffTitle}>
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                               stroke-linejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="13 6 19 12 13 18"></polyline>
-                          </svg>
-                        </span>
-                      </template>
-                    </span>
+.paam-hero p {
+  margin: 0.35rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.95rem;
+}
 
-                    <template if:true={row.wasOverridden}>
-                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
-                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                             stroke-linejoin="round" aria-hidden="true">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Accepted
-                      </div>
-                    </template>
-                  </td>
+.paam-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paam-gold);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(194, 167, 126, 0.45);
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+  backdrop-filter: blur(2px);
+}
 
-                  <td class="paam-cell--discovered">
-                    <span class="paam-diff-cell">
-                      <span class={row.discoveredPillClass} title={row.discoveredTitle}>
-                        <span class="paam-pill__label">{row.paamDiscovered}</span>
-                      </span>
-                    </span>
-                  </td>
+.paam-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--paam-gold);
+  box-shadow: 0 0 0 3px rgba(194, 167, 126, 0.25);
+}
 
-                  <td>
-                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
-                  </td>
+/* Stat cards */
+.paam-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
 
-                  <template if:true={isPrimaryScope}>
-                    <td class="paam-action-cell">
-                      <template if:true={row.isConflict}>
-                        <button
-                          type="button"
-                          class="paam-btn paam-btn--accept"
-                          data-id={row.id}
-                          onclick={handleAccept}
-                          title={row.acceptTitle}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                               aria-hidden="true">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          Accept
-                        </button>
-                      </template>
+.paam-stat {
+  background: var(--paam-card-bg);
+  border: 1px solid var(--paam-border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: var(--paam-shadow);
+  position: relative;
+  overflow: hidden;
+}
 
-                      <template if:false={row.isConflict}>
-                        <template if:true={row.wasOverridden}>
-                          <div class="paam-action-stack">
-                            <span class="paam-accepted-tag">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                   aria-hidden="true">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                              Accepted
-                            </span>
-                            <button
-                              type="button"
-                              class="paam-action-undo"
-                              data-id={row.id}
-                              onclick={handleUndo}>
-                              Undo
-                            </button>
-                          </div>
-                        </template>
+.paam-stat__accent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+}
 
-                        <template if:false={row.wasOverridden}>
-                          <span class="paam-action-empty" aria-hidden="true">—</span>
-                        </template>
-                      </template>
-                    </td>
-                  </template>
-                </tr>
-              </template>
-            </template>
+.paam-stat--total .paam-stat__accent {
+  background: var(--paam-primary);
+}
 
-            <template if:false={hasPageRows}>
-              <tr>
-                <td colspan={emptyColspan} class="paam-empty">
-                  <div class="paam-empty__icon">∅</div>
-                  <div>No records match your filters.</div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+.paam-stat--conflict .paam-stat__accent {
+  background: var(--paam-danger);
+}
 
-      <!-- Footer / Pagination -->
-      <div class="paam-card__footer">
-        <span>{footerRangeLabel}</span>
+.paam-stat--sync .paam-stat__accent {
+  background: var(--paam-success);
+}
 
-        <span class="paam-pager">
-          <label class="paam-page-size-label">
-            Rows:
-            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
+.paam-stat__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paam-muted);
+}
 
-          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
-          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
-          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
-          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
-          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
-        </span>
-      </div>
-    </div>
+.paam-stat__value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 0.25rem;
+  letter-spacing: -0.02em;
+}
 
-    <!-- Toast -->
-    <template if:true={toastMessage}>
-      <div class="paam-toast-region" role="status" aria-live="polite">
-        <div class={toastClass}>
-          <span>{toastMessage}</span>
-          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>
+.paam-stat__hint {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--paam-muted);
+}
+
+.paam-stat--conflict .paam-stat__value {
+  color: var(--paam-danger);
+}
+
+.paam-stat--sync .paam-stat__value {
+  color: var(--paam-success);
+}
+
+/* Card */
+.paam-card {
+  background: var(--paam-card-bg);
+  border: 1px solid var(--paam-border);
+  border-radius: 16px;
+  box-shadow: var(--paam-shadow);
+  overflow: hidden;
+}
+
+.paam-card__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--paam-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, #f6f8fa 0%, #ffffff 100%);
+}
+
+.paam-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.paam-card__subtitle {
+  font-size: 0.82rem;
+  color: var(--paam-muted);
+  margin: 0.1rem 0 0;
+}
+
+/* Toolbar */
+.paam-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.paam-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.paam-field__label {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #444;
+  letter-spacing: 0;
+}
+
+/* Search input */
+.paam-search {
+  position: relative;
+}
+
+.paam-search input {
+  width: 260px;
+  max-width: 100%;
+  height: 1.875rem;
+  padding: 0 0.75rem 0 2rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.875rem;
+  border: 1px solid #aeaeae;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #181818;
+  transition: border-color 0.1s linear, box-shadow 0.1s linear;
+  outline: none;
+}
+
+.paam-search input::placeholder {
+  color: #706e6b;
+}
+
+.paam-search input:focus {
+  border-color: #1b96ff;
+  box-shadow: 0 0 3px #0176d3;
+}
+
+.paam-search svg {
+  position: absolute;
+  left: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #706e6b;
+  pointer-events: none;
+}
+
+/* Picklist */
+.paam-select {
+  font: inherit;
+  font-size: 0.8125rem;
+  height: 1.875rem;
+  padding: 0 1.75rem 0 0.75rem;
+  border: 1px solid #aeaeae;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #181818;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  transition: border-color 0.1s linear, box-shadow 0.1s linear;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23706e6b' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+}
+
+.paam-select:focus {
+  border-color: #1b96ff;
+  box-shadow: 0 0 3px #0176d3;
+}
+
+/* Segmented control */
+.paam-segmented {
+  display: inline-flex;
+  height: 1.875rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.paam-segmented button {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #aeaeae;
+  border-right-width: 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #0176d3;
+  padding: 0 0.85rem;
+  height: 1.875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s linear, color 0.1s linear, box-shadow 0.1s linear;
+  white-space: nowrap;
+}
+
+.paam-segmented button:first-child {
+  border-top-left-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
+}
+
+.paam-segmented button:last-child {
+  border-right-width: 1px;
+  border-top-right-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.paam-segmented button:hover {
+  background: #f3f3f3;
+}
+
+.paam-segmented button:focus {
+  outline: none;
+  box-shadow: 0 0 3px #0176d3;
+  position: relative;
+  z-index: 1;
+}
+
+.paam-segmented button.is-active {
+  background: #0176d3;
+  border-color: #014486;
+  color: #fff;
+}
+
+.paam-segmented button.is-active:hover {
+  background: #014486;
+}
+
+/* Table */
+.paam-table-wrap {
+  overflow-x: auto;
+}
+
+.paam-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.92rem;
+}
+
+.paam-table thead th {
+  background: #f8fafc;
+  color: var(--paam-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--paam-border);
+  position: sticky;
+  top: 0;
+  user-select: none;
+}
+
+.paam-table thead th button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.paam-table thead th button:hover {
+  color: var(--paam-text);
+}
+
+.paam-action-heading {
+  text-align: right !important;
+}
+
+.paam-table tbody td,
+.paam-table tbody th {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+.paam-table tbody tr:last-child td,
+.paam-table tbody tr:last-child th {
+  border-bottom: 0;
+}
+
+.paam-table tbody tr:hover {
+  background-color: #f4f7fa;
+}
+
+.paam-row-conflict {
+  background-color: rgba(220, 38, 38, 0.04);
+}
+
+.paam-row-conflict:hover {
+  background-color: rgba(220, 38, 38, 0.08);
+}
+
+.paam-row-group-start td,
+.paam-row-group-start th {
+  border-top: 2px solid #e2e8f0;
+}
+
+.paam-attr {
+  font-weight: 500;
+  color: #334155;
+}
+
+.paam-app-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-align: left;
+}
+
+.paam-table th[scope="row"],
+.paam-table td {
+  text-align: left;
+}
+
+.paam-app-name {
+  font-weight: 500;
+  color: var(--paam-text);
+}
+
+/* PAAM pill */
+.paam-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+  color: #334155;
+  max-width: 280px;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: left;
+}
+/*
+.paam-pill--preferred {
+  background: #e6f4ea;
+  color: #f6161e;
+  border-color: #b7dcc3;
+}
+
+.paam-pill--acceptable {
+  background: var(--paam-primary-soft);
+  color: var(--paam-primary);
+  border-color: #b8c8d6;
+}
+
+.paam-pill--restricted {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f3d98a;
+}
+
+.paam-pill--deprecated {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #f5c79a;
+}
+
+.paam-pill--denied {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #f5b5b5;
+}
+
+.paam-pill--not-applicable {
+  background: #eef1f3;
+  color: #4a5b69;
+  border-color: #d9e0e6;
+}
+
+.paam-pill--under-consideration {
+  background: #e0f2fe;
+  color: #075985;
+  border-color: #b6dcf2;
+}
+
+.paam-pill--unknown {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+*/
+.paam-pill--preferred {
+    background-color: #6da739;
+    color: #ffffff;
+}
+
+.paam-pill--acceptable {
+    background-color: #fffa70;
+    color: #181818;
+}
+
+.paam-pill--deprecated {
+    background-color: #fa9a00;
+    color: #181818;
+}
+
+.paam-pill--restricted {
+    background-color: #ff7c00;
+    color: #181818;
+}
+
+.paam-pill--denied {
+    background-color: #ff6242;
+    color: #ffffff;
+}
+
+.paam-pill--under-consideration {
+    background-color: #969696;
+    color: #ffffff;
+}
+
+.paam-pill--unknown,
+.paam-pill--not-applicable {
+    background-color: #e5e5e5;
+    color: #181818;
+}
+.paam-pill--diff {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.paam-pill__label {
+  min-width: 0;
+}
+
+/* Sync status */
+.paam-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.paam-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.paam-status--sync {
+  background: var(--paam-success-soft);
+  color: var(--paam-success);
+}
+
+.paam-status--sync::before {
+  background: var(--paam-success);
+}
+
+.paam-status--conflict {
+  background: var(--paam-danger-soft);
+  color: var(--paam-danger);
+}
+
+.paam-status--conflict::before {
+  background: var(--paam-danger);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.paam-empty {
+  padding: 3rem 1rem;
+  text-align: center !important;
+  color: var(--paam-muted);
+}
+
+.paam-empty__icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Buttons */
+.paam-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  appearance: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--paam-border);
+  background: #fff;
+  color: var(--paam-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.paam-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.paam-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 59, 92, 0.2);
+  border-color: var(--paam-primary);
+}
+
+.paam-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paam-overridden {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--paam-success);
+  margin-top: 0.2rem;
+}
+
+.paam-diff-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  color: var(--paam-danger);
+  opacity: 0.8;
+}
+
+.paam-diff-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paam-btn--accept {
+  background: var(--paam-success);
+  border-color: var(--paam-success);
+  color: #fff;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.18);
+}
+
+.paam-btn--accept:hover {
+  background: #047857;
+  border-color: #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.28);
+}
+
+.paam-btn--accept svg {
+  width: 14px;
+  height: 14px;
+}
+
+.paam-action-cell {
+  text-align: right !important;
+}
+
+.paam-action-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.paam-action-undo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--paam-muted);
+  background: #fff;
+  border: 1px solid var(--paam-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.paam-action-undo:hover {
+  color: var(--paam-text);
+  background: #f8fafc;
+}
+
+.paam-accepted-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--paam-success);
+  background: #e6f4ea;
+  border: 1px solid #b7dcc3;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.paam-accepted-tag svg {
+  width: 12px;
+  height: 12px;
+}
+
+.paam-action-empty {
+  color: var(--paam-muted);
+  font-size: 0.9rem;
+}
+
+/* Toast */
+.paam-toast-region {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.paam-toast {
+  pointer-events: auto;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #fff;
+  background: #0f172a;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  animation: paam-toast-in 0.18s ease-out;
+}
+
+.paam-toast--success {
+  background: #047857;
+}
+
+.paam-toast--error {
+  background: #b91c1c;
+}
+
+.paam-toast__close {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  opacity: 0.75;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: auto;
+  padding: 0;
+}
+
+.paam-toast__close:hover {
+  opacity: 1;
+}
+
+@keyframes paam-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Footer */
+.paam-card__footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--paam-border);
+  font-size: 0.82rem;
+  color: var(--paam-muted);
+  background: #f6f8fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.paam-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paam-page-size-label {
+  font-size: 0.8rem;
+  color: var(--paam-muted);
+}
+
+.paam-page-size {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--paam-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.paam-page-label {
+  font-size: 0.82rem;
+}
+
+@media (max-width: 900px) {
+  .paam-page {
+    padding: 1rem;
+  }
+
+  .paam-toolbar {
+    width: 100%;
+  }
+
+  .paam-search input {
+    width: 100%;
+  }
+
+  .paam-field {
+    width: 100%;
+  }
+
+  .paam-segmented {
+    width: 100%;
+  }
+
+  .paam-segmented button {
+    flex: 1;
+  }
+}
+.paam-group-cell {
+  vertical-align: top;
+}
+
+.paam-row-group-start > th,
+.paam-row-group-start > td {
+  border-top-width: 2px;
+}
+
+.paam-row-group-member > td {
+  border-top-style: dotted;
+}
+.paam-table tbody td.paam-cell--manual,
+.paam-table thead th:nth-child(3) {
+    border-left: 1px solid #d8dde6 !important;
+}
