@@ -1,4 +1,24 @@
-SELECT TPM_App_Stack__r.App__c, TPM_App_Stack__r.App__r.Name, COUNT(Id)
-FROM TPM_Stack_Layer_Junction__c
-WHERE TPM_App_Stack__r.App__r.Name = '2 Places at 1 - Time'
-GROUP BY TPM_App_Stack__r.App__c, TPM_App_Stack__r.App__r.Name
+if (
+    lastAppName != null &&
+    lastRecordId != null
+) {
+    recordConditions.add(
+        '(' +
+            'TPM_App_Stack__r.App__r.App_Name__c > :lastAppName ' +
+            'OR (' +
+                'TPM_App_Stack__r.App__r.App_Name__c = :lastAppName ' +
+                'AND Id > :lastRecordId' +
+            ')' +
+        ')'
+    );
+}
+
+
+result.lastAppName =
+    finalRecord.TPM_App_Stack__r != null &&
+    finalRecord.TPM_App_Stack__r.App__r != null
+        ? finalRecord.TPM_App_Stack__r.App__r.App_Name__c
+        : null;
+
+result.lastRecordId =
+    finalRecord.Id;
