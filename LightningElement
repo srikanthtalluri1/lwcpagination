@@ -1,9 +1,18 @@
-Update the PAAM LWC to retrieve data from the new Import table/object instead of the existing source object. Ensure the UI behavior, filters, sorting, pagination, and search functionality remain unchanged while using the new data source.
+.paam-table thead th:nth-child(1),
+.paam-table tbody th.paam-group-cell {
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+}
 
-Acceptance Criteria
-PAAM LWC retrieves data from the new Import table/object.
-Existing UI layout and functionality remain unchanged.
-Search, filters, sorting, and pagination work with the new data source.
-Data displayed in the UI matches the records in the Import table.
-No regression in existing PAAM functionality.
-Unit tests are updated, and all deployments pass successfully.
+.paam-app-cell {
+  display: block;          /* was flex — flex resists shrinking */
+}
+
+.paam-app-name {
+  display: block;
+  white-space: normal;     /* allow line breaks */
+  overflow-wrap: anywhere; /* break mid-word if a single token is too long */
+  word-break: break-word;  /* older-browser fallback */
+  line-height: 1.3;
+}
