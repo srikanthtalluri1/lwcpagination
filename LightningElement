@@ -1,18 +1,11 @@
-.paam-table thead th:nth-child(1),
-.paam-table tbody th.paam-group-cell {
-  width: 260px;
-  min-width: 260px;
-  max-width: 260px;
-}
-
-.paam-app-cell {
-  display: block;          /* was flex — flex resists shrinking */
-}
-
-.paam-app-name {
-  display: block;
-  white-space: normal;     /* allow line breaks */
-  overflow-wrap: anywhere; /* break mid-word if a single token is too long */
-  word-break: break-word;  /* older-browser fallback */
-  line-height: 1.3;
+getUniqueAppCount() {
+    getUniqueAppCount({
+        ownedBy: this.ownedBy
+    })
+    .then(result => {
+        this.uniqueAppCount = result;
+    })
+    .catch(error => {
+        console.error('Error getting unique app count:', error);
+    });
 }
