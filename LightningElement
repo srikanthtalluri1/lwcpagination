@@ -1,126 +1,544 @@
-.paam-app-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+public without sharing class TPM_PAAMStackData {
+
+  public static String ownershipCondition;
+
+    @AuraEnabled(cacheable=true)
+    public static PaamPageResult getStackLayJunction(
+        Integer pageSize,
+      // Datetime lastCreatedDate,
+         String lastAppName,
+        Id lastRecordId,
+        String ownedBy,
+        String searchKey
+    ) {
+        Integer safeLimit = pageSize == null
+            ? 50
+            : Math.min(Math.max(pageSize, 1), 200);
+
+        Integer queryLimit = safeLimit + 1;
+
+      //  Id currentUserId = UserInfo.getUserId();
+        
+
+        /*
+         * Ownership condition:
+         *
+         * MyPrimary:
+         *   Primary ownership fields only.
+         *
+         * MyAll:
+         *   Primary and delegate ownership fields.
+         *
+         * All:
+         *   No ownership condition.
+         */
+         ownershipCondition =
+            buildOwnershipCondition(ownedBy);
+         Id currentUserId;
+
+        if (String.isNotBlank(ownershipCondition)) {
+            currentUserId = getCurrentEmployeeId();
+        }
+
+        /*
+         * Search is applied only when at least three
+         * non-space characters are entered.
+         */
+        String normalizedSearchKey =
+            String.isBlank(searchKey)
+                ? null
+                : searchKey.trim();
+
+        String searchPattern;
+
+        if (
+            normalizedSearchKey != null &&
+            normalizedSearchKey.length() >= 3
+        ) {
+            searchPattern =
+                '%' + normalizedSearchKey + '%';
+        }
+
+        /*
+         * These conditions apply to both the count query
+         * and the record query.
+         */
+        List<String> baseConditions =
+            new List<String>();
+
+       
+                  system.debug('69 is: '+searchPattern);
+        if (String.isNotBlank(searchPattern)) {
+            baseConditions.add(
+                '(' +
+                    'App__r.App_Name__c ' +
+                    'LIKE :searchPattern ' +
+
+                    'OR App__r.' +
+                    'Operational_Status__c ' +
+                    'LIKE :searchPattern ' +
+
+                    'OR Stack_Layer_Config__r.Name ' +
+                    'LIKE :searchPattern ' +
+
+                    'OR Stack_Layer_Status__c ' + //StackLayerStatus__c
+                    'LIKE :searchPattern' +
+                ')'
+            );
+        }
+ if (String.isNotBlank(ownershipCondition)) {
+            baseConditions.add(ownershipCondition);
+        }
+        /*
+         * Count query.
+         *
+         * The same ownership and search filters must be
+         * used here so totalRecords is accurate.
+         */
+        String countQuery =
+            'SELECT COUNT() ' +
+            'FROM TPM_Stack_Layer_Import_Relationship__c'; //new object
+
+        if (!baseConditions.isEmpty()) {
+            countQuery +=
+                ' WHERE ' +
+                String.join(baseConditions, ' AND ');
+        }
+
+        Integer totalRecordCount =
+            Database.countQuery(countQuery);
+
+        /*
+         * Record query conditions start with the ownership
+         * and search conditions.
+         */
+        List<String> recordConditions =
+            new List<String>();
+
+        recordConditions.addAll(baseConditions);
+
+        /*
+         * Keyset pagination.
+         */
+      if (
+    lastAppName != null &&
+    lastRecordId != null
+) {
+    recordConditions.add(
+        '(' +
+            'App__r.App_Name__c > :lastAppName ' +
+            'OR (' +
+                'App__r.App_Name__c = :lastAppName ' +
+                'AND Id > :lastRecordId' +
+            ')' +
+        ')'
+    );
 }
 
-.paam-app-info {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.45rem;
-    height: 1.45rem;
-    padding: 0;
-    flex-shrink: 0;
-    border: 1px solid #b8c8d6;
-    border-radius: 50%;
-    background: #f7fafc;
-    cursor: pointer;
-}
+        String recordQuery = 
+          
+           'SELECT ' +
+                'Id, ' +
+                'CreatedDate, ' +
+            	'App_UUID__c, ' +
+				'Stack_Layer_UUID__c, ' +
+                'Stack_Layer_Status__c, ' +
+                'Stack_Layer_Config__r.Name, ' +
+                'App__c, Mapping_Type__c, ' +
+                'App__r.App_Name__c, ' +
+                'App__r.' +
+                    'Operational_Status__c ' +
+            'FROM TPM_Stack_Layer_Import_Relationship__c'; //new object
 
-.paam-app-info:hover {
-    background: #eaf2f8;
-    border-color: var(--paam-primary);
-}
+        if (!recordConditions.isEmpty()) {
+            recordQuery +=
+                ' WHERE ' +
+                String.join(recordConditions, ' AND ');
+        }
+system.debug('152 is:' +recordQuery);
+        recordQuery +=
+            ' ORDER BY App__r.App_Name__c ASC, Id ASC' +
+            ' LIMIT :queryLimit';
+   system.debug('156 is"' + recordQuery);
+        List<TPM_Stack_Layer_Import_Relationship__c> queriedRecords =
+            Database.query(recordQuery); // new object
+ system.debug('159 is"' + queriedRecords.size());
+        Boolean hasMore =
+            queriedRecords.size() > safeLimit;
 
-.paam-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 12000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(2, 17, 28, 0.45);
-}
+        /*
+         * The query requests one extra record to determine
+         * whether another page exists.
+         */
+        List<TPM_Stack_Layer_Import_Relationship__c> pageRecords =
+            new List<TPM_Stack_Layer_Import_Relationship__c>();
 
-.paam-modal {
-    width: min(650px, 100%);
-    max-height: 85vh;
-    overflow: hidden;
-    background: #ffffff;
-    border: 1px solid var(--paam-border);
-    border-radius: 14px;
-    box-shadow:
-        0 24px 60px -28px
-        rgba(2, 23, 45, 0.5);
-}
+        Integer recordsToReturn = Math.min(
+            safeLimit,
+            queriedRecords.size()
+        );
 
-.paam-modal__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.2rem;
-    border-bottom: 1px solid var(--paam-border);
-}
+        for (
+            Integer index = 0;
+            index < recordsToReturn;
+            index++
+        ) {
+            pageRecords.add(queriedRecords[index]);
+        }
 
-.paam-modal__title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-}
+        List<PaamRowWrapper> rows =
+            new List<PaamRowWrapper>();
+        Map<String, PaamRowWrapper> uniqueRowsByKey =
+    new Map<String, PaamRowWrapper>();
 
-.paam-modal__subtitle {
-    margin: 0.25rem 0 0;
-    color: var(--paam-muted);
-    font-size: 0.82rem;
-}
+        for (
+            TPM_Stack_Layer_Import_Relationship__c recordItem :
+            pageRecords // new object
+        ) {
+            PaamRowWrapper row =
+                new PaamRowWrapper();
 
-.paam-modal__close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    cursor: pointer;
-}
+            row.Id = recordItem.Id;
+            row.createdDate = recordItem.CreatedDate;
+			row.appUuid =
+            recordItem.App_UUID__c;
+    
+        	row.stackLayerUuid =
+            recordItem.Stack_Layer_UUID__c;
 
-.paam-modal__close:hover {
-    background: #eef2f6;
-}
+            row.compositeKey =
+                String.valueOf(row.appUuid) +
+                '|' +
+                String.valueOf(row.stackLayerUuid);
+           row.manualStatus =
+                recordItem.Stack_Layer_Status__c;
 
-.paam-modal__body {
-    max-height: 65vh;
-    overflow: auto;
-    padding: 1rem 1.2rem;
-}
+            String paamValue =
+                recordItem.Stack_Layer_Config__r != null
+                    ? recordItem.Stack_Layer_Config__r.Name
+                    : '';
 
-.paam-modal__grid {
-    display: grid;
-    grid-template-columns:
-        repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.9rem 1rem;
-    margin: 0;
-}
+            String paamSource =
+                String.isBlank(recordItem.Mapping_Type__c)
+                    ? ''
+                    : recordItem.Mapping_Type__c.trim();
 
-.paam-modal__item {
-    padding: 0.65rem 0.75rem;
-    border: 1px solid #e5ecf2;
-    border-radius: 10px;
-    background: #fafcfe;
-}
+            if ('CI'.equalsIgnoreCase(paamSource)) {
 
-.paam-modal__item dt {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--paam-muted);
-    text-transform: uppercase;
-}
+                    row.paamManual = '';
+                    row.paamDiscovered = paamValue;
 
-.paam-modal__item dd {
-    margin: 0.25rem 0 0;
-    font-size: 0.9rem;
-    overflow-wrap: anywhere;
-}
+                    }
+                    else if ('PAAM'.equalsIgnoreCase(paamSource)) {
 
-.paam-modal__footer {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0.9rem 1.2rem 1rem;
-    border-top: 1px solid var(--paam-border);
+                        row.paamManual = paamValue;
+                        row.paamDiscovered = '';
+
+                    }
+                    else if ('PAAM and CI'.equalsIgnoreCase(paamSource)) {
+
+                        row.paamManual = paamValue;
+                        row.paamDiscovered = paamValue; // 29 july
+                        row.forceInSync = true;
+
+                    } else {
+                // Safe fallback for any unexpected picklist value
+                row.paamManual = paamValue;
+                row.paamDiscovered = '';
+            }
+
+            if (
+               
+                recordItem.App__r != null
+            ) {
+                row.appId =
+                    recordItem
+                        .App__c;
+
+                row.appName =
+                    recordItem
+                        .App__r
+                        .App_Name__c;
+
+                row.operationalStatus =
+                    recordItem
+                        .App__r
+                        .Operational_Status__c;
+            }
+
+            row.appName =
+                String.isBlank(row.appName)
+                    ? ''
+                    : row.appName; 
+
+            row.operationalStatus =
+                String.isBlank(row.operationalStatus)
+                    ? ''
+                    : row.operationalStatus;
+
+            row.paamManual =
+                String.isBlank(row.paamManual)
+                    ? ''
+                    : row.paamManual;
+
+            row.paamDiscovered =
+                String.isBlank(row.paamDiscovered)
+                    ? ''
+                    : row.paamDiscovered;
+
+            row.manualStatus =
+                String.isBlank(row.manualStatus)
+                    ? ''
+                    : row.manualStatus;
+
+            row.discoveredStatus =
+                String.isBlank(row.discoveredStatus)
+                    ? ''
+                    : row.discoveredStatus;
+
+           if (!uniqueRowsByKey.containsKey(row.compositeKey)) {
+                uniqueRowsByKey.put(row.compositeKey, row);
+            }
+        }
+		rows.addAll(uniqueRowsByKey.values());
+        PaamPageResult result =
+            new PaamPageResult();
+
+        result.rows = rows;
+        result.hasMore = hasMore;
+        result.totalRecords = totalRecordCount;
+
+        /*
+         * Return the final record's values as the cursor
+         * for the next page.
+         */
+        if (!pageRecords.isEmpty()) {
+          //new object
+            TPM_Stack_Layer_Import_Relationship__c finalRecord =
+                pageRecords[
+                    pageRecords.size() - 1
+                ];
+result.lastAppName =
+  
+    finalRecord.App__r != null
+        ? finalRecord.App__r.App_Name__c
+        : null;
+
+result.lastRecordId =
+    finalRecord.Id;
+        }
+	system.debug('result '+result);
+        return result;
+    }
+
+    
+     @AuraEnabled(cacheable=true)
+    public static Integer getUniqueAppCount(String ownedBy) {
+
+        Set<String> uniqueapp = new Set<String>();
+        //select id, TPM_App_Stack__r.App__r.App_Name__c FROM TPM_Stack_Layer_Junction__c WHERE TPM_App_Stack__r.App__r.App_Name__c != NULL'
+       String countQuery =  'SELECT App__r.App_Name__c FROM TPM_Stack_Layer_Import_Relationship__c'; // new object
+          List<String> baseConditions =
+            new List<String>();
+         system.debug('304 is:' + ownedBy);
+         ownershipCondition =
+            buildOwnershipCondition(ownedBy);
+                 Id currentUserId;
+
+        if (String.isNotBlank(ownershipCondition)) {
+            currentUserId = getCurrentEmployeeId();
+        }
+        baseConditions.add(ownershipCondition);
+       system.debug('314 is:' + baseConditions);
+        system.debug('315 is:' + ownershipCondition);
+         if (String.isNotBlank(ownershipCondition)) {
+            countQuery +=
+                ' WHERE ' +
+                String.join(baseConditions, ' AND ');
+        }
+        system.debug('309 is: '+ countQuery);
+        
+        List<TPM_Stack_Layer_Import_Relationship__c> LSD = Database.query(countQuery); // new object
+        for (TPM_Stack_Layer_Import_Relationship__c Apps :LSD) {
+            uniqueapp.add( Apps.App__r.App_Name__c); //new object
+        }
+         system.debug('3-- is:' + uniqueapp.size());
+        return uniqueapp.size();
+    }
+    
+    
+    private static Id getCurrentEmployeeId() {
+        User currentUser = [
+            SELECT EmployeeNumber
+            FROM User
+            WHERE Id = :UserInfo.getUserId()
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        if (String.isBlank(currentUser.EmployeeNumber)) {
+            return null;
+        }
+
+        List<UCH_Employee__c> employees = [
+            SELECT Id
+            FROM UCH_Employee__c
+            WHERE Employee_ID__c =
+                :currentUser.EmployeeNumber
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        if (employees.isEmpty()) {
+            return null;
+        }
+
+        return employees[0].Id;
+    }
+    
+    /**
+     * Builds the ownership condition for the TPM App.
+     *
+     * MyPrimary:
+     * Checks only the three primary ownership fields.
+     *
+     * MyAll:
+     * Checks primary and delegate ownership fields.
+     *
+     * All:
+     * Returns null so no ownership filter is applied.
+     */
+    private static String buildOwnershipCondition(
+        String ownedBy
+    ) {
+        if (
+            String.isBlank(ownedBy) ||
+            'All'.equalsIgnoreCase(ownedBy) 
+            || 'MyPrimary'.equalsIgnoreCase(ownedBy)  //dummy code for testing
+        ) {
+            return null;
+        }
+
+        List<String> ownedByFields =
+            new List<String>();
+
+        if ('MyPrimary'.equalsIgnoreCase(ownedBy)) {
+            ownedByFields.addAll(
+                new List<String>{
+                    'IT_Architect__c',
+                    'Application_Owner__c',
+                    'Business_Owner__c'
+                }
+            );
+        } else if (
+            'MyAll'.equalsIgnoreCase(ownedBy)
+        ) {
+            ownedByFields.addAll(
+                new List<String>{
+                    'IT_Architect__c',
+                    'IT_Architect_Delegate_1__c',
+                    'IT_Architect_Delegate_2__c',
+
+                    'Application_Owner__c',
+                    'Application_Owner_Delegate_1__c',
+                    'Application_Owner_Delegate_2__c',
+                    'Application_Owner_Delegate_3__c',
+                    'Application_Owner_Delegate_4__c',
+
+                    'Business_Owner__c',
+                    'Business_Owner_Delegate_1__c',
+                    'Business_Owner_Delegate_2__c',
+                    'Business_Owner_Delegate_3__c'
+                }
+            );
+        } else {
+            return null;
+        }
+
+        List<String> ownershipConditions =
+            new List<String>();
+
+        for (String fieldName : ownedByFields) {
+            ownershipConditions.add(
+                'App__r.' +
+                fieldName +
+                ' = :currentUserId'
+            );
+        }
+
+        return
+            '(' +
+            String.join(
+                ownershipConditions,
+                ' OR '
+            ) +
+            ')';
+    }
+
+    public class PaamPageResult {
+        @AuraEnabled
+        public List<PaamRowWrapper> rows;
+
+        @AuraEnabled
+        public Boolean hasMore;
+
+        @AuraEnabled
+        public Integer totalRecords;
+
+       // @AuraEnabled
+      //  public Datetime lastCreatedDate; 
+        
+        @AuraEnabled
+        public String lastAppName; 
+
+        @AuraEnabled
+        public Id lastRecordId;
+    }
+
+    public class PaamRowWrapper {
+        @AuraEnabled
+        public Id Id;
+
+        @AuraEnabled
+        public Datetime createdDate;
+
+        @AuraEnabled
+        public Id appId;
+
+        @AuraEnabled
+        public String appName;
+
+        @AuraEnabled
+        public String operationalStatus;
+
+        @AuraEnabled
+        public String paamManual;
+
+        @AuraEnabled
+        public String paamDiscovered;
+
+        @AuraEnabled
+        public String manualStatus;
+
+        @AuraEnabled
+        public String discoveredStatus;
+
+        @AuraEnabled
+        public Boolean isMine;
+
+        @AuraEnabled
+        public Boolean isPrimary;
+
+        @AuraEnabled
+        public Boolean forceInSync;
+        
+        @AuraEnabled
+        public String appUuid;
+        
+        @AuraEnabled
+        public String stackLayerUuid;
+        
+        @AuraEnabled
+        public String compositeKey;
+    }
 }
