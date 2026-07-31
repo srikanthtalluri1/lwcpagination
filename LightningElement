@@ -1,12 +1,478 @@
-handleCloseAppModal() {
-    this.isAppModalOpen = false;
-    this.selectedRow = {};
-}
+<template>
+  <div class="paam-page">
+    <!-- Hero -->
+    <div class="paam-hero">
+      <div>
+        <span class="paam-eyebrow">USAA · Application Insights</span>
+        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
+        <p>
+          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
+        </p>
+      </div>
+    </div>
 
-handleModalBackdropClick() {
-    this.handleCloseAppModal();
-}
+    <!-- Stats -->
+    <div class="paam-stats">
+      <div class="paam-stat paam-stat--total">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Total Apps</div>
+        <div class="paam-stat__value">{totalAppsDisplay}</div>
+        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
+      </div>
 
-handleModalContentClick(event) {
-    event.stopPropagation();
-}
+      <div class="paam-stat paam-stat--sync">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">In Sync</div>
+        <div class="paam-stat__value">{totalSyncDisplay}</div>
+        <div class="paam-stat__hint">Manual matches discovered</div>
+      </div>
+
+      <div class="paam-stat paam-stat--conflict">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Conflicts</div>
+        <div class="paam-stat__value">{totalConflictsDisplay}</div>
+        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="paam-card">
+      <div class="paam-card__header">
+        <div>
+          <h3 class="paam-card__title">Application PAAM Records</h3>
+          <p class="paam-card__subtitle">
+            Showing {filteredCountDisplay} of {totalRecordsDisplay} records
+          </p>
+        </div>
+
+        <div class="paam-toolbar">
+          <!-- Search -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-search-input">Search</label>
+            <div class="paam-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="paam-search-input"
+                type="search"
+                placeholder=" Min 3 Char(Search App,PAAM…)"
+                value={query}
+                oninput={handleSearch}
+              />
+            </div>
+          </div>
+
+          <!-- Ownership -->
+          <div class="paam-field">
+            <span class="paam-field__label">Ownership</span>
+            <div class="paam-segmented" role="tablist" aria-label="Ownership">
+              <button
+                type="button"
+                class={primaryScopeClass}
+                data-scope="primary"
+                onclick={handleScopeChange}
+                title="Apps where you are the primary owner">
+                My Primary Apps
+              </button>
+              <button
+                type="button"
+                class={mineScopeClass}
+                data-scope="mine"
+                onclick={handleScopeChange}
+                title="All apps you own or co-own">
+                My All Apps
+              </button>
+              <button
+                type="button"
+                class={allScopeClass}
+                data-scope="all"
+                onclick={handleScopeChange}>
+                All Apps
+              </button>
+            </div>
+          </div>
+
+          <!-- Sync Status -->
+          <div class="paam-field">
+            <span class="paam-field__label">Sync Status</span>
+            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
+              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
+                Conflicts
+              </button>
+              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
+                All
+              </button>
+              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
+                In Sync
+              </button>
+            </div>
+          </div>
+
+          <!-- Stack Layer Status -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
+            <select
+              id="paam-status-select"
+              class="paam-select"
+              value={statusFilter}
+              onchange={handleStatusFilterChange}
+              aria-label="Filter by Stack Layer Status"
+              title="Filter by Stack Layer Status">
+              <option value="all">All Statuses</option>
+              <template for:each={stackStatusOptions} for:item="opt">
+                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="paam-table-wrap slds-scope">
+        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" data-field="appName" onclick={handleSort}>
+                  Application <span>{appSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="status" onclick={handleSort}>
+                  Operational Status <span>{statusSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamManual" onclick={handleSort}>
+                  PAAM Manual <span>{manualSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
+                  PAAM Discovered <span>{discoveredSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">Sync Status</th>
+              <template if:true={isPrimaryScope}>
+                <th scope="col" class="paam-action-heading">Action</th>
+              </template>
+            </tr>
+          </thead>
+
+          <tbody>
+            <template if:true={hasPageRows}>
+              <template for:each={pageRows} for:item="row">
+                 <tr
+                      key={row.id}
+                      class={row.rowClass}
+                      data-group-key={row.groupKey}
+                        onmouseenter={handleGroupMouseEnter}
+                        onmouseleave={handleGroupMouseLeave}>
+                  <template if:true={row.showApplication}>
+                    <th
+                      scope="rowgroup"
+                      rowspan={row.applicationRowSpan}
+                      class="paam-group-cell">
+                      <div class="paam-app-cell">
+                          <span class="paam-app-name">
+                              {row.appName}
+                          </span>
+
+                          <button
+                              type="button"
+                              class="paam-app-info"
+                              data-id={row.id}
+                              onclick={handleOpenAppModal}
+                              title="View application details"
+                              aria-label="View application details">
+
+                              <lightning-icon
+                                  icon-name="utility:info"
+                                  size="xx-small"
+                                  alternative-text="View details">
+                              </lightning-icon>
+                          </button>
+                      </div>
+                    </th>
+
+                    <td
+                      rowspan={row.applicationRowSpan}
+                      class="paam-group-cell">
+                      <span class="paam-attr">{row.status}</span>
+                    </td>
+                  </template>
+
+                  <td class="paam-cell--manual">
+                    <span class="paam-diff-cell">
+                      <template if:false={row.manualBlank}>
+                      <span class={row.manualPillClass} title={row.manualTitle}>
+                        <span class="paam-pill__label">{row.paamManual}</span>
+                      </span>
+                      </template>
+                      <template if:true={row.showManualArrow}>
+                        <span class="paam-diff-arrow" title={row.diffTitle}>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                               stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="13 6 19 12 13 18"></polyline>
+                          </svg>
+                        </span>
+                      </template>
+                    </span>
+
+                    <template if:true={row.wasOverridden}>
+                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                             stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Accepted
+                      </div>
+                    </template>
+                  </td>
+
+                  <td class="paam-cell--discovered">
+                      <span class="paam-diff-cell">
+
+                          <template if:true={row.showDiscoveredArrow}>
+                              <span class="paam-diff-arrow" title={row.diffTitle}>
+                                  <svg
+                                      viewBox="0 0 24 24"
+                                      width="16"
+                                      height="16"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="2.5"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      aria-hidden="true">
+
+                                      <!-- Left arrow -->
+                                      <line x1="19" y1="12" x2="5" y2="12"></line>
+                                      <polyline points="11 6 5 12 11 18"></polyline>
+
+                                  </svg>
+                              </span>
+                          </template>
+
+                          <template if:false={row.discoveredBlank}>
+                              <span
+                                  class={row.discoveredPillClass}
+                                  title={row.discoveredTitle}>
+
+                                  <span class="paam-pill__label">
+                                      {row.paamDiscovered}
+                                  </span>
+
+                              </span>
+                          </template>
+
+                      </span>
+                  </td>
+
+                  <td>
+                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
+                  </td>
+
+                  <template if:true={isPrimaryScope}>
+                    <td class="paam-action-cell">
+                      <template if:true={row.canAccept}>
+    <button
+        type="button"
+        class="paam-btn paam-btn--accept"
+        data-id={row.id}
+        onclick={handleAccept}
+        title={row.acceptTitle}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Accept
+    </button>
+</template>
+
+<template if:false={row.canAccept}>
+    <template if:true={row.wasOverridden}>
+        <div class="paam-action-stack">
+            <span class="paam-accepted-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Accepted
+            </span>
+
+            <button
+                type="button"
+                class="paam-action-undo"
+                data-id={row.id}
+                onclick={handleUndo}>
+                Undo
+            </button>
+        </div>
+    </template>
+
+    <template if:false={row.wasOverridden}>
+       <span class="paam-pill paam-pill--empty">
+        <span class="paam-pill__label"></span>
+    </span>
+    </template>
+</template>
+                    </td>
+                  </template>
+                </tr>
+              </template>
+            </template>
+
+            <template if:false={hasPageRows}>
+              <tr>
+                <td colspan={emptyColspan} class="paam-empty">
+                  <div class="paam-empty__icon">∅</div>
+                  <div>No records match your filters.</div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Pagination -->
+      <div class="paam-card__footer">
+        <span>{footerRangeLabel}</span>
+
+        <span class="paam-pager">
+          <label class="paam-page-size-label">
+            Rows:
+            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+
+          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
+          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
+          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
+          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
+          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <template if:true={toastMessage}>
+      <div class="paam-toast-region" role="status" aria-live="polite">
+        <div class={toastClass}>
+          <span>{toastMessage}</span>
+          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
+        </div>
+      </div>
+    </template>
+  </div>
+  <template if:true={isAppModalOpen}>
+    <section
+        class="paam-modal-backdrop"
+        onclick={handleModalBackdropClick}>
+
+        <div
+            class="paam-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-details-title">
+
+            <header class="paam-modal__header">
+                <div>
+                    <h2
+                        id="app-details-title"
+                        class="paam-modal__title">
+                        Application Details
+                    </h2>
+
+                    <p class="paam-modal__subtitle">
+                        {selectedRow.appNameDisplay}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="paam-modal__close"
+                    onclick={handleCloseAppModal}
+                    title="Close"
+                    aria-label="Close">
+
+                    <lightning-icon
+                        icon-name="utility:close"
+                        size="x-small"
+                        alternative-text="Close">
+                    </lightning-icon>
+                </button>
+            </header>
+
+            <div class="paam-modal__body">
+                <dl class="paam-modal__grid">
+
+                    <div class="paam-modal__item">
+                        <dt>Application</dt>
+                        <dd>
+                            {selectedRow.appNameDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Operational Status</dt>
+                        <dd>
+                            {selectedRow.operationalStatusDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>PAAM Manual</dt>
+                        <dd>
+                            {selectedRow.paamManualDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>PAAM Discovered</dt>
+                        <dd>
+                            {selectedRow.paamDiscoveredDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Stack Layer Status</dt>
+                        <dd>
+                            {selectedRow.stackLayerStatusDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Sync Status</dt>
+                        <dd>
+                            {selectedRow.syncStatusLabel}
+                        </dd>
+                    </div>
+
+                </dl>
+            </div>
+
+            <footer class="paam-modal__footer">
+                <button
+                    type="button"
+                    class="paam-btn"
+                    onclick={handleCloseAppModal}>
+                    Close
+                </button>
+            </footer>
+        </div>
+    </section>
+</template>
+</template>
