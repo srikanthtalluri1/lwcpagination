@@ -1,4 +1,12 @@
-groupKey:
-                        row.appId ||
-                        row.appName ||
-                        row.id,
+handleCloseAppModal() {
+    this.isAppModalOpen = false;
+    this.selectedRow = {};
+}
+
+handleModalBackdropClick() {
+    this.handleCloseAppModal();
+}
+
+handleModalContentClick(event) {
+    event.stopPropagation();
+}
