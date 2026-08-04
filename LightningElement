@@ -1,54 +1,64 @@
- <div class="paam-modal__item">
-                        <dt>Portfolio</dt>
-                        <dd>{selectedRow.portfolioDisplay}</dd>
-                    </div>
+  totalConflictCount = 0;
+    totalSyncCount = 0;
 
-                    <div class="paam-modal__item">
-                        <dt>Domain</dt>
-                        <dd>{selectedRow.domainDisplay}</dd>
-                    </div>
+  get totalConflicts() {
+        return this.totalConflictCount;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Category</dt>
-                        <dd>{selectedRow.categoryDisplay}</dd>
-                    </div>
+    get totalSync() {
+        return this.totalSyncCount;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>UUID</dt>
-                        <dd>{selectedRow.uuidDisplay}</dd>
-                    </div>
+    get conflictPct() {
+        if (!this.totalRecordCount) {
+            return 0;
+        }
 
-                    <div class="paam-modal__item">
-                        <dt>App Type</dt>
-                        <dd>{selectedRow.appTypeDisplay}</dd>
-                    </div>
+        return Math.round(
+            (
+                this.totalConflictCount /
+                this.totalRecordCount
+            ) * 100
+        );
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Subtype</dt>
-                        <dd>{selectedRow.subtypeDisplay}</dd>
-                    </div>
 
-                    <div class="paam-modal__item">
-                        <dt>Technical Architect</dt>
-                        <dd>{selectedRow.technicalArchitectDisplay}</dd>
-                    </div>
+ resetServerPagination() {
+    this.page = 1;
+    this.rows = [];
+    this.lastAppName = null;
+    this.lastRecordId = null;
+    this.hasMore = true;
+    this.totalRecordCount = 0;
+    this.totalConflictCount = 0;
+    this.totalSyncCount = 0;
+}
 
-                    <div class="paam-modal__item">
-                        <dt>Business Owner</dt>
-                        <dd>{selectedRow.businessOwnerDisplay}</dd>
-                    </div>
+ this.selectedRow = {
+    ...row,
 
-                    <div class="paam-modal__item">
-                        <dt>Application Owner</dt>
-                        <dd>{selectedRow.applicationOwnerDisplay}</dd>
-                    </div>
+    appNameDisplay: row.appName || 'Not Available',
+    operationalStatusDisplay: row.status || 'Not Available',
 
-                    <div class="paam-modal__item">
-                        <dt>Description</dt>
-                        <dd>{selectedRow.descriptionDisplay}</dd>
-                    </div>
+    portfolioDisplay: row.portfolio || 'Not Available',
+    domainDisplay: row.domain || 'Not Available',
+    categoryDisplay: row.category || 'Not Available',
+    uuidDisplay: row.UIID || 'Not Available',
+    appTypeDisplay: row.appType || 'Not Available',
+    subtypeDisplay: row.subtype || 'Not Available',
+    technicalArchitectDisplay: row.technicalArchitect || 'Not Available',
+    businessOwnerDisplay: row.businessOwner || 'Not Available',
+    applicationOwnerDisplay: row.ApplicationOwner || 'Not Available',
+    descriptionDisplay: row.description || 'Not Available',
+    timeDisplay: row.appTIME || 'Not Available',
 
-                    <div class="paam-modal__item">
-                        <dt>TIME</dt>
-                        <dd>{selectedRow.timeDisplay}</dd>
-                    </div>
+    paamManualDisplay: row.paamManual || 'Not Available',
+    paamDiscoveredDisplay: row.paamDiscovered || 'Not Available',
+
+    stackLayerStatusDisplay:
+        row.manualStatus ||
+        row.discoveredStatus ||
+        'Not Available'
+};
+
+
