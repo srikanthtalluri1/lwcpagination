@@ -1,64 +1,73 @@
-  totalConflictCount = 0;
-    totalSyncCount = 0;
+ 'App__r.App_Name__c, App__r.Portfolio__c ,App__r.Domain__c  ,App__r.Category__r.Name ,App__r.UUID__c ,App__r.Subtype__c , App__r.Business_Owner__c, App__r.Application_Owner__c, App__r.Description__c,    ' + 
 
-  get totalConflicts() {
-        return this.totalConflictCount;
-    }
+ row.portfolio = recordItem.App__r.Portfolio__c;
+                row.domain = recordItem.App__r.Domain__c;
+                row.category = recordItem.App__r.Category__r.Name;
+                row.UIID = recordItem.App__r.UUID__c;
+                row.subtype = recordItem.App__r.Subtype__c;
+                row.technicalArchitect = recordItem.App__r.Subtype__c;
+                row.businessOwner = recordItem.App__r.Business_Owner__c;
+                row.ApplicationOwner = recordItem.App__r.Application_Owner__c;
+                row.description = recordItem.App__r.Description__c;
+                row.appTIME = recordItem.App__r.Subtype__c;
 
-    get totalSync() {
-        return this.totalSyncCount;
-    }
 
-    get conflictPct() {
-        if (!this.totalRecordCount) {
-            return 0;
-        }
 
-        return Math.round(
-            (
-                this.totalConflictCount /
-                this.totalRecordCount
-            ) * 100
+List<String> conflictConditions = new List<String>();
+        conflictConditions.addAll(baseConditions);
+        
+        conflictConditions.add(
+            'Mapping_Type__c IN (\'CI\', \'PAAM\')'
         );
-    }
+        
+        conflictConditions.add(
+            'Stack_Layer_Config__c != null'
+        );
+        
+        String conflictCountQuery =
+            'SELECT COUNT() ' +
+            'FROM TPM_Stack_Layer_Import_Relationship__c';
+        
+        if (!conflictConditions.isEmpty()) {
+            conflictCountQuery +=
+                ' WHERE ' +
+                String.join(conflictConditions, ' AND ');
+        }
+        
+        Integer totalConflictCount =
+            Database.countQuery(conflictCountQuery);
+        
+        Integer totalSyncCount =
+            totalRecordCount - totalConflictCount;
+        result.totalConflicts = totalConflictCount;
+		result.totalSync = totalSyncCount;
 
-
- resetServerPagination() {
-    this.page = 1;
-    this.rows = [];
-    this.lastAppName = null;
-    this.lastRecordId = null;
-    this.hasMore = true;
-    this.totalRecordCount = 0;
-    this.totalConflictCount = 0;
-    this.totalSyncCount = 0;
-}
-
- this.selectedRow = {
-    ...row,
-
-    appNameDisplay: row.appName || 'Not Available',
-    operationalStatusDisplay: row.status || 'Not Available',
-
-    portfolioDisplay: row.portfolio || 'Not Available',
-    domainDisplay: row.domain || 'Not Available',
-    categoryDisplay: row.category || 'Not Available',
-    uuidDisplay: row.UIID || 'Not Available',
-    appTypeDisplay: row.appType || 'Not Available',
-    subtypeDisplay: row.subtype || 'Not Available',
-    technicalArchitectDisplay: row.technicalArchitect || 'Not Available',
-    businessOwnerDisplay: row.businessOwner || 'Not Available',
-    applicationOwnerDisplay: row.ApplicationOwner || 'Not Available',
-    descriptionDisplay: row.description || 'Not Available',
-    timeDisplay: row.appTIME || 'Not Available',
-
-    paamManualDisplay: row.paamManual || 'Not Available',
-    paamDiscoveredDisplay: row.paamDiscovered || 'Not Available',
-
-    stackLayerStatusDisplay:
-        row.manualStatus ||
-        row.discoveredStatus ||
-        'Not Available'
-};
-
-
+ @AuraEnabled
+        public String portfolio;
+        
+        @AuraEnabled
+        public String domain;
+        
+        @AuraEnabled
+        public String category;
+        
+        @AuraEnabled
+        public String UIID; 
+            
+        @AuraEnabled
+        public String subtype;
+        
+        @AuraEnabled
+        public String technicalArchitect;
+        
+        @AuraEnabled
+        public String businessOwner;
+        
+        @AuraEnabled
+        public String ApplicationOwner;
+        
+        @AuraEnabled
+        public String description;
+        
+        @AuraEnabled
+        public String appTIME;
