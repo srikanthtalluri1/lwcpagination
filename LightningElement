@@ -42,6 +42,15 @@ List<String> conflictConditions = new List<String>();
         result.totalConflicts = totalConflictCount;
 		result.totalSync = totalSyncCount;
 
+
+  @AuraEnabled
+    public Integer totalConflicts;
+
+    @AuraEnabled
+    public Integer totalSync;
+
+
+
  @AuraEnabled
         public String portfolio;
         
