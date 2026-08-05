@@ -1,1 +1,106 @@
-'App__r.App_Name__c, App__r.Category__r.Domain__r.Port__r.Name ,App__r.Category__r.Domain__r.Name  ,App__r.Category__r.Name ,App__r.UUID__c ,App__r.Subtype__c , App__r.Business_Owner__r.Name, App__r.Application_Owner__r.Name, App__r.Description__c,    ' +
+public class PicklistLabelUtil {
+
+    private static Map<String, Map<String, String>>
+        picklistLabelCache =
+            new Map<String, Map<String, String>>();
+
+    public static String getPicklistLabel(
+        String objectApiName,
+        String fieldApiName,
+        String fieldValue
+    ) {
+        if (
+            String.isBlank(objectApiName) ||
+            String.isBlank(fieldApiName) ||
+            String.isBlank(fieldValue)
+        ) {
+            return '';
+        }
+
+        String cacheKey =
+            objectApiName + '.' + fieldApiName;
+
+        if (!picklistLabelCache.containsKey(cacheKey)) {
+            Map<String, Schema.SObjectType> globalDescribe =
+                Schema.getGlobalDescribe();
+
+            Schema.SObjectType objectType =
+                globalDescribe.get(objectApiName);
+
+            if (objectType == null) {
+                return fieldValue;
+            }
+
+            Map<String, Schema.SObjectField> fieldMap =
+                objectType
+                    .getDescribe()
+                    .fields
+                    .getMap();
+
+            Schema.SObjectField fieldToken =
+                fieldMap.get(fieldApiName);
+
+            if (fieldToken == null) {
+                return fieldValue;
+            }
+
+            Schema.DescribeFieldResult fieldDescribe =
+                fieldToken.getDescribe();
+
+            if (
+                fieldDescribe.getType() !=
+                    Schema.DisplayType.Picklist &&
+                fieldDescribe.getType() !=
+                    Schema.DisplayType.MultiPicklist
+            ) {
+                return fieldValue;
+            }
+
+            Map<String, String> valueToLabel =
+                new Map<String, String>();
+
+            for (
+                Schema.PicklistEntry picklistEntry :
+                fieldDescribe.getPicklistValues()
+            ) {
+                valueToLabel.put(
+                    picklistEntry.getValue(),
+                    picklistEntry.getLabel()
+                );
+            }
+
+            picklistLabelCache.put(
+                cacheKey,
+                valueToLabel
+            );
+        }
+
+        Map<String, String> labelMap =
+            picklistLabelCache.get(cacheKey);
+
+        /*
+         * Supports multi-select picklists too.
+         */
+        if (fieldValue.contains(';')) {
+            List<String> labels =
+                new List<String>();
+
+            for (String apiValue : fieldValue.split(';')) {
+                String trimmedValue =
+                    apiValue.trim();
+
+                labels.add(
+                    labelMap.containsKey(trimmedValue)
+                        ? labelMap.get(trimmedValue)
+                        : trimmedValue
+                );
+            }
+
+            return String.join(labels, '; ');
+        }
+
+        return labelMap.containsKey(fieldValue)
+            ? labelMap.get(fieldValue)
+            : fieldValue;
+    }
+}
