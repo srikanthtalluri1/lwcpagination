@@ -1,536 +1,990 @@
-<template>
-  <div class="paam-page">
-    <!-- Hero -->
-    <div class="paam-hero">
-      <div>
-        <span class="paam-eyebrow">USAA · Application Insights</span>
-        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
-        <p>
-          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
-        </p>
-      </div>
-    </div>
+import { LightningElement, track } from 'lwc';
+import  getUniqueAppCount from '@salesforce/apex/TPM_PAAMStackData.getUniqueAppCount';
+import getStackLayJunction from '@salesforce/apex/TPM_PAAMStackData.getStackLayJunction'; 
+const STACK_STATUS_OPTIONS = [
+    { label: 'Preferred', slug: 'preferred' },
+    { label: 'Acceptable', slug: 'acceptable' },
+    {
+        label: 'Under Consideration',
+        slug: 'under-consideration'
+    },
+    { label: 'Restricted', slug: 'restricted' },
+    { label: 'Deprecated', slug: 'deprecated' },
+    { label: 'Denied', slug: 'denied' },
+    { label: 'Not Applicable', slug: 'not-applicable' }
+];
 
-    <!-- Stats -->
-    <div class="paam-stats">
-      <div class="paam-stat paam-stat--total">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Total Apps</div>
-        <div class="paam-stat__value">{totalAppsDisplay}</div>
-        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
-      </div>
+function statusSlug(status) {
+    return (status || 'unknown')
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'unknown';
+}
 
-      <div class="paam-stat paam-stat--sync">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">In Sync</div>
-        <div class="paam-stat__value">{totalSyncDisplay}</div>
-        <div class="paam-stat__hint">Manual matches discovered</div>
-      </div>
+function formatNumber(value) {
+    return Number(value || 0).toLocaleString();
+}
 
-      <div class="paam-stat paam-stat--conflict">
-        <div class="paam-stat__accent"></div>
-        <div class="paam-stat__label">Conflicts</div>
-        <div class="paam-stat__value">{totalConflictsDisplay}</div>
-        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
-      </div>
-    </div>
+export default class TpmPAAMStackdataConflict extends LightningElement {
+    @track overrides = {};
+    @track rows = [];
+    @track isLoading = false;
+    @track errorMessage = '';
 
-    <!-- Main Card -->
-    <div class="paam-card">
-      <div class="paam-card__header">
-        <div>
-          <h3 class="paam-card__title">Application PAAM Records</h3>
-          <p class="paam-card__subtitle">
-            Showing {filteredCountDisplay} of {tableTotalRecordsDisplay} records  <!-- 5 Aug -->
-          </p>
-        </div>
+   // lastCreatedDate = null;
+   lastAppName = null;
+    lastRecordId = null;
+    hasMore = true;
+    totalRecordCount = 0;
+    // 5 Aug
+    tableTotalRecordCount = 0;
+    totalConflictCount = 0;
+    totalSyncCount = 0;
+    
+  //  ownedBy;
 
-        <div class="paam-toolbar">
-          <!-- Search -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-search-input">Search</label>
-            <div class="paam-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                id="paam-search-input"
-                type="search"
-                placeholder=" Min 3 Char(Search App,PAAM…)"
-                value={query}
-                oninput={handleSearch}
-              />
-            </div>
-          </div>
+    page = 1;
+    pageSize = 50;
 
-          <!-- Ownership -->
-          <div class="paam-field">
-            <span class="paam-field__label">Ownership</span>
-            <div class="paam-segmented" role="tablist" aria-label="Ownership">
-              <button
-                type="button"
-                class={primaryScopeClass}
-                data-scope="primary"
-                onclick={handleScopeChange}
-                title="Apps where you are the primary owner">
-                My Primary Apps
-              </button>
-              <button
-                type="button"
-                class={mineScopeClass}
-                data-scope="mine"
-                onclick={handleScopeChange}
-                title="All apps you own or co-own">
-                My All Apps
-              </button>
-              <button
-                type="button"
-                class={allScopeClass}
-                data-scope="all"
-                onclick={handleScopeChange}>
-                All Apps
-              </button>
-            </div>
-          </div>
+    query = '';
+    view = 'conflicts';
+    scope = 'primary';
+    statusFilter = 'all';
 
-          <!-- Sync Status -->
-          <div class="paam-field">
-            <span class="paam-field__label">Sync Status</span>
-            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
-              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
-                Conflicts
-              </button>
-              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
-                All
-              </button>
-              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
-                In Sync
-              </button>
-            </div>
-          </div>
+    sortField = 'appName';
+    sortDir = 'asc';
 
-          <!-- Stack Layer Status -->
-          <div class="paam-field">
-            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
-            <select
-              id="paam-status-select"
-              class="paam-select"
-              value={statusFilter}
-              onchange={handleStatusFilterChange}
-              aria-label="Filter by Stack Layer Status"
-              title="Filter by Stack Layer Status">
-              <option value="all">All Statuses</option>
-              <template for:each={stackStatusOptions} for:item="opt">
-                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
-              </template>
-            </select>
-          </div>
-        </div>
-      </div>
+    toastMessage = '';
+    toastKind = 'success';
 
-      <!-- Table -->
-      <div class="paam-table-wrap slds-scope">
-        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
-          <thead>
-            <tr>
-              <th scope="col">
-                <button type="button" data-field="appName" onclick={handleSort}>
-                  Application <span>{appSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="status" onclick={handleSort}>
-                  Operational Status <span>{statusSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamManual" onclick={handleSort}>
-                  PAAM Manual <span>{manualSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">
-                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
-                  PAAM Discovered <span>{discoveredSortArrow}</span>
-                </button>
-              </th>
-              <th scope="col">Sync Status</th>
-              <template if:true={isPrimaryScope}>
-                <th scope="col" class="paam-action-heading">Action</th>
-              </template>
-            </tr>
-          </thead>
+    searchTimeout;
+    toastTimeout;
+    uniqueAppCount = 0;
+    hoveredGroupKey = null;
 
-          <tbody>
-            <template if:true={hasPageRows}>
-              <template for:each={pageRows} for:item="row">
-                 <tr
-                      key={row.id}
-                      class={row.rowClass}
-                      data-group-key={row.groupKey}
-                        onmouseenter={handleGroupMouseEnter}
-                        onmouseleave={handleGroupMouseLeave}>
-                  <template if:true={row.showApplication}>
-                    <th
-                      scope="rowgroup"
-                      rowspan={row.applicationRowSpan}
-                      class="paam-group-cell">
-                      <div class="paam-app-cell">
-                          <span class="paam-app-name">
-                              {row.appName}
-                          </span>
+    stackStatusOptions = STACK_STATUS_OPTIONS;
+    selectedRow = {};
+    isAppModalOpen = false;
+    connectedCallback() {
+        this.loadRecords();
+        this.getUniqueAppCount();
+    }
+    getUniqueAppCount() {
+        getUniqueAppCount({ownedBy: this.ownedBy}) 
+        .then(result => {
+         this.uniqueAppCount = result;
+          })
+    .catch(error => {
+        console.error('Error getting unique app count:', error);
+        });
 
-                          <button
-                              type="button"
-                              class="paam-app-info"
-                              data-id={row.id}
-                              onclick={handleOpenAppModal}
-                              title="View application details"
-                              aria-label="View application details">
+    }
+    
+  handleGroupMouseEnter(event) {
+    this.hoveredGroupKey =
+        event.currentTarget.dataset.groupKey;
+}
 
-                              <lightning-icon
-                                  icon-name="utility:info"
-                                  size="xx-small"
-                                  alternative-text="View details">
-                              </lightning-icon>
-                          </button>
-                      </div>
-                    </th>
+handleGroupMouseLeave() {
+    this.hoveredGroupKey = null;
+}
+    renderedCallback() {
+        const pageSizeSelect =
+            this.template.querySelector('.paam-page-size');
 
-                    <td
-                      rowspan={row.applicationRowSpan}
-                      class="paam-group-cell">
-                      <span class="paam-attr">{row.status}</span>
-                    </td>
-                  </template>
+        if (
+            pageSizeSelect &&
+            pageSizeSelect.value !== String(this.pageSize)
+        ) {
+            pageSizeSelect.value = String(this.pageSize);
+        }
+    }
 
-                  <td class="paam-cell--manual">
-                    <span class="paam-diff-cell">
-                      <template if:false={row.manualBlank}>
-                      <span class={row.manualPillClass} title={row.manualTitle}>
-                        <span class="paam-pill__label">{row.paamManual}</span>
-                      </span>
-                      </template>
-                      <template if:true={row.showManualArrow}>
-                        <span class="paam-diff-arrow" title={row.diffTitle}>
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                               stroke-linejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="13 6 19 12 13 18"></polyline>
-                          </svg>
-                        </span>
-                      </template>
-                    </span>
+    get ownedBy() {
+        if (this.scope === 'primary') {
+            return 'MyPrimary';
+        }
 
-                    <template if:true={row.wasOverridden}>
-                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
-                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                             stroke-linejoin="round" aria-hidden="true">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Accepted
-                      </div>
-                    </template>
-                  </td>
+        if (this.scope === 'mine') {
+            return 'MyAll';
+        }
 
-                  <td class="paam-cell--discovered">
-                      <span class="paam-diff-cell">
+        return 'All';
+    }
 
-                          <template if:true={row.showDiscoveredArrow}>
-                              <span class="paam-diff-arrow" title={row.diffTitle}>
-                                  <svg
-                                      viewBox="0 0 24 24"
-                                      width="16"
-                                      height="16"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      stroke-width="2.5"
-                                      stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      aria-hidden="true">
+    loadRecords(isNextPage = false) {
+        this.isLoading = true;
+        this.errorMessage = '';
 
-                                      <!-- Left arrow -->
-                                      <line x1="19" y1="12" x2="5" y2="12"></line>
-                                      <polyline points="11 6 5 12 11 18"></polyline>
+        getStackLayJunction({
+            pageSize: Number(this.pageSize),
+            lastAppName: this.lastAppName,
+            lastRecordId: this.lastRecordId,
+            ownedBy: this.ownedBy,
+            searchKey: this.query,
+            syncView: this.view      //5 Aug
+        })
+            .then((result) => {
+                const returnedRows = result?.rows || [];
 
-                                  </svg>
-                              </span>
-                          </template>
+                this.rows = returnedRows.map((row) => ({
+                    ...row,
+                    id: row.Id,
+                     appUuid:
+                    row.appUuid || '',
 
-                          <template if:false={row.discoveredBlank}>
-                              <span
-                                  class={row.discoveredPillClass}
-                                  title={row.discoveredTitle}>
+                stackLayerUuid:
+                    row.stackLayerUuid || '',
 
-                                  <span class="paam-pill__label">
-                                      {row.paamDiscovered}
-                                  </span>
+                compositeKey:
+                    row.compositeKey ||
+                    `${row.appUuid || ''}|${row.stackLayerUuid || ''}`,
 
-                              </span>
-                          </template>
+                    appId:
+                        row.appId ||
+                        row.appName ||
+                        row.Id,
+                    appName: row.appName || '',
+                    status: row.operationalStatus || '',
+                    paamManual: row.paamManual || '',
+                    paamDiscovered:
+                        row.paamDiscovered || '',
+                    manualStatus: row.manualStatus || '',
+                    discoveredStatus:
+                        row.discoveredStatus || '',
+                        forceInSync: row.forceInSync === true
+                }));
 
-                      </span>
-                  </td>
+                this.hasMore =
+                    result?.hasMore === true;
 
-                  <td>
-                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
-                  </td>
+                this.tableTotalRecordCount = result?.filteredTotalRecords || 0;  // 5 Aug
 
-                  <template if:true={isPrimaryScope}>
-                    <td class="paam-action-cell">
-                      <template if:true={row.canAccept}>
-    <button
-        type="button"
-        class="paam-btn paam-btn--accept"
-        data-id={row.id}
-        onclick={handleAccept}
-        title={row.acceptTitle}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round"
-             stroke-linejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        Accept
-    </button>
-</template>
+                this.totalRecordCount =
+                    result?.totalRecords || 0;
 
-<template if:false={row.canAccept}>
-    <template if:true={row.wasOverridden}>
-        <div class="paam-action-stack">
-            <span class="paam-accepted-tag">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round"
-                     stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Accepted
-            </span>
+                this.totalConflictCount =
+                result?.totalConflicts || 0;
 
-            <button
-                type="button"
-                class="paam-action-undo"
-                data-id={row.id}
-                onclick={handleUndo}>
-                Undo
-            </button>
-        </div>
-    </template>
+                this.totalSyncCount =
+                result?.totalSync || 0;
 
-    <template if:false={row.wasOverridden}>
-       <span class="paam-pill paam-pill--empty">
-        <span class="paam-pill__label"></span>
-    </span>
-    </template>
-</template>
-                    </td>
-                  </template>
-                </tr>
-              </template>
-            </template>
+                this.lastAppName =
+                    result?.lastAppName || null;
 
-            <template if:false={hasPageRows}>
-              <tr>
-                <td colspan={emptyColspan} class="paam-empty">
-                  <div class="paam-empty__icon">∅</div>
-                  <div>No records match your filters.</div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+                this.lastRecordId =
+                    result?.lastRecordId || null;
 
-      <!-- Footer / Pagination -->
-      <div class="paam-card__footer">
-        <span>{footerRangeLabel}</span>
+                if (
+                    isNextPage &&
+                    returnedRows.length > 0
+                ) {
+                    this.page += 1;
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    'Error loading records:',
+                    error
+                );
 
-        <span class="paam-pager">
-          <label class="paam-page-size-label">
-            Rows:
-            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
+                this.errorMessage =
+                    error?.body?.message ||
+                    error?.message ||
+                    'Unable to load records.';
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
 
-          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
-          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
-          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
-          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
-          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
-        </span>
-      </div>
-    </div>
+    get disableNext() {
+        return this.isLoading || !this.hasMore;
+    }
 
-    <!-- Toast -->
-    <template if:true={toastMessage}>
-      <div class="paam-toast-region" role="status" aria-live="polite">
-        <div class={toastClass}>
-          <span>{toastMessage}</span>
-          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
-        </div>
-      </div>
-    </template>
-  </div>
-  <template if:true={isAppModalOpen}>
-    <section
-        class="paam-modal-backdrop"
-        onclick={handleModalBackdropClick}>
+    get isPrimaryScope() {
+        return this.scope === 'primary';
+    }
 
-        <div
-            class="paam-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="app-details-title">
+    get primaryScopeClass() {
+        return this.scope === 'primary'
+            ? 'is-active'
+            : '';
+    }
 
-            <header class="paam-modal__header">
-                <div>
-                    <h2
-                        id="app-details-title"
-                        class="paam-modal__title">
-                        Application Details
-                    </h2>
+    get mineScopeClass() {
+        return this.scope === 'mine'
+            ? 'is-active'
+            : '';
+    }
 
-                    <p class="paam-modal__subtitle">
-                        {selectedRow.appNameDisplay}
-                    </p>
-                </div>
+    get allScopeClass() {
+        return this.scope === 'all'
+            ? 'is-active'
+            : '';
+    }
 
-                <button
-                    type="button"
-                    class="paam-modal__close"
-                    onclick={handleCloseAppModal}
-                    title="Close"
-                    aria-label="Close">
+    get conflictsViewClass() {
+        return this.view === 'conflicts'
+            ? 'is-active'
+            : '';
+    }
 
-                    <lightning-icon
-                        icon-name="utility:close"
-                        size="x-small"
-                        alternative-text="Close">
-                    </lightning-icon>
-                </button>
-            </header>
+    get allViewClass() {
+        return this.view === 'all'
+            ? 'is-active'
+            : '';
+    }
 
-            <div class="paam-modal__body">
-                <dl class="paam-modal__grid">
+    get syncViewClass() {
+        return this.view === 'sync'
+            ? 'is-active'
+            : '';
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Application</dt>
-                        <dd>
-                            {selectedRow.appNameDisplay}
-                        </dd>
-                    </div>
+    get totalApps() {
+        // return new Set(
+        //     this.rows.map((row) => row.appName)
+        // ).size;
+        return this.uniqueAppCount;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Operational Status</dt>
-                        <dd>
-                            {selectedRow.operationalStatusDisplay}
-                        </dd>
-                    </div>
+    get totalRecords() {
+        return this.rows.length;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>PAAM Manual</dt>
-                        <dd>
-                            {selectedRow.paamManualDisplay}
-                        </dd>
-                    </div>
+   /* get totalConflicts() {
+        return this.rows.filter(
+            (row) =>
+                row.forceInSync !== true &&
+            row.paamManual !== row.paamDiscovered
+        ).length;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>PAAM Discovered</dt>
-                        <dd>
-                            {selectedRow.paamDiscoveredDisplay}
-                        </dd>
-                    </div>
+    get totalSync() {
+        return (
+            this.totalRecords -
+            this.totalConflicts
+        );
+    } */
+    // 3 Aug
+    get totalConflicts() {
+        return this.totalConflictCount;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Stack Layer Status</dt>
-                        <dd>
-                            {selectedRow.stackLayerStatusDisplay}
-                        </dd>
-                    </div>
+    get totalSync() {
+        return this.totalSyncCount;
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Sync Status</dt>
-                        <dd>
-                            {selectedRow.syncStatusLabel}
-                        </dd>
-                    </div>
+    get conflictPct() {
+        if (!this.totalRecordCount) {
+            return 0;
+        }
 
-                    <!-- 3 Aug -->
-                    <div class="paam-modal__item">
-                        <dt>Portfolio</dt>
-                        <dd>{selectedRow.portfolioDisplay}</dd>
-                    </div>
+        return Math.round(
+            (
+                this.totalConflictCount /
+                this.totalRecordCount
+            ) * 100
+        );
+    }
+// 3 Aug
+    get totalAppsDisplay() {
+        return formatNumber(this.totalApps);
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Domain</dt>
-                        <dd>{selectedRow.domainDisplay}</dd>
-                    </div>
+    get totalRecordsDisplay() {
+        return formatNumber(
+            this.totalRecordCount
+        );
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Category</dt>
-                        <dd>{selectedRow.categoryDisplay}</dd>
-                    </div>
+    get totalConflictsDisplay() {
+        return formatNumber(
+            this.totalConflicts
+        );
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>UUID</dt>
-                        <dd>{selectedRow.uuidDisplay}</dd>
-                    </div>
+    // 5 Aug
+    get tableTotalRecordsDisplay() {
+        return formatNumber(
+            this.tableTotalRecordCount
+        );
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>App Type</dt>
-                        <dd>{selectedRow.appTypeDisplay}</dd>
-                    </div>
+    get totalSyncDisplay() {
+        return formatNumber(this.totalSync);
+    }
 
-                    <div class="paam-modal__item">
-                        <dt>Subtype</dt>
-                        <dd>{selectedRow.subtypeDisplay}</dd>
-                    </div>
+    get filteredRowsRaw() {
+        let filteredRows = this.rows.map(
+            (row) => ({
+                ...row,
+                isConflict:
+                 row.forceInSync !== true &&
+                    row.paamManual !==
+                    row.paamDiscovered
+            })
+        );
 
-                    <div class="paam-modal__item">
-                        <dt>Technical Architect</dt>
-                        <dd>{selectedRow.technicalArchitectDisplay}</dd>
-                    </div>
+       /* 5 Aug if (this.view === 'conflicts') {
+            filteredRows = filteredRows.filter(
+                (row) => row.isConflict
+            );
+        } else if (this.view === 'sync') {
+            filteredRows = filteredRows.filter(
+                (row) => !row.isConflict
+            );
+        } */
 
-                    <div class="paam-modal__item">
-                        <dt>Business Owner</dt>
-                        <dd>{selectedRow.businessOwnerDisplay}</dd>
-                    </div>
+        if (this.statusFilter !== 'all') {
+            filteredRows = filteredRows.filter(
+                (row) => {
+                    const manualStatus =
+                        statusSlug(
+                            row.manualStatus ||
+                            'Unknown'
+                        );
 
-                    <div class="paam-modal__item">
-                        <dt>Application Owner</dt>
-                        <dd>{selectedRow.applicationOwnerDisplay}</dd>
-                    </div>
+                    const discoveredStatus =
+                        statusSlug(
+                            row.discoveredStatus ||
+                            'Unknown'
+                        );
 
-                    <div class="paam-modal__item">
-                        <dt>Description</dt>
-                        <dd>{selectedRow.descriptionDisplay}</dd>
-                    </div>
+                    return (
+                        manualStatus ===
+                            this.statusFilter ||
+                        discoveredStatus ===
+                            this.statusFilter
+                    );
+                }
+            );
+        }
 
-                    <div class="paam-modal__item">
-                        <dt>TIME</dt>
-                        <dd>{selectedRow.timeDisplay}</dd>
-                    </div>
+        filteredRows.sort((firstRow, secondRow) => {
+            const firstAppName = String(
+                firstRow.appName || ''
+            ).toLowerCase();
 
-                    <!-- 3 Aug -->
+            const secondAppName = String(
+                secondRow.appName || ''
+            ).toLowerCase();
 
-                </dl>
-            </div>
+            if (
+                firstAppName !== secondAppName &&
+                this.sortField !== 'appName'
+            ) {
+                return firstAppName <
+                    secondAppName
+                    ? -1
+                    : 1;
+            }
 
-            <footer class="paam-modal__footer">
-                <button
-                    type="button"
-                    class="paam-btn"
-                    onclick={handleCloseAppModal}>
-                    Close
-                </button>
-            </footer>
-        </div>
-    </section>
-</template>
-</template>
+            const firstValue = String(
+                firstRow[this.sortField] ?? ''
+            ).toLowerCase();
+
+            const secondValue = String(
+                secondRow[this.sortField] ?? ''
+            ).toLowerCase();
+
+            if (firstValue < secondValue) {
+                return this.sortDir === 'asc'
+                    ? -1
+                    : 1;
+            }
+
+            if (firstValue > secondValue) {
+                return this.sortDir === 'asc'
+                    ? 1
+                    : -1;
+            }
+
+            return 0;
+        });
+
+        return filteredRows;
+    }
+
+    get filteredCountDisplay() {
+        return formatNumber(
+            this.filteredRowsRaw.length
+        );
+    }
+
+    get pageRows() {
+        const styledRows =
+            this.filteredRowsRaw.map((row) => {
+                const operationalStatus =
+                    row.manualStatus || 'Unknown';
+
+                const discoveredStatus =
+                    row.discoveredStatus ||
+                    'Unknown';
+                //29 July
+                const manualSlug = row.paamManual?.trim()
+                        ? statusSlug(row.manualStatus || 'Unknown')
+                        : 'empty';
+
+                    const discoveredSlug = row.paamDiscovered?.trim()
+                        ? statusSlug(
+                            row.discoveredStatus ||
+                            row.manualStatus ||
+                            'Unknown'
+                        )
+                        : 'empty';
+
+               // 29 July
+
+                const wasOverridden =
+                    this.overrides[row.id] !==
+                    undefined;
+                    const manualBlank = !row.paamManual?.trim();
+                    const discoveredBlank = !row.paamDiscovered?.trim();
+
+                return {
+                    ...row,
+                    manualBlank,
+                    discoveredBlank,
+                    groupKey:
+                        row.appId ||
+                        row.appName ||
+                        row.id,
+                    canAccept:
+                        row.isConflict === true &&
+                         Boolean(row.paamDiscovered?.trim()),
+                    showManualArrow:
+                        row.isConflict &&
+                        Boolean(row.paamManual?.trim()),
+
+                    showDiscoveredArrow:
+                        row.isConflict &&
+                        Boolean(row.paamDiscovered?.trim()),
+
+                    manualPillClass:
+                        `paam-pill paam-pill--${manualSlug} ` +
+                        `${
+                            row.isConflict
+                                ? 'paam-pill--diff'
+                                : ''
+                        }`,
+
+                    discoveredPillClass:
+                        `paam-pill paam-pill--${discoveredSlug} ` +
+                        `${
+                            row.isConflict
+                                ? 'paam-pill--diff'
+                                : ''
+                        }`,
+
+                    manualTitle:
+                        `${row.paamManual} — ` +
+                        `${operationalStatus}`,
+
+                    discoveredTitle:
+                        `${row.paamDiscovered} — ` +
+                        `${discoveredStatus}`,
+
+                    diffTitle:
+                        `Will change to ` +
+                        `${row.paamDiscovered}`,
+
+                    syncStatusClass:
+                        row.isConflict
+                            ? 'paam-status paam-status--conflict'
+                            : 'paam-status paam-status--sync',
+
+                    syncStatusLabel:
+                        row.isConflict
+                            ? 'Conflict'
+                            : 'In Sync',
+
+                    acceptTitle:
+                        `Replace PAAM Manual ` +
+                        `(${row.paamManual}) with ` +
+                        `PAAM Discovered ` +
+                        `(${row.paamDiscovered})`,
+
+                    wasOverridden
+                };
+            });
+
+        const groupSizes = new Map();
+
+        styledRows.forEach((row) => {
+            const currentGroupSize =
+                groupSizes.get(
+                    row.groupKey
+                ) || 0;
+
+            groupSizes.set(
+                row.groupKey,
+                currentGroupSize + 1
+            );
+        });
+
+        const renderedGroups = new Set();
+
+        return styledRows.map((row) => {
+            const showApplication =
+                !renderedGroups.has(
+                    row.groupKey
+                );
+
+            if (showApplication) {
+                renderedGroups.add(
+                    row.groupKey
+                );
+            }
+
+            return {
+                ...row,
+
+                showApplication,
+
+                applicationRowSpan:
+                    showApplication
+                        ? groupSizes.get(
+                            row.groupKey
+                        )
+                        : null,
+
+               rowClass:
+    `${
+        row.isConflict
+            ? 'paam-row-conflict '
+            : ''
+    }` +
+    `${
+        showApplication
+            ? 'paam-row-group-start '
+            : 'paam-row-group-member '
+    }` +
+    `${
+        this.hoveredGroupKey === row.groupKey
+            ? 'paam-row-group-hover'
+            : ''
+    }`
+            };
+        });
+    }
+
+ // 5 Aug
+    get totalPages() {
+        return Math.max(
+            1,
+            Math.ceil(
+                this.tableTotalRecordCount /
+                Number(this.pageSize)
+            )
+        );
+    }
+
+    get currentPage() {
+        return Math.min(
+            this.page,
+            this.totalPages
+        );
+    }
+  // 5 Aug
+    get footerRangeLabel() {
+            if (this.tableTotalRecordCount === 0) {
+                return 'Showing 0–0 of 0';
+            }
+
+            const start =
+                ((this.page - 1) *
+                    Number(this.pageSize)) + 1;
+
+            const end = Math.min(
+                start + this.filteredRowsRaw.length - 1,
+                this.tableTotalRecordCount
+            );
+
+            return (
+                `Showing ${formatNumber(start)}–` +
+                `${formatNumber(end)} of ` +
+                `${formatNumber(this.tableTotalRecordCount)}`
+            );
+        }
+
+    get hasPageRows() {
+        return this.pageRows.length > 0;
+    }
+
+    get emptyColspan() {
+        return this.isPrimaryScope
+            ? 6
+            : 5;
+    }
+
+    get isFirstPage() {
+        return this.currentPage === 1;
+    }
+
+    get isLastPage() {
+        return (
+            this.currentPage ===
+            this.totalPages
+        );
+    }
+
+    get appSortArrow() {
+        return this.getSortArrow(
+            'appName'
+        );
+    }
+
+    get statusSortArrow() {
+        return this.getSortArrow(
+            'status'
+        );
+    }
+
+    get manualSortArrow() {
+        return this.getSortArrow(
+            'paamManual'
+        );
+    }
+
+    get discoveredSortArrow() {
+        return this.getSortArrow(
+            'paamDiscovered'
+        );
+    }
+
+    get toastClass() {
+        return (
+            `paam-toast ` +
+            `paam-toast--${this.toastKind}`
+        );
+    }
+
+    getSortArrow(field) {
+        if (this.sortField !== field) {
+            return '↕';
+        }
+
+        return this.sortDir === 'asc'
+            ? '↑'
+            : '↓';
+    }
+
+    resetPage() {
+        this.page = 1;
+    }
+    // 5 Aug
+   resetServerPagination() {
+        this.page = 1;
+        this.rows = [];
+        this.lastAppName = null;
+        this.lastRecordId = null;
+        this.hasMore = true;
+
+        this.totalRecordCount = 0;
+        this.tableTotalRecordCount = 0;
+        this.totalConflictCount = 0;
+        this.totalSyncCount = 0;
+    }
+// 5 Aug
+    handleSearch(event) {
+        const searchValue =
+            event.target.value || '';
+
+        this.query = searchValue;
+
+        window.clearTimeout(
+            this.searchTimeout
+        );
+
+        this.searchTimeout =
+            window.setTimeout(() => {
+                const trimmedSearch =
+                    this.query.trim();
+
+                if (
+                    trimmedSearch.length > 0 &&
+                    trimmedSearch.length < 3
+                ) {
+                    return;
+                }
+
+                this.resetServerPagination();
+                this.loadRecords();
+            }, 400);
+    }
+
+    handleScopeChange(event) {
+        const selectedScope =
+            event.currentTarget.dataset.scope;
+
+        if (
+            this.scope === selectedScope ||
+            this.isLoading
+        ) {
+            return;
+        }
+
+        this.scope = selectedScope;
+
+        this.resetServerPagination();
+        this.loadRecords();
+        this.getUniqueAppCount();
+    }
+
+ // 5 Aug
+    handleViewChange(event) {
+        const selectedView =
+            event.currentTarget.dataset.view;
+
+        if (
+            this.view === selectedView ||
+            this.isLoading
+        ) {
+            return;
+        }
+
+        this.view = selectedView;
+
+        this.resetServerPagination();
+        this.loadRecords();
+    }
+
+    handleStatusFilterChange(event) {
+        this.statusFilter =
+            event.target.value;
+
+        this.resetPage();
+    }
+
+    handleSort(event) {
+        const field =
+            event.currentTarget.dataset.field;
+
+        if (this.sortField === field) {
+            this.sortDir =
+                this.sortDir === 'asc'
+                    ? 'desc'
+                    : 'asc';
+        } else {
+            this.sortField = field;
+            this.sortDir = 'asc';
+        }
+
+        this.resetPage();
+    }
+
+    handleAccept(event) {
+        const id =
+            event.currentTarget.dataset.id;
+
+        const row = this.rows.find(
+            (record) => record.id === id
+        );
+
+        if (
+            !row ||
+            row.paamManual ===
+                row.paamDiscovered
+        ) {
+            return;
+        }
+
+        const originalManual =
+            row.paamManual;
+
+        this.rows = this.rows.map(
+            (record) =>
+                record.id === id
+                    ? {
+                        ...record,
+                        paamManual:
+                            row.paamDiscovered
+                    }
+                    : record
+        );
+
+        this.overrides = {
+            ...this.overrides,
+            [id]: originalManual
+        };
+
+        this.showToast(
+            'success',
+            `Accepted “${row.paamDiscovered}” ` +
+            `for ${row.appName}`
+        );
+    }
+
+    handleUndo(event) {
+        const id =
+            event.currentTarget.dataset.id;
+
+        const original =
+            this.overrides[id];
+
+        if (original === undefined) {
+            return;
+        }
+
+        this.rows = this.rows.map(
+            (record) =>
+                record.id === id
+                    ? {
+                        ...record,
+                        paamManual: original
+                    }
+                    : record
+        );
+
+        const nextOverrides = {
+            ...this.overrides
+        };
+
+        delete nextOverrides[id];
+
+        this.overrides =
+            nextOverrides;
+
+        this.showToast(
+            'success',
+            `Reverted to “${original}”`
+        );
+    }
+
+    handlePageSizeChange(event) {
+        this.pageSize =
+            Number(event.target.value);
+
+        this.resetServerPagination();
+        this.loadRecords();
+    }
+
+    goFirst() {
+        if (
+            this.isLoading ||
+            this.isFirstPage
+        ) {
+            return;
+        }
+
+        this.resetServerPagination();
+        this.loadRecords();
+    }
+
+    goPrev() {
+        if (
+            this.isLoading ||
+            this.isFirstPage
+        ) {
+            return;
+        }
+
+        this.resetServerPagination();
+        this.loadRecords();
+    }
+
+    goNext() {
+        if (
+            this.isLoading ||
+            !this.hasMore
+        ) {
+            return;
+        }
+
+        this.loadRecords(true);
+    }
+
+    goLast() {
+        if (
+            this.isLoading ||
+            this.isLastPage
+        ) {
+            return;
+        }
+
+        this.showToast(
+            'warning',
+            'Use Next to load additional records.'
+        );
+    }
+
+    showToast(kind, message) {
+        this.toastKind = kind;
+        this.toastMessage = message;
+
+        window.clearTimeout(
+            this.toastTimeout
+        );
+
+        this.toastTimeout =
+            window.setTimeout(() => {
+                this.toastMessage = '';
+            }, 3500);
+    }
+
+    dismissToast() {
+        this.toastMessage = '';
+    }
+    handleOpenAppModal(event) {
+    const rowId = event.currentTarget.dataset.id;
+
+    const row = this.pageRows.find(
+        (item) => item.id === rowId
+    );
+
+    if (!row) {
+        return;
+    }
+
+    // 3 Aug
+
+    this.selectedRow = {
+    ...row,
+
+    appNameDisplay: row.appName || 'Not Available',
+    operationalStatusDisplay: row.status || 'Not Available',
+
+    portfolioDisplay: row.portfolio || 'Not Available',
+    domainDisplay: row.domain || 'Not Available',
+    categoryDisplay: row.category || 'Not Available',
+    uuidDisplay: row.UIID || 'Not Available',
+    appTypeDisplay: row.appType || 'Not Available',
+    subtypeDisplay: row.subtype || 'Not Available',
+    technicalArchitectDisplay: row.technicalArchitect || 'Not Available',
+    businessOwnerDisplay: row.businessOwner || 'Not Available',
+    applicationOwnerDisplay: row.ApplicationOwner || 'Not Available',
+    descriptionDisplay: row.description || 'Not Available',
+    timeDisplay: row.appTIME || 'Not Available',
+
+    paamManualDisplay: row.paamManual || 'Not Available',
+    paamDiscoveredDisplay: row.paamDiscovered || 'Not Available',
+
+    stackLayerStatusDisplay:
+        row.manualStatus ||
+        row.discoveredStatus ||
+        'Not Available'
+};
+
+// 3 Aug
+
+    this.isAppModalOpen = true;
+}
+
+handleCloseAppModal() {
+    this.isAppModalOpen = false;
+    this.selectedRow = {};
+}
+
+handleModalBackdropClick(event) {
+    if (
+        event.target.classList.contains(
+            'paam-modal-backdrop'
+        )
+    ) {
+        this.handleCloseAppModal();
+    }
+}
+}
