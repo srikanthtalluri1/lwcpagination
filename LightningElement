@@ -1,695 +1,536 @@
-public without sharing class TPM_PAAMStackData {
-
-  public static String ownershipCondition;
-
-    @AuraEnabled(cacheable=true)
-    public static PaamPageResult getStackLayJunction(
-        Integer pageSize,
-      // Datetime lastCreatedDate,
-         String lastAppName,
-        Id lastRecordId,
-        String ownedBy,
-        String searchKey,
-        String syncView //5 Aug
-    ) {
-        Integer safeLimit = pageSize == null
-            ? 50
-            : Math.min(Math.max(pageSize, 1), 200);
-
-        Integer queryLimit = safeLimit + 1;
-
-      //  Id currentUserId = UserInfo.getUserId();
-        
-
-        /*
-         * Ownership condition:
-         *
-         * MyPrimary:
-         *   Primary ownership fields only.
-         *
-         * MyAll:
-         *   Primary and delegate ownership fields.
-         *
-         * All:
-         *   No ownership condition.
-         */
-         ownershipCondition =
-            buildOwnershipCondition(ownedBy);
-         Id currentUserId;
-
-        if (String.isNotBlank(ownershipCondition)) {
-            currentUserId = getCurrentEmployeeId();
-        }
-
-        /*
-         * Search is applied only when at least three
-         * non-space characters are entered.
-         */
-        String normalizedSearchKey =
-            String.isBlank(searchKey)
-                ? null
-                : searchKey.trim();
-
-        String searchPattern;
-
-        if (
-            normalizedSearchKey != null &&
-            normalizedSearchKey.length() >= 3
-        ) {
-            searchPattern =
-                '%' + normalizedSearchKey + '%';
-        }
-
-        /*
-         * These conditions apply to both the count query
-         * and the record query.
-         */
-        List<String> baseConditions =
-            new List<String>();
-
-       
-                  system.debug('69 is: '+searchPattern);
-        if (String.isNotBlank(searchPattern)) {
-            baseConditions.add(
-                '(' +
-                    'App__r.App_Name__c ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR App__r.' +
-                    'Operational_Status__c ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR Stack_Layer_Config__r.Name ' +
-                    'LIKE :searchPattern ' +
-
-                    'OR Stack_Layer_Status__c ' + //StackLayerStatus__c
-                    'LIKE :searchPattern' +
-                ')'
-            );
-        }
- if (String.isNotBlank(ownershipCondition)) {
-            baseConditions.add(ownershipCondition);
-        }
-        /*
-         * Count query.
-         *
-         * The same ownership and search filters must be
-         * used here so totalRecords is accurate.
-         */
-        String countQuery =
-            'SELECT COUNT() ' +
-            'FROM TPM_Stack_Layer_Import_Relationship__c'; //new object
-
-        if (!baseConditions.isEmpty()) {
-            countQuery +=
-                ' WHERE ' +
-                String.join(baseConditions, ' AND ');
-        }
-
-        Integer totalRecordCount =
-            Database.countQuery(countQuery);
-
-        /*
-         * Record query conditions start with the ownership
-         * and search conditions.
-         */
-        List<String> recordConditions =
-            new List<String>();
-
-        recordConditions.addAll(baseConditions);
-        
-        // 5 Aug
-        if ('conflicts'.equalsIgnoreCase(syncView)) {
-            recordConditions.add(
-                'Mapping_Type__c IN (\'CI\', \'PAAM\')'
-            );
-        
-            recordConditions.add(
-                'Stack_Layer_Config__c != null'
-            );
-        }
-        else if ('sync'.equalsIgnoreCase(syncView)) {
-            recordConditions.add(
-                '(' +
-                    'Mapping_Type__c NOT IN (\'CI\', \'PAAM\') ' +
-                    'OR Mapping_Type__c = null ' +
-                    'OR Stack_Layer_Config__c = null' +
-                ')'
-            );
-        }
-
-        /*
-         * Keyset pagination.
-         */
-      if (
-    lastAppName != null &&
-    lastRecordId != null
-) {
-    recordConditions.add(
-        '(' +
-            'App__r.App_Name__c > :lastAppName ' +
-            'OR (' +
-                'App__r.App_Name__c = :lastAppName ' +
-                'AND Id > :lastRecordId' +
-            ')' +
-        ')'
-    );
-}
-
-        String recordQuery = 
-          
-           'SELECT ' +
-                'Id, ' +
-                'CreatedDate, ' +
-            	'App_UUID__c, ' +
-				'Stack_Layer_UUID__c, ' +
-                'Stack_Layer_Status__c, ' +
-                'Stack_Layer_Config__r.Name, ' +
-                'App__c, Mapping_Type__c, ' +
-                'App__r.App_Name__c, App__r.Category__r.Domain__r.Port__r.Name ,App__r.Category__r.Domain__r.Name  ,App__r.Category__r.Name ,App__r.UUID__c ,App__r.Subtype__c , App__r.Business_Owner__r.Name, App__r.Application_Owner__r.Name, App__r.Description__c,    ' + // 4 Aug
-                'App__r.' +
-                    'Operational_Status__c ' +
-            'FROM TPM_Stack_Layer_Import_Relationship__c'; //new object
-
-        if (!recordConditions.isEmpty()) {
-            recordQuery +=
-                ' WHERE ' +
-                String.join(recordConditions, ' AND ');
-        }
-system.debug('152 is:' +recordQuery);
-        recordQuery +=
-            ' ORDER BY App__r.App_Name__c ASC, Id ASC' +
-            ' LIMIT :queryLimit';
-   system.debug('156 is ' + recordQuery);
-        List<TPM_Stack_Layer_Import_Relationship__c> queriedRecords =
-            Database.query(recordQuery); // new object
- system.debug('165 is ' + queriedRecords.size());
-        Boolean hasMore =
-            queriedRecords.size() > safeLimit;
-
-        /*
-         * The query requests one extra record to determine
-         * whether another page exists.
-         */
-        List<TPM_Stack_Layer_Import_Relationship__c> pageRecords =
-            new List<TPM_Stack_Layer_Import_Relationship__c>();
-
-        Integer recordsToReturn = Math.min(
-            safeLimit,
-            queriedRecords.size()
-        );
-
-        for (
-            Integer index = 0;
-            index < recordsToReturn;
-            index++
-        ) {
-            pageRecords.add(queriedRecords[index]);
-        }
-
-        List<PaamRowWrapper> rows =
-            new List<PaamRowWrapper>();
-        Map<String, PaamRowWrapper> uniqueRowsByKey =
-    new Map<String, PaamRowWrapper>();
-
-        for (
-            TPM_Stack_Layer_Import_Relationship__c recordItem :
-            pageRecords // new object
-        ) {
-            PaamRowWrapper row =
-                new PaamRowWrapper();
-
-            row.Id = recordItem.Id;
-            row.createdDate = recordItem.CreatedDate;
-			row.appUuid =
-            recordItem.App_UUID__c;
-    
-        	row.stackLayerUuid =
-            recordItem.Stack_Layer_UUID__c;
-
-            row.compositeKey =
-                String.valueOf(row.appUuid) +
-                '|' +
-                String.valueOf(row.stackLayerUuid);
-           row.manualStatus =
-                recordItem.Stack_Layer_Status__c;
-
-            String paamValue =
-                recordItem.Stack_Layer_Config__r != null
-                    ? recordItem.Stack_Layer_Config__r.Name
-                    : '';
-
-            String paamSource =
-                String.isBlank(recordItem.Mapping_Type__c)
-                    ? ''
-                    : recordItem.Mapping_Type__c.trim();
-
-            if ('CI'.equalsIgnoreCase(paamSource)) {
-
-                    row.paamManual = '';
-                    row.paamDiscovered = paamValue;
-
-                    }
-                    else if ('PAAM'.equalsIgnoreCase(paamSource)) {
-
-                        row.paamManual = paamValue;
-                        row.paamDiscovered = '';
-
-                    }
-                    else if ('PAAM and CI'.equalsIgnoreCase(paamSource)) {
-
-                        row.paamManual = paamValue;
-                        row.paamDiscovered = paamValue; // 29 july
-                        row.forceInSync = true;
-
-                    } else {
-                // Safe fallback for any unexpected picklist value
-                row.paamManual = paamValue;
-                row.paamDiscovered = '';
-            }
-
-            if (
-               
-                recordItem.App__r != null
-            ) {
-                row.appId =
-                    recordItem
-                        .App__c;
-
-                row.appName =
-                    recordItem
-                        .App__r
-                        .App_Name__c;
-
-                row.operationalStatus =
-                    recordItem
-                        .App__r
-                        .Operational_Status__c;
-               
-                row.portfolio = recordItem.App__r.Category__r.Domain__r.Port__r.Name; // 4 Aug
-                row.domain = recordItem.App__r.Category__r.Domain__r.Name;  // 4 Aug
-                row.category = recordItem.App__r.Category__r.Name;
-                row.UIID = recordItem.App__r.UUID__c;
-                row.subtype = PicklistLabelUtil.getPicklistLabel( 'TPM_App__c','Subtype__c',recordItem.App__r.Subtype__c ); // 5 Aug
-                row.technicalArchitect = recordItem.App__r.Subtype__c;
-                row.businessOwner = recordItem.App__r.Business_Owner__r.Name; // 4 Aug
-                row.ApplicationOwner = recordItem.App__r.Application_Owner__r.Name; // 4 Aug
-                row.description = recordItem.App__r.Description__c;
-                row.appTIME = recordItem.App__r.Subtype__c;
-            }
-
-            row.appName =
-                String.isBlank(row.appName)
-                    ? ''
-                    : row.appName; 
-
-            row.operationalStatus =
-                String.isBlank(row.operationalStatus)
-                    ? ''
-                    : row.operationalStatus;
-
-            row.paamManual =
-                String.isBlank(row.paamManual)
-                    ? ''
-                    : row.paamManual;
-
-            row.paamDiscovered =
-                String.isBlank(row.paamDiscovered)
-                    ? ''
-                    : row.paamDiscovered;
-
-            row.manualStatus =
-                String.isBlank(row.manualStatus)
-                    ? ''
-                    : row.manualStatus;
-
-            row.discoveredStatus =
-                String.isBlank(row.discoveredStatus)
-                    ? ''
-                    : row.discoveredStatus;
-
-           if (!uniqueRowsByKey.containsKey(row.compositeKey)) {
-                uniqueRowsByKey.put(row.compositeKey, row);
-            }
-        }
-		rows.addAll(uniqueRowsByKey.values());
-        PaamPageResult result =
-            new PaamPageResult();
-
-        result.rows = rows;
-        result.hasMore = hasMore;
-        result.totalRecords = totalRecordCount;
-        //3 Aug
-		List<String> conflictConditions = new List<String>();
-        conflictConditions.addAll(baseConditions);
-        
-        conflictConditions.add(
-            'Mapping_Type__c IN (\'CI\', \'PAAM\')'
-        );
-        
-        conflictConditions.add(
-            'Stack_Layer_Config__c != null'
-        );
-        
-        String conflictCountQuery =
-            'SELECT COUNT() ' +
-            'FROM TPM_Stack_Layer_Import_Relationship__c';
-        
-        if (!conflictConditions.isEmpty()) {
-            conflictCountQuery +=
-                ' WHERE ' +
-                String.join(conflictConditions, ' AND ');
-        }
-        system.debug('conflictCountQuery '+conflictCountQuery);
-        Integer totalConflictCount =
-            Database.countQuery(conflictCountQuery);
-        
-       /* Integer totalSyncCount =
-            totalRecordCount - totalConflictCount;
-        result.totalConflicts = totalConflictCount;
-        // 5 Aug
-        Integer filteredTotalRecordCount =
-                totalRecordCount;
-            
-            if ('conflicts'.equalsIgnoreCase(syncView)) {
-                filteredTotalRecordCount =
-                    totalConflictCount;
-            }
-            else if ('sync'.equalsIgnoreCase(syncView)) {
-                filteredTotalRecordCount =
-                    totalSyncCount;
-            }
-        result.filteredTotalRecords = filteredTotalRecordCount;
-        
-		result.totalSync = totalSyncCount; */
-        // 5 Aug
-        		Integer totalSyncCount =
-                    totalRecordCount - totalConflictCount;
-                
-                if ('conflicts'.equalsIgnoreCase(syncView)) {
-                    result.totalConflicts =
-                        totalConflictCount;
-                
-                    result.totalSync = 0;
-                }
-                else if ('sync'.equalsIgnoreCase(syncView)) {
-                    result.totalConflicts = 0;
-                
-                    result.totalSync =
-                        totalSyncCount;
-                }
-                else {
-                    // All
-                    result.totalConflicts =
-                        totalConflictCount;
-                
-                    result.totalSync =
-                        totalSyncCount;
-                }
-                
-                Integer filteredTotalRecordCount =
-                    totalRecordCount;
-                
-                if ('conflicts'.equalsIgnoreCase(syncView)) {
-                    filteredTotalRecordCount =
-                        totalConflictCount;
-                }
-                else if ('sync'.equalsIgnoreCase(syncView)) {
-                    filteredTotalRecordCount =
-                        totalSyncCount;
-                }
-                
-                result.filteredTotalRecords =
-                    filteredTotalRecordCount;
-	// 5 Aug
-        /*
-         * Return the final record's values as the cursor
-         * for the next page.
-         */
-        if (!pageRecords.isEmpty()) {
-          //new object
-            TPM_Stack_Layer_Import_Relationship__c finalRecord =
-                pageRecords[
-                    pageRecords.size() - 1
-                ];
-result.lastAppName =
-  
-    finalRecord.App__r != null
-        ? finalRecord.App__r.App_Name__c
-        : null;
-
-result.lastRecordId =
-    finalRecord.Id;
-        }
-	system.debug('result '+result);
-        return result;
-    }
-
-    
-     @AuraEnabled(cacheable=true)
-    public static Integer getUniqueAppCount(String ownedBy) {
-
-        Set<String> uniqueapp = new Set<String>();
-        //select id, TPM_App_Stack__r.App__r.App_Name__c FROM TPM_Stack_Layer_Junction__c WHERE TPM_App_Stack__r.App__r.App_Name__c != NULL'
-       String countQuery =  'SELECT App__r.App_Name__c FROM TPM_Stack_Layer_Import_Relationship__c'; // new object
-          List<String> baseConditions =
-            new List<String>();
-         system.debug('304 is:' + ownedBy);
-         ownershipCondition =
-            buildOwnershipCondition(ownedBy);
-                 Id currentUserId;
-
-        if (String.isNotBlank(ownershipCondition)) {
-            currentUserId = getCurrentEmployeeId();
-        }
-        baseConditions.add(ownershipCondition);
-       system.debug('314 is:' + baseConditions);
-        system.debug('315 is:' + ownershipCondition);
-         if (String.isNotBlank(ownershipCondition)) {
-            countQuery +=
-                ' WHERE ' +
-                String.join(baseConditions, ' AND ');
-        }
-        system.debug('309 is: '+ countQuery);
-        
-        List<TPM_Stack_Layer_Import_Relationship__c> LSD = Database.query(countQuery); // new object
-        for (TPM_Stack_Layer_Import_Relationship__c Apps :LSD) {
-            uniqueapp.add( Apps.App__r.App_Name__c); //new object
-        }
-         system.debug('3-- is:' + uniqueapp.size());
-        return uniqueapp.size();
-    }
-    
-    
-    private static Id getCurrentEmployeeId() {
-        User currentUser = [
-            SELECT EmployeeNumber
-            FROM User
-            WHERE Id = :UserInfo.getUserId()
-            WITH SYSTEM_MODE
-            LIMIT 1
-        ];
-
-        if (String.isBlank(currentUser.EmployeeNumber)) {
-            return null;
-        }
-
-        List<UCH_Employee__c> employees = [
-            SELECT Id
-            FROM UCH_Employee__c
-            WHERE Employee_ID__c =
-                :currentUser.EmployeeNumber
-            WITH SYSTEM_MODE
-            LIMIT 1
-        ];
-
-        if (employees.isEmpty()) {
-            return null;
-        }
-
-        return employees[0].Id;
-    }
-    
-    /**
-     * Builds the ownership condition for the TPM App.
-     *
-     * MyPrimary:
-     * Checks only the three primary ownership fields.
-     *
-     * MyAll:
-     * Checks primary and delegate ownership fields.
-     *
-     * All:
-     * Returns null so no ownership filter is applied.
-     */
-    private static String buildOwnershipCondition(
-        String ownedBy
-    ) {
-        if (
-            String.isBlank(ownedBy) ||
-            'All'.equalsIgnoreCase(ownedBy) 
-           //dummy code for testing || 'MyPrimary'.equalsIgnoreCase(ownedBy)  
-        ) {
-            return null;
-        }
-
-        List<String> ownedByFields =
-            new List<String>();
-
-        if ('MyPrimary'.equalsIgnoreCase(ownedBy)) {
-            ownedByFields.addAll(
-                new List<String>{
-                    'IT_Architect__c',
-                    'Application_Owner__c',
-                    'Business_Owner__c'
-                }
-            );
-        } else if (
-            'MyAll'.equalsIgnoreCase(ownedBy)
-        ) {
-            ownedByFields.addAll(
-                new List<String>{
-                    'IT_Architect__c',
-                    'IT_Architect_Delegate_1__c',
-                    'IT_Architect_Delegate_2__c',
-
-                    'Application_Owner__c',
-                    'Application_Owner_Delegate_1__c',
-                    'Application_Owner_Delegate_2__c',
-                    'Application_Owner_Delegate_3__c',
-                    'Application_Owner_Delegate_4__c',
-
-                    'Business_Owner__c',
-                    'Business_Owner_Delegate_1__c',
-                    'Business_Owner_Delegate_2__c',
-                    'Business_Owner_Delegate_3__c'
-                }
-            );
-        } else {
-            return null;
-        }
-
-        List<String> ownershipConditions =
-            new List<String>();
-
-        for (String fieldName : ownedByFields) {
-            ownershipConditions.add(
-                'App__r.' +
-                fieldName +
-                ' = :currentUserId'
-            );
-        }
-
-        return
-            '(' +
-            String.join(
-                ownershipConditions,
-                ' OR '
-            ) +
-            ')';
-    }
-
-   public class PaamPageResult {
-    @AuraEnabled
-    public List<PaamRowWrapper> rows;
-
-    @AuraEnabled
-    public Boolean hasMore;
-
-    @AuraEnabled
-    public Integer totalRecords;
-
-    @AuraEnabled
-    public Integer totalConflicts;
-
-    @AuraEnabled
-    public Integer totalSync;
-    //5 Aug
-    @AuraEnabled
-	public Integer filteredTotalRecords;
-
-    @AuraEnabled
-    public String lastAppName;
-
-    @AuraEnabled
-    public Id lastRecordId;
-}
-
-    public class PaamRowWrapper {
-        @AuraEnabled
-        public Id Id;
-
-        @AuraEnabled
-        public Datetime createdDate;
-
-        @AuraEnabled
-        public Id appId;
-
-        @AuraEnabled
-        public String appName;
-
-        @AuraEnabled
-        public String operationalStatus;
-
-        @AuraEnabled
-        public String paamManual;
-
-        @AuraEnabled
-        public String paamDiscovered;
-
-        @AuraEnabled
-        public String manualStatus;
-
-        @AuraEnabled
-        public String discoveredStatus;
-
-        @AuraEnabled
-        public Boolean isMine;
-
-        @AuraEnabled
-        public Boolean isPrimary;
-
-        @AuraEnabled
-        public Boolean forceInSync;
-        
-        @AuraEnabled
-        public String appUuid;
-        
-        @AuraEnabled
-        public String stackLayerUuid;
-        
-        @AuraEnabled
-        public String compositeKey;
-        //3 Aug
-        @AuraEnabled
-        public String portfolio;
-        
-        @AuraEnabled
-        public String domain;
-        
-        @AuraEnabled
-        public String category;
-        
-        @AuraEnabled
-        public String UIID; 
-            
-        @AuraEnabled
-        public String subtype;
-        
-        @AuraEnabled
-        public String technicalArchitect;
-        
-        @AuraEnabled
-        public String businessOwner;
-        
-        @AuraEnabled
-        public String ApplicationOwner;
-        
-        @AuraEnabled
-        public String description;
-        
-        @AuraEnabled
-        public String appTIME;
-        
-    }
-}
+<template>
+  <div class="paam-page">
+    <!-- Hero -->
+    <div class="paam-hero">
+      <div>
+        <span class="paam-eyebrow">USAA · Application Insights</span>
+        <h1>PAAM Mapping <span class="paam-hero__accent">Discovery</span></h1>
+        <p>
+          Applications where the manually recorded PAAM differs from the automatically discovered PAAM.
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="paam-stats">
+      <div class="paam-stat paam-stat--total">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Total Apps</div>
+        <div class="paam-stat__value">{totalAppsDisplay}</div>
+        <div class="paam-stat__hint">{totalRecordsDisplay} PAAM records across 4 attributes</div>
+      </div>
+
+      <div class="paam-stat paam-stat--sync">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">In Sync</div>
+        <div class="paam-stat__value">{totalSyncDisplay}</div>
+        <div class="paam-stat__hint">Manual matches discovered</div>
+      </div>
+
+      <div class="paam-stat paam-stat--conflict">
+        <div class="paam-stat__accent"></div>
+        <div class="paam-stat__label">Conflicts</div>
+        <div class="paam-stat__value">{totalConflictsDisplay}</div>
+        <div class="paam-stat__hint">{conflictPct}% of total need review</div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="paam-card">
+      <div class="paam-card__header">
+        <div>
+          <h3 class="paam-card__title">Application PAAM Records</h3>
+          <p class="paam-card__subtitle">
+            Showing {filteredCountDisplay} of {tableTotalRecordsDisplay} records  <!-- 5 Aug -->
+          </p>
+        </div>
+
+        <div class="paam-toolbar">
+          <!-- Search -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-search-input">Search</label>
+            <div class="paam-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="paam-search-input"
+                type="search"
+                placeholder=" Min 3 Char(Search App,PAAM…)"
+                value={query}
+                oninput={handleSearch}
+              />
+            </div>
+          </div>
+
+          <!-- Ownership -->
+          <div class="paam-field">
+            <span class="paam-field__label">Ownership</span>
+            <div class="paam-segmented" role="tablist" aria-label="Ownership">
+              <button
+                type="button"
+                class={primaryScopeClass}
+                data-scope="primary"
+                onclick={handleScopeChange}
+                title="Apps where you are the primary owner">
+                My Primary Apps
+              </button>
+              <button
+                type="button"
+                class={mineScopeClass}
+                data-scope="mine"
+                onclick={handleScopeChange}
+                title="All apps you own or co-own">
+                My All Apps
+              </button>
+              <button
+                type="button"
+                class={allScopeClass}
+                data-scope="all"
+                onclick={handleScopeChange}>
+                All Apps
+              </button>
+            </div>
+          </div>
+
+          <!-- Sync Status -->
+          <div class="paam-field">
+            <span class="paam-field__label">Sync Status</span>
+            <div class="paam-segmented" role="tablist" aria-label="Sync Status">
+              <button type="button" class={conflictsViewClass} data-view="conflicts" onclick={handleViewChange}>
+                Conflicts
+              </button>
+              <button type="button" class={allViewClass} data-view="all" onclick={handleViewChange}>
+                All
+              </button>
+              <button type="button" class={syncViewClass} data-view="sync" onclick={handleViewChange}>
+                In Sync
+              </button>
+            </div>
+          </div>
+
+          <!-- Stack Layer Status -->
+          <div class="paam-field">
+            <label class="paam-field__label" for="paam-status-select">Stack Layer Status</label>
+            <select
+              id="paam-status-select"
+              class="paam-select"
+              value={statusFilter}
+              onchange={handleStatusFilterChange}
+              aria-label="Filter by Stack Layer Status"
+              title="Filter by Stack Layer Status">
+              <option value="all">All Statuses</option>
+              <template for:each={stackStatusOptions} for:item="opt">
+                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="paam-table-wrap slds-scope">
+        <table class="paam-table slds-table slds-table_bordered slds-table_cell-buffer slds-table_col-bordered">
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" data-field="appName" onclick={handleSort}>
+                  Application <span>{appSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="status" onclick={handleSort}>
+                  Operational Status <span>{statusSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamManual" onclick={handleSort}>
+                  PAAM Manual <span>{manualSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-field="paamDiscovered" onclick={handleSort}>
+                  PAAM Discovered <span>{discoveredSortArrow}</span>
+                </button>
+              </th>
+              <th scope="col">Sync Status</th>
+              <template if:true={isPrimaryScope}>
+                <th scope="col" class="paam-action-heading">Action</th>
+              </template>
+            </tr>
+          </thead>
+
+          <tbody>
+            <template if:true={hasPageRows}>
+              <template for:each={pageRows} for:item="row">
+                 <tr
+                      key={row.id}
+                      class={row.rowClass}
+                      data-group-key={row.groupKey}
+                        onmouseenter={handleGroupMouseEnter}
+                        onmouseleave={handleGroupMouseLeave}>
+                  <template if:true={row.showApplication}>
+                    <th
+                      scope="rowgroup"
+                      rowspan={row.applicationRowSpan}
+                      class="paam-group-cell">
+                      <div class="paam-app-cell">
+                          <span class="paam-app-name">
+                              {row.appName}
+                          </span>
+
+                          <button
+                              type="button"
+                              class="paam-app-info"
+                              data-id={row.id}
+                              onclick={handleOpenAppModal}
+                              title="View application details"
+                              aria-label="View application details">
+
+                              <lightning-icon
+                                  icon-name="utility:info"
+                                  size="xx-small"
+                                  alternative-text="View details">
+                              </lightning-icon>
+                          </button>
+                      </div>
+                    </th>
+
+                    <td
+                      rowspan={row.applicationRowSpan}
+                      class="paam-group-cell">
+                      <span class="paam-attr">{row.status}</span>
+                    </td>
+                  </template>
+
+                  <td class="paam-cell--manual">
+                    <span class="paam-diff-cell">
+                      <template if:false={row.manualBlank}>
+                      <span class={row.manualPillClass} title={row.manualTitle}>
+                        <span class="paam-pill__label">{row.paamManual}</span>
+                      </span>
+                      </template>
+                      <template if:true={row.showManualArrow}>
+                        <span class="paam-diff-arrow" title={row.diffTitle}>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                               stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="13 6 19 12 13 18"></polyline>
+                          </svg>
+                        </span>
+                      </template>
+                    </span>
+
+                    <template if:true={row.wasOverridden}>
+                      <div class="paam-overridden" title="Manual value was overridden with discovered value">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                             stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                             stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Accepted
+                      </div>
+                    </template>
+                  </td>
+
+                  <td class="paam-cell--discovered">
+                      <span class="paam-diff-cell">
+
+                          <template if:true={row.showDiscoveredArrow}>
+                              <span class="paam-diff-arrow" title={row.diffTitle}>
+                                  <svg
+                                      viewBox="0 0 24 24"
+                                      width="16"
+                                      height="16"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="2.5"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      aria-hidden="true">
+
+                                      <!-- Left arrow -->
+                                      <line x1="19" y1="12" x2="5" y2="12"></line>
+                                      <polyline points="11 6 5 12 11 18"></polyline>
+
+                                  </svg>
+                              </span>
+                          </template>
+
+                          <template if:false={row.discoveredBlank}>
+                              <span
+                                  class={row.discoveredPillClass}
+                                  title={row.discoveredTitle}>
+
+                                  <span class="paam-pill__label">
+                                      {row.paamDiscovered}
+                                  </span>
+
+                              </span>
+                          </template>
+
+                      </span>
+                  </td>
+
+                  <td>
+                    <span class={row.syncStatusClass}>{row.syncStatusLabel}</span>
+                  </td>
+
+                  <template if:true={isPrimaryScope}>
+                    <td class="paam-action-cell">
+                      <template if:true={row.canAccept}>
+    <button
+        type="button"
+        class="paam-btn paam-btn--accept"
+        data-id={row.id}
+        onclick={handleAccept}
+        title={row.acceptTitle}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Accept
+    </button>
+</template>
+
+<template if:false={row.canAccept}>
+    <template if:true={row.wasOverridden}>
+        <div class="paam-action-stack">
+            <span class="paam-accepted-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Accepted
+            </span>
+
+            <button
+                type="button"
+                class="paam-action-undo"
+                data-id={row.id}
+                onclick={handleUndo}>
+                Undo
+            </button>
+        </div>
+    </template>
+
+    <template if:false={row.wasOverridden}>
+       <span class="paam-pill paam-pill--empty">
+        <span class="paam-pill__label"></span>
+    </span>
+    </template>
+</template>
+                    </td>
+                  </template>
+                </tr>
+              </template>
+            </template>
+
+            <template if:false={hasPageRows}>
+              <tr>
+                <td colspan={emptyColspan} class="paam-empty">
+                  <div class="paam-empty__icon">∅</div>
+                  <div>No records match your filters.</div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Pagination -->
+      <div class="paam-card__footer">
+        <span>{footerRangeLabel}</span>
+
+        <span class="paam-pager">
+          <label class="paam-page-size-label">
+            Rows:
+            <select value={pageSize} onchange={handlePageSizeChange} class="paam-page-size">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+
+          <button type="button" class="paam-btn" onclick={goFirst} disabled={isFirstPage}>« First</button>
+          <button type="button" class="paam-btn" onclick={goPrev} disabled={isFirstPage}>‹ Prev</button>
+          <span class="paam-page-label">Page {currentPage} / {totalPages}</span>
+          <button type="button" class="paam-btn" onclick={goNext} disabled={disableNext}>Next ›</button>
+          <button type="button" class="paam-btn" onclick={goLast} disabled={isLastPage}>Last »</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <template if:true={toastMessage}>
+      <div class="paam-toast-region" role="status" aria-live="polite">
+        <div class={toastClass}>
+          <span>{toastMessage}</span>
+          <button type="button" class="paam-toast__close" onclick={dismissToast} aria-label="Dismiss">×</button>
+        </div>
+      </div>
+    </template>
+  </div>
+  <template if:true={isAppModalOpen}>
+    <section
+        class="paam-modal-backdrop"
+        onclick={handleModalBackdropClick}>
+
+        <div
+            class="paam-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-details-title">
+
+            <header class="paam-modal__header">
+                <div>
+                    <h2
+                        id="app-details-title"
+                        class="paam-modal__title">
+                        Application Details
+                    </h2>
+
+                    <p class="paam-modal__subtitle">
+                        {selectedRow.appNameDisplay}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="paam-modal__close"
+                    onclick={handleCloseAppModal}
+                    title="Close"
+                    aria-label="Close">
+
+                    <lightning-icon
+                        icon-name="utility:close"
+                        size="x-small"
+                        alternative-text="Close">
+                    </lightning-icon>
+                </button>
+            </header>
+
+            <div class="paam-modal__body">
+                <dl class="paam-modal__grid">
+
+                    <div class="paam-modal__item">
+                        <dt>Application</dt>
+                        <dd>
+                            {selectedRow.appNameDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Operational Status</dt>
+                        <dd>
+                            {selectedRow.operationalStatusDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>PAAM Manual</dt>
+                        <dd>
+                            {selectedRow.paamManualDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>PAAM Discovered</dt>
+                        <dd>
+                            {selectedRow.paamDiscoveredDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Stack Layer Status</dt>
+                        <dd>
+                            {selectedRow.stackLayerStatusDisplay}
+                        </dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Sync Status</dt>
+                        <dd>
+                            {selectedRow.syncStatusLabel}
+                        </dd>
+                    </div>
+
+                    <!-- 3 Aug -->
+                    <div class="paam-modal__item">
+                        <dt>Portfolio</dt>
+                        <dd>{selectedRow.portfolioDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Domain</dt>
+                        <dd>{selectedRow.domainDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Category</dt>
+                        <dd>{selectedRow.categoryDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>UUID</dt>
+                        <dd>{selectedRow.uuidDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>App Type</dt>
+                        <dd>{selectedRow.appTypeDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Subtype</dt>
+                        <dd>{selectedRow.subtypeDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Technical Architect</dt>
+                        <dd>{selectedRow.technicalArchitectDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Business Owner</dt>
+                        <dd>{selectedRow.businessOwnerDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Application Owner</dt>
+                        <dd>{selectedRow.applicationOwnerDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>Description</dt>
+                        <dd>{selectedRow.descriptionDisplay}</dd>
+                    </div>
+
+                    <div class="paam-modal__item">
+                        <dt>TIME</dt>
+                        <dd>{selectedRow.timeDisplay}</dd>
+                    </div>
+
+                    <!-- 3 Aug -->
+
+                </dl>
+            </div>
+
+            <footer class="paam-modal__footer">
+                <button
+                    type="button"
+                    class="paam-btn"
+                    onclick={handleCloseAppModal}>
+                    Close
+                </button>
+            </footer>
+        </div>
+    </section>
+</template>
+</template>
