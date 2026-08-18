@@ -1,46 +1,9 @@
-@IsTest
-private class TPM_PicklistLabelUtilTest {
-    @IsTest
-    static void getPicklistLabelReturnsExpectedValues() {
-        Schema.PicklistEntry entry = Case.Status.getDescribe().getPicklistValues()[0];
-        String value = entry.getValue();
-        String label = entry.getLabel();
+<div class="paam-card slds-is-relative">
 
-        List<String> actual = new List<String>{
-            TPM_PicklistLabelUtil.getPicklistLabel('', 'Status', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Case', '', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Case', 'Status', ''),
-            TPM_PicklistLabelUtil.getPicklistLabel('#', 'Status', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Case', '#', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Account', 'Name', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Case', 'Status', value),
-            TPM_PicklistLabelUtil.getPicklistLabel('Case', 'Status', value),
-            TPM_PicklistLabelUtil.getPicklistLabel(
-                'Case',
-                'Status',
-                value + '; MISSING'
-            ),
-            TPM_PicklistLabelUtil.getPicklistLabel(
-                'Case',
-                'Status',
-                'MISSING'
-            )
-        };
+    <template if:true={isLoading}>
+        <lightning-spinner
+            alternative-text="Loading records"
+            size="medium">
+        </lightning-spinner>
+    </template>
 
-        System.assertEquals(
-            new List<String>{
-                '',
-                '',
-                '',
-                value,
-                value,
-                value,
-                label,
-                label,
-                label + '; MISSING',
-                'MISSING'
-            },
-            actual
-        );
-    }
-}
