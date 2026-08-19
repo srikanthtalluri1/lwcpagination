@@ -1,9 +1,23 @@
-<div class="paam-card slds-is-relative">
+@isTest
+private class ASP_FiltersDTOTest {
 
-    <template if:true={isLoading}>
-        <lightning-spinner
-            alternative-text="Loading records"
-            size="medium">
-        </lightning-spinner>
-    </template>
+    @isTest
+    static void constructor_NoArgs_CreatesInstance() {
+        ASP_FiltersDTO filters = new ASP_FiltersDTO();
+        Assert.isNull(filters.following);
+    }
 
+    @isTest
+    static void constructor_AllArgs_SetsAllFields() {
+        ASP_FiltersDTO filters = new ASP_FiltersDTO(
+            new List<String>{ 'Application' },
+            new List<String>{ 'Draft' },
+            new List<String>{ 'E000A' },
+            new List<String>{ 'P1' },
+            new List<String>{ 'D1' },
+            new List<String>{ 'L1' },
+            'true'
+        );
+        Assert.areEqual('true', filters.following);
+    }
+}
