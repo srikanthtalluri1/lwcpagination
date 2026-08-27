@@ -1,23 +1,1103 @@
-@isTest
-private class ASP_FiltersDTOTest {
+public with sharing class ASP_ServiceController {
+    @AuraEnabled
+    public static List<ASP_StandardDTO> getStandards(ASP_FiltersDTO filters) {
+        List<ASP_StandardDTO> mappedStandards = new List<ASP_StandardDTO>();
 
-    @isTest
-    static void constructor_NoArgs_CreatesInstance() {
-        ASP_FiltersDTO filters = new ASP_FiltersDTO();
-        Assert.isNull(filters.following);
+        try {
+            String userId = UserInfo.getUserId();
+            String query = 'SELECT Id, Name, Active__c, Class__c, Status__c, Stage__c, Next_Review_Due_Date__c, Owner__r.Employee_ID__c, Owner__r.Name ';
+            query += 'FROM ASP_Architecture_Standard__c ';
+
+            List<String> whereClauses = new List<String>();
+            //pmd fix 8-27
+            Map<String, Object> queryBinds = new Map<String, Object>();
+
+            // Class
+            //pmd fix 8-27
+            if (filters.classes != null && filters.classes.size() > 0) {
+                queryBinds.put('classes', filters.classes);
+                whereClauses.add('Class__c IN :classes');
+            }
+
+            // Owner
+            //pmd fix 8-27
+            if (filters.owners != null && filters.owners.size() > 0) {
+                queryBinds.put('owners', filters.owners);
+                whereClauses.add('Owner__r.Employee_ID__c IN :owners');
+            }
+
+            // Status
+            if (filters.statuses != null && filters.statuses.size() > 0) {
+                List<String> statusClauses = new List<String>();
+
+                for (String status : filters.statuses) {
+                    if (status.equalsIgnoreCase('Draft'))
+                        statusClauses.add('Status__c = \'Draft\'');
+                    if (status.equalsIgnoreCase('Acknowledged'))
+                        statusClauses.add('Status__c = \'Acknowledged\'');
+                    if (status.equalsIgnoreCase('Approved'))
+                        statusClauses.add('Active__c = TRUE');
+                    if (status.equalsIgnoreCase('Retired'))
+                        statusClauses.add('Status__c = \'Retired\'');
+                    if (status.equalsIgnoreCase('Withdrawn'))
+                        statusClauses.add('Status__c = \'Withdrawn\'');
+                }
+
+                whereClauses.add('(' + String.join(statusClauses, ' OR ') + ')');
+            }
+
+            // Portfolio
+            if (filters.portfolios != null && filters.portfolios.size() > 0) {
+                Map<Id, TPM_Domain__c> domainsWithinPortfolios = new Map<Id, TPM_Domain__c>(
+                    [
+                        SELECT Id
+                        FROM TPM_Domain__c
+                        WHERE Port__c IN :filters.portfolios
+                    ]
+                );
+
+                //pmd fix 8-27
+                queryBinds.put('portfolios', filters.portfolios);
+                if (domainsWithinPortfolios.size() > 0) {
+                    queryBinds.put('portfolioDomainIds', domainsWithinPortfolios.keySet());
+                    whereClauses.add('(Portfolio__r.Id IN :portfolios OR Domain__r.Id IN :portfolioDomainIds)');
+                } else {
+                    whereClauses.add('Portfolio__r.Id IN :portfolios');
+                }
+            }
+
+            // Domain
+            //pmd fix 8-27
+            if (filters.domains != null && filters.domains.size() > 0) {
+                queryBinds.put('domains', filters.domains);
+                whereClauses.add('Domain__r.Id IN :domains');
+            }
+
+            // Stack Layer
+            if (filters.layers != null && filters.layers.size() > 0) {
+                List<TPM_Stack_Layer_Config__c> stackLayers = [
+                    SELECT Supporting_Standard__r.Zephyr_Standard_ID__c
+                    FROM TPM_Stack_Layer_Config__c
+                    WHERE Supporting_Standard__c != NULL AND Id IN :filters.layers AND Inactive__c != TRUE  WITH SYSTEM_MODE
+                ];
+
+                // Extract Zephyr_Standard_ID__c values from stackLayers
+                List<String> zephyrStandardIds = new List<String>();
+                for (TPM_Stack_Layer_Config__c stackLayer : stackLayers) {
+                    if (stackLayer.Supporting_Standard__r != null) {
+                        zephyrStandardIds.add(stackLayer.Supporting_Standard__r.Zephyr_Standard_ID__c);
+                    }
+                }
+                Set<Id> idsToFilterBy = new Set<Id>();
+                if (zephyrStandardIds.size() > 0) {
+                    idsToFilterBy.addAll(
+                        new Map<Id, AggregateResult>(
+                                [
+                                    SELECT Id
+                                    FROM ASP_Architecture_Standard__c
+                                    WHERE Source_System_ID__c != NULL AND Source_System_ID__c IN :zephyrStandardIds
+                                    GROUP BY Id
+                                ]
+                            )
+                            .keySet()
+                    );
+                    //pmd fix 8-27
+                    queryBinds.put('stackLayerStandardIds', idsToFilterBy);
+                    whereClauses.add('Id IN :stackLayerStandardIds');
+                }
+            }
+
+            //Following
+            if (filters.following != null && filters.following.toLowerCase() == 'true') {
+                //Standard Id the user is following
+                List<String> idsToFilterBy = getUserStandardFollowerAssignmentsByUserId(userId);
+                //pmd fix 8-27
+                queryBinds.put('followingStandardIds', idsToFilterBy);
+                whereClauses.add('Id IN :followingStandardIds');
+            }
+
+            if (whereClauses.size() > 0)
+                query += 'WHERE ' + String.join(whereClauses, ' AND ');
+
+            //pmd fix 8-27
+            List<ASP_Architecture_Standard__c> results = Database.queryWithBinds(
+                query,
+                queryBinds,
+                AccessLevel.SYSTEM_MODE
+            );
+
+            List<String> userPermissionSets = getUserPermissionSets(userId);
+            String employeeNumber = getUserEmployeeNumber(userId);
+            List<String> userStandardAuthorAssignments = getUserStandardAuthorAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+            List<String> userStandardAcknowledgerAssignments = getUserStandardAcknowledgerAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+
+            for (ASP_Architecture_Standard__c standard : results) {
+                Boolean userCanViewStandardUnapprovedChanges = userCanViewStandardUnapprovedChanges(
+                    standard,
+                    employeeNumber,
+                    userPermissionSets,
+                    userStandardAuthorAssignments,
+                    userStandardAcknowledgerAssignments
+                );
+
+                // If there's no version of the standard that the user can view (standard is not yet active/published,
+                // hasn't been retired, and the user can't view unapproved changes on that standard), exclude it
+                if (
+                    (!standard.Active__c && !standard.Status__c.equalsIgnoreCase('Retired')) &&
+                    !userCanViewStandardUnapprovedChanges
+                )
+                    continue;
+
+                // If the user is filtering by a status of Draft, Acknowledged, or Withdrawn and the standard is in a
+                // status that matches the filter, but that version of the standard is not viewable by the user (i.e.:
+                // the user can view the approved/published version, but not a revision in Draft), and the user didn't
+                // include the Approved status in their filter (they ONLY want to see Draft, Acknowledged, or
+                // Withdrawn), exclude that standard
+                if (
+                    (standard.Status__c.equalsIgnoreCase('Draft') ||
+                    standard.Status__c.equalsIgnoreCase('Acknowledged') ||
+                    standard.Status__c.equalsIgnoreCase('Withdrawn')) &&
+                    filters.statuses != null &&
+                    ASP_Utils.containsIgnoreCase(filters.statuses, standard.Status__c) &&
+                    !ASP_Utils.containsIgnoreCase(filters.statuses, 'Approved') &&
+                    !userCanViewStandardUnapprovedChanges
+                )
+                    continue;
+
+                ASP_StatusDTO statusDTO = getStatus(standard, userCanViewStandardUnapprovedChanges);
+
+                mappedStandards.add(
+                    new ASP_StandardDTO(
+                        standard.Id,
+                        standard.Name,
+                        standard.Active__c,
+                        standard.Class__c,
+                        standard.Status__c,
+                        standard.Stage__c,
+                        standard.Next_Review_Due_Date__c,
+                        standard.Owner__r.Employee_ID__c,
+                        standard.Owner__r.Name,
+                        statusDTO.overallStatus,
+                        statusDTO.revisionStatus
+                    )
+                );
+            }
+
+            return mappedStandards;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve standards.');
+        }
     }
 
-    @isTest
-    static void constructor_AllArgs_SetsAllFields() {
-        ASP_FiltersDTO filters = new ASP_FiltersDTO(
-            new List<String>{ 'Application' },
-            new List<String>{ 'Draft' },
-            new List<String>{ 'E000A' },
-            new List<String>{ 'P1' },
-            new List<String>{ 'D1' },
-            new List<String>{ 'L1' },
-            'true'
-        );
-        Assert.areEqual('true', filters.following);
+    @AuraEnabled
+    public static List<ASP_PortfolioDTO> getPortfoliosAppliedToStandards() {
+        try {
+            // TODO: If user can only view approved and retired standards, don't show portfolios or domains tied to standards w/ other statuses
+            // if (!FeatureManagement.checkPermission('our_custom_permission')) {
+            //     query += 'AND Status__c IN ("Approved", "Retired")';
+            // }
+            //pmd fix 8-27
+            List<ASP_Architecture_Standard__c> results = [
+                SELECT Portfolio__r.Id, Portfolio__r.Name
+                FROM ASP_Architecture_Standard__c
+                WHERE Portfolio__c != null
+            ];
+
+            Map<String, ASP_PortfolioDTO> portfolios = new Map<String, ASP_PortfolioDTO>();
+            for (ASP_Architecture_Standard__c result : results) {
+                portfolios.put(
+                    result.Portfolio__r.Id,
+                    new ASP_PortfolioDTO(result.Portfolio__r.Id, result.Portfolio__r.Name)
+                );
+            }
+
+            return portfolios.values();
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve portfolios.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_DomainDTO> getDomainsAppliedToStandards() {
+        try {
+            // TODO: If user can only view approved and retired standards, don't show portfolios or domains tied to standards w/ other statuses
+            // if (!FeatureManagement.checkPermission('our_custom_permission')) {
+            //     query += 'AND Status__c IN ("Approved", "Retired")';
+            // }
+            //pmd fix 8-27
+            List<ASP_Architecture_Standard__c> results = [
+                SELECT Domain__r.Id, Domain__r.Name, Domain__r.Port__r.Id, Domain__r.Port__r.Name
+                FROM ASP_Architecture_Standard__c
+                WHERE Domain__c != null
+            ];
+
+            Map<String, ASP_DomainDTO> domains = new Map<String, ASP_DomainDTO>();
+            for (ASP_Architecture_Standard__c result : results) {
+                domains.put(
+                    result.Domain__r.Id,
+                    new ASP_DomainDTO(
+                        result.Domain__r.Id,
+                        result.Domain__r.Name,
+                        new ASP_PortfolioDTO(result.Domain__r.Port__r.Id, result.Domain__r.Port__r.Name)
+                    )
+                );
+            }
+
+            return domains.values();
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve domains.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_StackLayerDTO> getStackLayersAppliedToStandards() {
+        try {
+            // TODO: If user can only view approved and retired standards, don't show stack layers tied to standards w/ other statuses
+            // if (!FeatureManagement.checkPermission('our_custom_permission')) {
+            //     query += 'WHERE Standard__r.Status__c IN ("Approved", "Retired")';
+            // }
+            //pmd fix 8-27
+            List<TPM_Stack_Layer_Config__c> results = [
+                SELECT Id, Name, StackId__r.Id, StackId__r.Name
+                FROM TPM_Stack_Layer_Config__c
+                WHERE Supporting_Standard__c != null AND Inactive__c != TRUE
+            ];
+
+            Map<String, ASP_StackLayerDTO> stackLayers = new Map<String, ASP_StackLayerDTO>();
+            for (TPM_Stack_Layer_Config__c result : results) {
+                stackLayers.put(
+                    result.Id,
+                    new ASP_StackLayerDTO(
+                        result.Id,
+                        result.Name,
+                        new ASP_StackDTO(result.StackId__r.Id, result.StackId__r.Name)
+                    )
+                );
+            }
+
+            return stackLayers.values();
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve stack layers.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_OwnerDTO> getStandardOwners() {
+        try {
+            // TODO: If user can only view approved and retired standards, don't show owners tied to standards w/ other statuses
+            // if (!FeatureManagement.checkPermission('our_custom_permission')) {
+            //     query += 'AND Status__c IN ("Approved", "Retired")';
+            // }
+            //pmd fix 8-27
+            List<ASP_Architecture_Standard__c> results = [
+                SELECT Owner__r.Id, Owner__r.Employee_ID__c, Owner__r.Name
+                FROM ASP_Architecture_Standard__c
+                WHERE Owner__c != null
+            ];
+
+            Map<String, ASP_OwnerDTO> owners = new Map<String, ASP_OwnerDTO>();
+            for (ASP_Architecture_Standard__c result : results) {
+                owners.put(
+                    result.Owner__r.Id,
+                    new ASP_OwnerDTO(result.Owner__r.Id, result.Owner__r.Employee_ID__c, result.Owner__r.Name)
+                );
+            }
+
+            return owners.values();
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve owners.');
+        }
+    }
+
+    @AuraEnabled
+    public static ASP_StandardHighlightsDTO getStandardHighlights(String standardId) {
+        try {
+            ASP_Architecture_Standard__c standard = [
+                SELECT
+                    Id,
+                    Name,
+                    Active__c,
+                    Classification__c,
+                    Class__c,
+                    Status__c,
+                    Stage__c,
+                    Effective_Date__c,
+                    Next_Review_Due_Date__c,
+                    Source_System_ID__c,
+                    Retired_Date__c,
+                    Withdrawn_Date__c,
+                    Owner__r.Employee_ID__c,
+                    Owner__r.Name,
+                    Portfolio__r.Id,
+                    Portfolio__r.Name,
+                    Domain__r.Id,
+                    Domain__r.Name
+                FROM ASP_Architecture_Standard__c
+                WHERE Id = :standardId  WITH SYSTEM_MODE
+            ];
+
+            if (standard == null) {
+                throw new AuraHandledException('Standard not found.');
+            }
+            List<TPM_Stack_Layer_Config__c> stackLayers = [
+                SELECT Supporting_Standard__r.Zephyr_Standard_ID__c, Id, Name, StackId__r.Id, StackId__r.Name
+                FROM TPM_Stack_Layer_Config__c
+                WHERE
+                    Supporting_Standard__c != NULL
+                    AND Supporting_Standard__r.Zephyr_Standard_ID__c = :standard.Source_System_ID__c
+                    AND Inactive__C != TRUE  WITH SYSTEM_MODE
+            ];
+
+            ASP_AppliesToItem domainItem = standard.Domain__r.Id != null
+                ? new ASP_AppliesToItem(standard.Domain__r.Id, standard.Domain__r.Name)
+                : null;
+            ASP_AppliesToItem portfolioItem = standard.Portfolio__r.Id != null
+                ? new ASP_AppliesToItem(standard.Portfolio__r.Id, standard.Portfolio__r.Name)
+                : null;
+
+            List<ASP_AppliesToItem> stackLayerItems = new List<ASP_AppliesToItem>();
+
+            //if we have stack layers, create a list of ASP_AppliesToItem objects for the payload / applies to popover data
+            if (stackLayers.size() > 0) {
+                for (TPM_Stack_Layer_Config__c stackLayer : stackLayers) {
+                    stackLayerItems.add(new ASP_AppliesToItem(stackLayer.Id, stackLayer.Name));
+                }
+            }
+
+            ASP_AppliesToDTO appliesToDTO = new ASP_AppliesToDTO(domainItem, portfolioItem, stackLayerItems);
+            ASP_ClassificationDTO classificationDTO = new ASP_ClassificationDTO(
+                standard.Classification__c,
+                standard.Class__c
+            );
+
+            String userId = UserInfo.getUserId();
+            List<String> userPermissionSets = getUserPermissionSets(userId);
+            String employeeNumber = getUserEmployeeNumber(userId);
+            List<String> userStandardAuthorAssignments = getUserStandardAuthorAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+            List<String> userStandardAcknowledgerAssignments = getUserStandardAcknowledgerAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+
+            Boolean userCanViewStandardUnapprovedChanges = userCanViewStandardUnapprovedChanges(
+                standard,
+                employeeNumber,
+                userPermissionSets,
+                userStandardAuthorAssignments,
+                userStandardAcknowledgerAssignments
+            );
+
+            ASP_StatusDTO statusDTO = getStatus(standard, userCanViewStandardUnapprovedChanges);
+
+            List<ASP_USAAEmployeeDTO> additionalAuthors = new List<ASP_USAAEmployeeDTO>();
+            // Get the standards author assignments
+            List<ASP_Architecture_Standard_Author__c> authors = [
+                SELECT Author__r.Employee_ID__c, Author__r.Name
+                FROM ASP_Architecture_Standard_Author__c
+                WHERE Standard__r.Id = :standardId  WITH SYSTEM_MODE
+            ];
+
+            for (ASP_Architecture_Standard_Author__c author : authors) {
+                ASP_USAAEmployeeDTO authorDTO = new ASP_USAAEmployeeDTO(
+                    author.Author__r.Name,
+                    author.Author__r.Employee_ID__c
+                );
+                additionalAuthors.add(authorDTO);
+            }
+
+            ASP_StandardHighlightsDTO standardHighlights = new ASP_StandardHighlightsDTO(
+                standard.Id,
+                standard.Name,
+                standard.Active__c,
+                classificationDTO,
+                standard.Status__c,
+                standard.Stage__c,
+                standard.Owner__r.Employee_ID__c,
+                standard.Owner__r.Name,
+                standard.Effective_Date__c,
+                standard.Next_Review_Due_Date__c,
+                appliesToDTO,
+                statusDTO.overallStatus,
+                statusDTO.revisionStatus,
+                additionalAuthors,
+                standard.Retired_Date__c,
+                standard.Withdrawn_Date__c
+            );
+
+            return standardHighlights;
+        } catch (Exception e) {
+            AuraHandledException ahex = new AuraHandledException('');
+            ahex.setMessage('Failed to retrieve standard highlights.');
+            throw ahex;
+        }
+    }
+
+    @AuraEnabled
+    public static ASP_StandardDetailsDTO getStandardDetails(String standardId) {
+        try {
+            String userId = UserInfo.getUserId();
+            List<String> userPermissionSets = getUserPermissionSets(userId);
+            String employeeNumber = getUserEmployeeNumber(userId);
+            List<String> userStandardAuthorAssignments = getUserStandardAuthorAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+            List<String> userStandardAcknowledgerAssignments = getUserStandardAcknowledgerAssignmentsByEmployeeNumber(
+                employeeNumber
+            );
+            ASP_Architecture_Standard__c result = [
+                SELECT Name, Executive_Summary__c, Overview__c, Standard__c, Rationale__c, Class__c, Status__c, Stage__c
+                FROM ASP_Architecture_Standard__c
+                WHERE Id = :standardId  WITH SYSTEM_MODE
+            ];
+            if (result.Status__c != 'Approved' && result.Status__c != 'Retired') {
+                Boolean userCanViewStandardUnapprovedChanges = userCanViewStandardUnapprovedChanges(
+                    result,
+                    employeeNumber,
+                    userPermissionSets,
+                    userStandardAuthorAssignments,
+                    userStandardAcknowledgerAssignments
+                );
+                if (!userCanViewStandardUnapprovedChanges) {
+                    String exceptionMessage = 'You do not have access to this standard';
+                    AuraHandledException e = new AuraHandledException(exceptionMessage);
+                    e.setMessage(exceptionMessage);
+                    throw e;
+                }
+            }
+            return new ASP_StandardDetailsDTO(
+                result.Name,
+                result.Executive_Summary__c,
+                result.Overview__c,
+                result.Standard__c,
+                result.Rationale__c
+            );
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve standard details.');
+        }
+    }
+
+    @AuraEnabled
+    public static void updateStandardDetails(
+        String standardId,
+        String title,
+        String executiveSummary,
+        String overview,
+        String standard,
+        String rationale
+    ) {
+        try {
+            ASP_Architecture_Standard__c standardToUpdate = [
+                SELECT
+                    Name,
+                    Stage__c,
+                    Class__c,
+                    Executive_Summary__c,
+                    Overview__c,
+                    Standard__c,
+                    Rationale__c,
+                    Owner__r.Employee_ID__c
+                FROM ASP_Architecture_Standard__c
+                WHERE Id = :standardId  WITH SYSTEM_MODE
+                LIMIT 1
+            ];
+            // Check if the user has permission to update the standard, pass in true for validation of stage
+            Boolean canUpdate = userCanUpdate(standardToUpdate, true);
+            if (canUpdate) {
+                standardToUpdate.Name = title;
+                standardToUpdate.Executive_Summary__c = executiveSummary;
+                standardToUpdate.Overview__c = overview;
+                standardToUpdate.Standard__c = standard;
+                standardToUpdate.Rationale__c = rationale;
+                if(!Schema.sObjectType.ASP_Architecture_Standard__c.isUpdateable()) {
+                    throw new AuraHandledException('You  dont have permission to Update Architecture Standards ');
+                }
+
+                update standardToUpdate;
+            } else {
+                String exceptionMessage = 'You do not have access to edit this standard.';
+                AuraHandledException e = new AuraHandledException(exceptionMessage);
+                e.setMessage(exceptionMessage);
+                throw e;
+            }
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to update standard.');
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<ASP_SnapshotDTO> getStandardSnapshots(String standardId) {
+        try {
+            List<ASP_Architecture_Standard_Snapshot__c> results = [
+                SELECT Id, Architecture_Standard__c, CreatedDate
+                FROM ASP_Architecture_Standard_Snapshot__c
+                WHERE Architecture_Standard__c = :standardId WITH SYSTEM_MODE
+                ORDER BY CreatedDate DESC  
+            ];
+            return mapResultsToSnapshotDTOs(results);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve standard snapshots.');
+        }
+    }
+
+    @AuraEnabled
+    public static ASP_SnapshotContentDTO getLatestSnapshot(String standardId) {
+        try {
+            List<ASP_Architecture_Standard_Snapshot__c> results = [
+                SELECT Executive_Summary__c, Overview__c, Standard__c, Rationale__c
+                FROM ASP_Architecture_Standard_Snapshot__c
+                WHERE Architecture_Standard__c = :standardId WITH SYSTEM_MODE
+                ORDER BY CreatedDate DESC  LIMIT 1
+            ];
+
+            if (results.IsEmpty()) {
+                String exceptionMessage = 'Standard has no snapshots.';
+                AuraHandledException e = new AuraHandledException(exceptionMessage);
+                e.setMessage(exceptionMessage);
+                throw e;
+            } else {
+                ASP_Architecture_Standard_Snapshot__c snapshot = results.get(0);
+                return new ASP_SnapshotContentDTO(
+                    snapshot.Executive_Summary__c,
+                    snapshot.Overview__c,
+                    snapshot.Standard__c,
+                    snapshot.Rationale__c
+                );
+            }
+        } catch (AuraHandledException e) {
+            throw e; // Rethrow the "Standard has no snapshots." exception if that was the exception that occurred
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve latest standard snapshot.');
+        }
+    }
+
+    @AuraEnabled
+    public static ASP_SnapshotContentDTO getSnapshotDetails(String snapshotId) {
+        try {
+            ASP_Architecture_Standard_Snapshot__c snapshot = [
+                SELECT Executive_Summary__c, Overview__c, Standard__c, Rationale__c
+                FROM ASP_Architecture_Standard_Snapshot__c
+                WHERE Id = :snapshotId  WITH SYSTEM_MODE
+            ];
+
+            return new ASP_SnapshotContentDTO(
+                snapshot.Executive_Summary__c,
+                snapshot.Overview__c,
+                snapshot.Standard__c,
+                snapshot.Rationale__c
+            );
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve snapshot details.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<String> getUserPermissionSets(String userId) {
+        try {
+            return ASP_Utils.getUserPermissionSets(userId);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user permission sets.');
+        }
+    }
+
+    @AuraEnabled
+    public static String getUserEmployeeNumber(String userId) {
+        try {
+            return ASP_Utils.getUserEmployeeNumber(userId);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user employee number.');
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static string getVisualforceHostname() {
+        try {
+            return DomainCreator.getVisualforceHostname(null);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve Visualforce hostname.');
+        }
+    }
+
+    private static List<ASP_SnapshotDTO> mapResultsToSnapshotDTOs(List<ASP_Architecture_Standard_Snapshot__c> results) {
+        List<ASP_SnapshotDTO> snapshots = new List<ASP_SnapshotDTO>();
+        for (ASP_Architecture_Standard_Snapshot__c result : results) {
+            snapshots.add(new ASP_SnapshotDTO(result.Id, result.Architecture_Standard__c, result.CreatedDate));
+        }
+
+        return snapshots;
+    }
+
+    @AuraEnabled
+    public static List<String> getUserStandardAuthorAssignmentsByUserId(String userId) {
+        try {
+            String employeeNumber = getUserEmployeeNumber(userId);
+            return getUserStandardAuthorAssignmentsByEmployeeNumber(employeeNumber);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user author assignments.');
+        }
+    }
+
+    private static List<String> getUserStandardAuthorAssignmentsByEmployeeNumber(String employeeNumber) {
+        List<String> standardAuthorAssignments = new List<String>();
+        try {
+            // Get the user's author assignments
+            List<ASP_Architecture_Standard_Author__c> authors = [
+                SELECT Id, Standard__c
+                FROM ASP_Architecture_Standard_Author__c
+                WHERE Author__r.Employee_ID__c = :employeeNumber  WITH SYSTEM_MODE
+            ];
+
+            for (ASP_Architecture_Standard_Author__c author : authors) {
+                standardAuthorAssignments.add(author.Standard__c);
+            }
+
+            return standardAuthorAssignments;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user author assignments.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<String> getUserStandardAcknowledgerAssignmentsByUserId(String userId) {
+        try {
+            String employeeNumber = getUserEmployeeNumber(userId);
+            return getUserStandardAcknowledgerAssignmentsByEmployeeNumber(employeeNumber);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user acknowledger assignments.');
+        }
+    }
+
+    private static List<String> getUserStandardAcknowledgerAssignmentsByEmployeeNumber(String employeeNumber) {
+        List<String> standardAcknowledgerAssignments = new List<String>();
+
+        try {
+            // Get the current acknowledger assignments. Only count assignments where the standard has an active
+            // approval submission (stage = pending acknowledgement/approval) so that we don't include acknowledgers
+            // selected during a previous approval submission
+            List<ASP_Architecture_Standard_Acknowledger__c> acknowledgers = [
+                SELECT Id, Standard__c
+                FROM ASP_Architecture_Standard_Acknowledger__c
+                WHERE
+                    Acknowledger__r.Employee_ID__c = :employeeNumber
+                    AND (Standard__r.Stage__c = 'Pending Acknowledgement'
+                    OR Standard__r.Stage__c = 'Pending Approval'
+                    OR Standard__r.Stage__c = 'Revising from Send Back')  WITH SYSTEM_MODE
+            ];
+
+            for (ASP_Architecture_Standard_Acknowledger__c acknowledger : acknowledgers) {
+                standardAcknowledgerAssignments.add(acknowledger.Standard__c);
+            }
+
+            return standardAcknowledgerAssignments;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user acknowledger assignments.');
+        }
+    }
+    @AuraEnabled
+    public static List<String> getUserStandardFollowerAssignmentsByUserId(String userId) {
+        try {
+            String employeeNumber = getUserEmployeeNumber(userId);
+            return getUserStandardFollowerAssignmentsByEmployeeNumber(employeeNumber);
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user follower assignments.');
+        }
+    }
+
+    private static List<String> getUserStandardFollowerAssignmentsByEmployeeNumber(String employeeNumber) {
+        List<String> standardFollowerAssignments = new List<String>();
+
+        try {
+            List<ASP_Architecture_Standard_Follower__c> followers = [
+                SELECT Id, Standard__c
+                FROM ASP_Architecture_Standard_Follower__c
+                WHERE Follower__r.Employee_ID__c = :employeeNumber  WITH SYSTEM_MODE
+            ];
+
+            for (ASP_Architecture_Standard_Follower__c follower : followers) {
+                standardFollowerAssignments.add(follower.Standard__c);
+            }
+
+            return standardFollowerAssignments;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve employee follower assignments.');
+        }
+    }
+
+    @AuraEnabled
+    public static void removeUserStandardFollowerAssignmentsByEmployeeNumberAndStandardId(
+        String employeeNumber,
+        String standardId
+    ) {
+        try {
+            ASP_Architecture_Standard_Follower__c follower = [
+                SELECT Id
+                FROM ASP_Architecture_Standard_Follower__c
+                WHERE Standard__c = :standardId AND Follower__r.Employee_ID__c = :employeeNumber  WITH SYSTEM_MODE
+            ];
+             if(!Schema.sObjectType.ASP_Architecture_Standard_Follower__c.isDeletable()) {
+                    throw new AuraHandledException('You  dont have permission to delete the follower. ');
+                }
+            delete follower;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to remove follower.');
+        }
+    }
+
+    @AuraEnabled
+    public static void addUserStandardFollowerAssignmentsByEmployeeNumberAndStandardId(
+        String employeeNumber,
+        String standardId
+    ) {
+        try {
+            UCH_Employee__c employee = [SELECT Id FROM UCH_Employee__c WHERE Employee_ID__c = :employeeNumber  WITH SYSTEM_MODE];
+            ASP_Architecture_Standard_Follower__c follower = new ASP_Architecture_Standard_Follower__c();
+            follower.Follower__c = employee.Id;
+            follower.Standard__c = standardId;
+             if(!Schema.sObjectType.ASP_Architecture_Standard_Follower__c.isCreateable()) {
+                    throw new AuraHandledException('You  dont have permission to add the follower. ');
+                }
+            insert follower;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to add follower.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_WorkItemDTO> getUserWorkItemsByStandardIdAndUserId(String userId, String standardId) {
+        List<ASP_WorkItemDTO> workItems = new List<ASP_WorkItemDTO>();
+        try {
+            List<FlowOrchestrationWorkItem> items = [
+                SELECT Id, Status, StepInstance.StageInstance.Label
+                FROM FlowOrchestrationWorkItem
+                WHERE AssigneeId = :userId AND RelatedRecordId = :standardId  WITH SYSTEM_MODE
+            ];
+            for (FlowOrchestrationWorkItem item : items) {
+                workItems.add(new ASP_WorkItemDTO(item.Id, item.Status, item.StepInstance.StageInstance.Label));
+            }
+
+            return workItems;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to retrieve user approval work items.');
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_ApprovalEventDTO> getStandardApprovalEventsByStandardId(String standardId) {
+        List<ASP_ApprovalEventDTO> approvalEventDTOs = new List<ASP_ApprovalEventDTO>();
+
+        try {
+            List<ASP_Approval_Workflow_Event__c> events = [
+                SELECT
+                    Id,
+                    Name,
+                    Event_Date__c,
+                    Action__c,
+                    Comments__c,
+                    Performed_By__c,
+                    Performed_By__r.Name,
+                    Performed_By__r.Employee_ID__c,
+                    Submitted_Approver__c,
+                    Submitted_Approver__r.Name,
+                    Submitted_Approver__r.Employee_ID__c,
+                    Approver_Reassigned_From__c,
+                    Approver_Reassigned_From__r.Name,
+                    Approver_Reassigned_From__r.Employee_ID__c,
+                    Approver_Reassigned_To__c,
+                    Approver_Reassigned_To__r.Name,
+                    Approver_Reassigned_To__r.Employee_ID__c
+                FROM ASP_Approval_Workflow_Event__c
+                WHERE Standard__c = :standardId WITH SYSTEM_MODE
+                ORDER BY Event_Date__c DESC  
+            ];
+
+            //pmd fix 8-27
+            Set<Id> submittedApprovalEventIds = new Set<Id>();
+            for (ASP_Approval_Workflow_Event__c event : events) {
+                if (event.Action__c == 'Submitted For Approval') {
+                    submittedApprovalEventIds.add(event.Id);
+                }
+            }
+
+            //pmd fix 8-27
+            Map<Id, List<ASP_Approval_Workflow_Event_Acknowledger__c>> acknowledgersByEventId =
+                new Map<Id, List<ASP_Approval_Workflow_Event_Acknowledger__c>>();
+            if (!submittedApprovalEventIds.isEmpty()) {
+                List<ASP_Approval_Workflow_Event_Acknowledger__c> acknowledgers = [
+                    SELECT Id, Name, Workflow_Event__c, Acknowledger__r.Name, Acknowledger__r.Employee_ID__c
+                    FROM ASP_Approval_Workflow_Event_Acknowledger__c
+                    WHERE Workflow_Event__c IN :submittedApprovalEventIds  WITH SYSTEM_MODE
+                ];
+
+                for (ASP_Approval_Workflow_Event_Acknowledger__c ack : acknowledgers) {
+                    if (!acknowledgersByEventId.containsKey(ack.Workflow_Event__c)) {
+                        acknowledgersByEventId.put(
+                            ack.Workflow_Event__c,
+                            new List<ASP_Approval_Workflow_Event_Acknowledger__c>()
+                        );
+                    }
+                    acknowledgersByEventId.get(ack.Workflow_Event__c).add(ack);
+                }
+            }
+
+            for (ASP_Approval_Workflow_Event__c event : events) {
+                List<ASP_USAAEmployeeDTO> acknowledgerDTOs = new List<ASP_USAAEmployeeDTO>();
+
+                if (event.Action__c == 'Submitted For Approval') {
+                    //pmd fix 8-27
+                    List<ASP_Approval_Workflow_Event_Acknowledger__c> acknowledgers =
+                        acknowledgersByEventId.get(event.Id);
+
+                    if (acknowledgers != null && acknowledgers.size() > 0) {
+                        for (ASP_Approval_Workflow_Event_Acknowledger__c ack : acknowledgers) {
+                            acknowledgerDTOs.add(
+                                new ASP_USAAEmployeeDTO(ack.Acknowledger__r.Name, ack.Acknowledger__r.Employee_ID__c)
+                            );
+                        }
+                    }
+                }
+
+                approvalEventDTOs.add(
+                    new ASP_ApprovalEventDTO(
+                        event.Name,
+                        event.Action__c,
+                        event.Event_Date__c,
+                        event.Comments__c,
+                        event.Performed_By__c != null
+                            ? new ASP_USAAEmployeeDTO(event.Performed_By__r.Name, event.Performed_By__r.Employee_ID__c)
+                            : null,
+                        event.Submitted_Approver__c != null
+                            ? new ASP_USAAEmployeeDTO(
+                                  event.Submitted_Approver__r.Name,
+                                  event.Submitted_Approver__r.Employee_ID__c
+                              )
+                            : null,
+                        event.Approver_Reassigned_From__c != null
+                            ? new ASP_USAAEmployeeDTO(
+                                  event.Approver_Reassigned_From__r.Name,
+                                  event.Approver_Reassigned_From__r.Employee_ID__c
+                              )
+                            : null,
+                        event.Approver_Reassigned_To__c != null
+                            ? new ASP_USAAEmployeeDTO(
+                                  event.Approver_Reassigned_To__r.Name,
+                                  event.Approver_Reassigned_To__r.Employee_ID__c
+                              )
+                            : null,
+                        (acknowledgerDTOs != null && acknowledgerDTOs.size() > 0) ? acknowledgerDTOs : null
+                    )
+                );
+            }
+
+            return approvalEventDTOs;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static List<ASP_WaiversDTO> getWaiversForStandardByStandardId(String standardId) {
+        List<ASP_WaiversDTO> waiversDTO = new List<ASP_WaiversDTO>();
+
+        try {
+            ASP_Architecture_Standard__c standard = [
+                SELECT Source_System_ID__c
+                FROM ASP_Architecture_Standard__c
+                WHERE Id = :standardId  WITH SYSTEM_MODE
+            ];
+
+            List<AWP_Architecture_Waiver_Form__c> awpWaivers = [
+                SELECT Id, Name, Status__c, Waiver_Expiration_Date__c, Renew_Counter__c
+                FROM AWP_Architecture_Waiver_Form__c
+                WHERE Zephyr_Standard_ID__c = :standard.Source_System_ID__c AND Zephyr_Standard_ID__c != NULL  WITH SYSTEM_MODE
+            ];
+            for (AWP_Architecture_Waiver_Form__c waiver : awpWaivers) {
+                waiversDTO.add(
+                    new ASP_WaiversDTO(
+                        waiver.Id,
+                        waiver.Name,
+                        waiver.Status__c,
+                        waiver.Waiver_Expiration_Date__c,
+                        waiver.Renew_Counter__c
+                    )
+                );
+            }
+
+            return waiversDTO;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+    @AuraEnabled
+    public static List<ASP_RelatedStackLayerDTO> getStackLayersForStandardByStandardId(String standardId) {
+        List<ASP_RelatedStackLayerDTO> stackLayersDTO = new List<ASP_RelatedStackLayerDTO>();
+
+        try {
+            ASP_Architecture_Standard__c standard = [
+                SELECT Source_System_ID__c
+                FROM ASP_Architecture_Standard__c
+                WHERE Id = :standardId  WITH SYSTEM_MODE
+            ];
+
+            List<TPM_Stack_Layer_Config__c> stackLayers = [
+                SELECT Id, Name, StackLayerStatus__r.Name, Stack_Layer_Owner__r.Name, StackId__r.Name
+                FROM TPM_Stack_Layer_Config__c
+                WHERE
+                    Supporting_Standard__r.Zephyr_Standard_ID__c = :standard.Source_System_ID__c
+                    AND Supporting_Standard__c != NULL  WITH SYSTEM_MODE
+            ];
+            for (TPM_Stack_Layer_Config__c stackLayer : stackLayers) {
+                stackLayersDTO.add(
+                    new ASP_RelatedStackLayerDTO(
+                        stackLayer.Id,
+                        stackLayer.Name,
+                        stackLayer.StackLayerStatus__r.Name,
+                        stackLayer.Stack_Layer_Owner__r.Name,
+                        stackLayer.StackId__r.Name
+                    )
+                );
+            }
+
+            return stackLayersDTO;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    private static Boolean userCanViewStandardUnapprovedChanges(
+        ASP_Architecture_Standard__c standard,
+        String employeeNumber,
+        List<String> userPermissionSets,
+        List<String> userStandardAuthorAssignments,
+        List<String> userStandardAcknowledgerAssignments
+    ) {
+        // If the user has the owner permission set for the class associated w/ the standard, return true
+        if (userPermissionSets.contains(ASP_Utils.ownerPermSetsByClass.get(standard.Class__c.toLowerCase())))
+            return true;
+
+        // If the user has the approver permission set for the class associated w/ the standard, return true
+        if (userPermissionSets.contains(ASP_Utils.approverPermSetsByClass.get(standard.Class__c.toLowerCase())))
+            return true;
+
+        // If the user has the author permission set and is assigned as author, return true
+        if (
+            userPermissionSets.contains(ASP_Utils.authorPermissionSet) &&
+            userStandardAuthorAssignments.contains(standard.Id)
+        )
+            return true;
+
+        // If the user has the acknowledger permission set, is assigned as an acknowledger, and in a stage where they are an active acknowledger, return true
+        if (
+            userPermissionSets.contains(ASP_Utils.acknowledgerPermissionSet) &&
+            userStandardAcknowledgerAssignments.contains(standard.Id) &&
+            (standard.Stage__c == 'Pending Acknowledgement' ||
+            standard.Stage__c == 'Pending Approval' ||
+            standard.Stage__c == 'Revising from Send Back')
+        )
+            return true;
+
+        // If the user has the administrator permission set, return true
+        if (userPermissionSets.contains(ASP_Utils.adminPermissionSet))
+            return true;
+
+        return false;
+    }
+
+    @TestVisible
+    private static ASP_StatusDTO getStatus(
+        ASP_Architecture_Standard__c standard,
+        Boolean userCanViewStandardUnapprovedChanges
+    ) {
+        String overallStatus = '';
+        if (standard.Active__c) {
+            overallStatus = 'Approved';
+        } else {
+            overallStatus = standard.Status__c;
+        }
+
+        String revisionStatus = '';
+        if (userCanViewStandardUnapprovedChanges) {
+            if (standard.Active__c && standard.Status__c != 'Approved' && standard.Status__c != 'Retired') {
+                if (standard.Stage__c == 'Revising') {
+                    revisionStatus = 'Revision in Draft';
+                } else if (standard.Stage__c == 'Revising from Send Back') {
+                    revisionStatus = 'Revising from Send Back';
+                } else {
+                    revisionStatus = 'Revision ' + standard.Stage__c;
+                }
+            } else if (!standard.Active__c && (standard.Status__c == 'Draft' || standard.Status__c == 'Acknowledged')) {
+                revisionStatus = standard.Stage__c;
+            }
+        }
+
+        return new ASP_StatusDTO(overallStatus, revisionStatus);
+    }
+
+    public static Boolean userCanCreate(String userId, ASP_Architecture_Standard__c standard) {
+        //retrieve assigned permission sets for the employeeNumber parameter
+        List<String> assignedPermSetNames = ASP_Utils.getUserPermissionSets(userId);
+
+        String ownerPermSetName = ASP_Utils.ownerPermSetsByClass.get(standard.Class__c.toLowerCase());
+
+        //if the creator is in an owner permission set, allow creation
+        if (
+            (assignedPermSetNames.size() != 0) &&
+            (ownerPermSetName != null && assignedPermSetNames.contains(ownerPermSetName))
+        ) {
+            return true;
+        }
+
+        //if the creator is in the admin permission set, allow creation
+        if ((assignedPermSetNames.size() != 0) && (assignedPermSetNames.contains('ASP_ADMIN'))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static Boolean userCanUpdate(ASP_Architecture_Standard__c standard, Boolean validateStage) {
+        //this parameter is used only if we're in a call validating a standard in draft status (typically the only time an update is allowed)
+        //In a trigger context, we don't want to validate the stage, as flow approval processes may be updating status/stage
+        if (validateStage) {
+            if (
+                !(standard.Stage__c == 'New' ||
+                standard.Stage__c == 'Revising' ||
+                standard.Stage__c == 'Revising from Send Back')
+            ) {
+                return false;
+            }
+        }
+
+        String userId = UserInfo.getUserId();
+        List<String> userPermissionSets = getUserPermissionSets(userId);
+        String employeeNumber = getUserEmployeeNumber(userId);
+        String classLower = standard.Class__c.toLowerCase();
+        String classOwnerPermSet = ASP_Utils.ownerPermSetsByClass.get(classLower);
+        if (standard.Owner__r.Employee_ID__c == employeeNumber && userPermissionSets.contains(classOwnerPermSet)) {
+            return true;
+        }
+
+        List<String> userStandardAuthorAssignments = getUserStandardAuthorAssignmentsByEmployeeNumber(employeeNumber);
+        Boolean isStandardAuthor = userStandardAuthorAssignments.size() > 0
+            ? userStandardAuthorAssignments.contains(standard.Id)
+            : false;
+
+        if (userPermissionSets.contains('ASP_AUTHOR') && isStandardAuthor) {
+            return true;
+        }
+
+        //if the updating user is in the admin permission set, allow update
+        if ((userPermissionSets.contains('ASP_ADMIN'))) {
+            return true;
+        }
+
+        return false;
     }
 }
