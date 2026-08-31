@@ -1,24 +1,23 @@
-ASP Workflow - Button & Lookup Access Summary
-Short summary based only on the provided LWC / Apex / Flow logic and screenshots
-1. Button Visibility
-Note: The conditions below apply after the workflow panel itself is available to the user.
-Button	Permission / User Requirement	Record / Work Item Condition
-Submit for Approval	User must be the Standard Owner and have the class-specific OWNER permission set.	Status = Draft; Stage = New, Revising, or Revising from Send Back.
-Withdraw	User must be the Standard Owner and have the class-specific OWNER permission set.	Status = Draft; Stage = New, Revising, or Revising from Send Back.
-Recall	User must be the Standard Owner and have the class-specific OWNER permission set.	Draft + Pending Acknowledgement OR Acknowledged + Pending Approval.
-Reassign Approver	User must be the Standard Owner and have the class-specific OWNER permission set.	Draft + Pending Acknowledgement OR Acknowledged + Pending Approval.
-Acknowledge	ASP_ACKNOWLEDGER	User has an Assigned Acknowledgement work item; Status = Draft; Stage = Pending Acknowledgement.
-Approve	Class-specific APPROVER permission set.	User has an Assigned Approval work item; Status = Acknowledged; Stage = Pending Approval.
-Send Back	User qualifies for Acknowledge OR Approve.	Shown in the same Acknowledge / Approve action group.
-2. Approver Lookup List
-The Flow formula selects the approver permission set from the Standard Class:
-Standard Class	Approver Permission Set
-Business	ASP_BUS_APPROVER
-Data	ASP_DATA_APPROVER
-Application	ASP_APP_APPROVER
-Technology	ASP_TECH_APPROVER
-Important: The screenshot proves the class-to-permission-set mapping. Any additional filters used to build the final user list are not established from that screenshot alone.
-3. Acknowledger Lookup List
-The “Get Eligible Acknowledgers” Flow gets the Acknowledger Permission Set and then gets Permission Set Assignee records. The permission set shown is ASP_ACKNOWLEDGER.
-Therefore, ASP_ACKNOWLEDGER assignment is the proven permission-set basis for the Acknowledger list. Any other filtering beyond the shown Flow elements is not established from the provided screenshot.
-Class-specific OWNER permission sets used by the buttons: Business = ASP_BUS_OWNER; Data = ASP_DATA_OWNER; Application = ASP_APP_OWNER; Technology = ASP_TECH_OWNER.
+ASP Workflow Access Summary		
+		
+Permission Set by Standard Class		
+Standard Class	Owner Permission Set	Approver Permission Set
+Business	ASP_BUS_OWNER	ASP_BUS_APPROVER
+Data	ASP_DATA_OWNER	ASP_DATA_APPROVER
+Application	ASP_APP_OWNER	ASP_APP_APPROVER
+Technology	ASP_TECH_OWNER	ASP_TECH_APPROVER
+		
+Submit for Approval - Lookup Lists		
+Lookup List	Permission Set Rule	Notes
+Approver List	Approver permission set based on Standard Class	Business/Data/Application/Technology use the approver permission sets shown above
+Acknowledger List	ASP_ACKNOWLEDGER	Single acknowledger permission set; not class-specific
+		
+Button Visibility		
+Button	Permission Set	Work Item Condition
+Submit for Approval	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
+Withdraw	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
+Reassign Approver	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
+Recall	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
+Acknowledge	ASP_ACKNOWLEDGER	Assigned work item with label = Acknowledgement
+Approve	Approver permission set based on Standard Class	Assigned work item with label = Approval
+Send Back	ASP_ACKNOWLEDGER OR Approver permission set based on Standard Class	User must qualify for Acknowledge or Approve
