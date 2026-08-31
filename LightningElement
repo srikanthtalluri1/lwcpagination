@@ -29,6 +29,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -81,6 +82,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 6);
     }
 
     @isTest
@@ -125,6 +127,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -169,6 +172,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -209,6 +213,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 0);
     }
 
     @isTest
@@ -261,6 +266,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -313,6 +319,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 6);
     }
 
     @isTest
@@ -365,6 +372,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -425,6 +433,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 5);
     }
 
     @isTest
@@ -487,6 +496,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -552,6 +562,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -594,6 +605,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
         // Only Standard A should be returned since it's the only one assigned the "Application" class and the user is
         // assigned the Application Approver permission set, the user can't view the other two assigned to other classes
     }
@@ -665,6 +677,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 4);
     }
 
     @isTest
@@ -721,6 +734,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -798,6 +812,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -898,6 +913,7 @@ private class ASP_ServiceControllerTests {
                 standards = ASP_ServiceController.getStandards(filters);
             }
 
+            Assert.areEqual(standards.size(), 2);
         }
     }
 
@@ -956,6 +972,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 4);
     }
 
     @isTest
@@ -1020,6 +1037,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -1077,6 +1095,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 6);
     }
 
     @isTest
@@ -1140,6 +1159,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -1212,6 +1232,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -1319,6 +1340,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -1384,6 +1406,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -1449,6 +1472,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -1522,6 +1546,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -1604,6 +1629,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -1717,6 +1743,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -1770,6 +1797,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 5);
     }
 
     @isTest
@@ -1830,6 +1858,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 5);
     }
 
     @isTest
@@ -1900,6 +1929,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2001,6 +2031,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -2067,6 +2098,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
     @isTest
     static void getStandards_IfFilteringByMultipleFilters_ReturnsStandardsWithMatchingPortfolioAndStackLayer() {
@@ -2174,6 +2206,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2248,6 +2281,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -2366,6 +2400,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2467,6 +2502,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2506,6 +2542,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 0);
     }
 
     @isTest
@@ -2550,6 +2587,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2596,6 +2634,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -2642,6 +2681,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -2683,6 +2723,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2714,6 +2755,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -2753,6 +2795,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -2795,6 +2838,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2841,6 +2885,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2887,6 +2932,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2928,6 +2974,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 2);
     }
 
     @isTest
@@ -2959,6 +3006,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getStandards(filters);
         }
 
+        Assert.areEqual(standards.size(), 3);
     }
 
     @isTest
@@ -3011,6 +3059,7 @@ private class ASP_ServiceControllerTests {
 
             List<ASP_PortfolioDTO> portfolios = ASP_ServiceController.getPortfoliosAppliedToStandards();
 
+            Assert.areEqual(portfolios.size(), 3);
         }
     }
 
@@ -3079,6 +3128,7 @@ private class ASP_ServiceControllerTests {
 
         List<ASP_DomainDTO> domains = ASP_ServiceController.getDomainsAppliedToStandards();
 
+        Assert.areEqual(domains.size(), 3);
     }
 
     @isTest
@@ -3135,6 +3185,7 @@ private class ASP_ServiceControllerTests {
 
         List<ASP_StackLayerDTO> stackLayers = ASP_ServiceController.getStackLayersAppliedToStandards();
 
+        Assert.areEqual(stackLayers.size(), 4);
     }
     @isTest
     static void getStackLayersAppliedToStandards_ReturnsNoInactiveStackLayersAppliedToStandards() {
@@ -3191,6 +3242,7 @@ private class ASP_ServiceControllerTests {
 
             List<ASP_StackLayerDTO> stackLayers = ASP_ServiceController.getStackLayersAppliedToStandards();
 
+            Assert.areEqual(stackLayers.size(), 3);
         }
     }
 
@@ -3238,6 +3290,7 @@ private class ASP_ServiceControllerTests {
 
         List<ASP_OwnerDTO> owners = ASP_ServiceController.getStandardOwners();
 
+        Assert.areEqual(owners.size(), 3);
     }
 
     @isTest
@@ -3305,6 +3358,7 @@ private class ASP_ServiceControllerTests {
             ASP_StandardHighlightsDTO standardADTO = ASP_ServiceController.getStandardHighlights(standardA.Id);
             ASP_StandardHighlightsDTO standardBDTO = ASP_ServiceController.getStandardHighlights(standardB.Id);
 
+            Assert.areEqual(standardADTO.id, standardA.Id);
             ASP_USAAEmployeeDTO authorDTO = standardADTO.additionalAuthors.get(0);
             //standard owner checks
         }
@@ -3315,6 +3369,7 @@ private class ASP_ServiceControllerTests {
         try {
             ASP_StandardHighlightsDTO standard = ASP_ServiceController.getStandardHighlights('99999');
         } catch (AuraHandledException e) {
+            Assert.areEqual(e.getMessage(), 'Failed to retrieve standard highlights.');
         }
     }
 
@@ -3350,6 +3405,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3378,6 +3434,7 @@ private class ASP_ServiceControllerTests {
             standard = ASP_ServiceController.getStandardHighlights(standardA.Id);
         }
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3422,6 +3479,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3455,6 +3513,7 @@ private class ASP_ServiceControllerTests {
             standard = ASP_ServiceController.getStandardHighlights(standardA.Id);
         }
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3493,6 +3552,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3521,6 +3581,7 @@ private class ASP_ServiceControllerTests {
             standard = ASP_ServiceController.getStandardHighlights(standardA.Id);
         }
 
+        Assert.areEqual(standard.title, 'Standard A');
     }
 
     @isTest
@@ -3559,9 +3620,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
-        // pmd fix 8-30 - minimal assertions retained
         Assert.areEqual(details.title, 'My Standard');
-        Assert.areEqual(details.executiveSummary, 'My executive summary.');
     }
 
     @isTest
@@ -3601,6 +3660,7 @@ private class ASP_ServiceControllerTests {
                 ASP_StandardDetailsDTO details = ASP_ServiceController.getStandardDetails(standard.Id);
             }
         } catch (AuraHandledException e) {
+            Assert.areEqual(e.getMessage(), 'You do not have access to this standard');
         }
     }
 
@@ -3649,6 +3709,7 @@ private class ASP_ServiceControllerTests {
             WHERE Id = :standard.Id
         ];
 
+        Assert.areEqual(updatedStandard.Name, 'My New Standard');
     }
 
     @isTest
@@ -3695,6 +3756,7 @@ private class ASP_ServiceControllerTests {
             WHERE Id = :standard.Id
         ];
 
+        Assert.areEqual(updatedStandard.Name, 'My New Standard');
     }
 
     @isTest
@@ -3742,6 +3804,7 @@ private class ASP_ServiceControllerTests {
             WHERE Id = :standard.Id
         ];
 
+        Assert.areEqual(updatedStandard.Name, 'My New Standard');
     }
 
     @isTest
@@ -3804,6 +3867,7 @@ private class ASP_ServiceControllerTests {
             WHERE Id = :standard.Id
         ];
 
+        Assert.areEqual(updatedStandard.Name, 'My New Standard');
     }
 
     @isTest
@@ -3848,6 +3912,7 @@ private class ASP_ServiceControllerTests {
                 );
             }
         } catch (AuraHandledException e) {
+            Assert.areEqual(e.getMessage(), 'You do not have access to edit this standard.');
         }
         Test.stopTest();
     }
@@ -3893,6 +3958,7 @@ private class ASP_ServiceControllerTests {
                 );
             }
         } catch (AuraHandledException e) {
+            Assert.areEqual(e.getMessage(), 'You do not have access to edit this standard.');
         }
         Test.stopTest();
     }
@@ -3900,6 +3966,7 @@ private class ASP_ServiceControllerTests {
     @isTest
     static void getStandardSnapshots_ReturnsEmptyListWhenStandardNotFound() {
         List<ASP_SnapshotDTO> snapshots = ASP_ServiceController.getStandardSnapshots('99999');
+        Assert.areEqual(snapshots.size(), 0);
     }
 
     @isTest
@@ -3927,6 +3994,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         List<ASP_SnapshotDTO> snapshots = ASP_ServiceController.getStandardSnapshots(standardA.Id);
+        Assert.areEqual(snapshots.size(), 0);
     }
 
     @isTest
@@ -3964,6 +4032,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         List<ASP_SnapshotDTO> snapshots = ASP_ServiceController.getStandardSnapshots(standardA.Id);
+        Assert.areEqual(snapshots.size(), 2);
         //verify snapshots are ordered by approved start date descending
     }
 
@@ -3993,6 +4062,7 @@ private class ASP_ServiceControllerTests {
 
             ASP_SnapshotContentDTO snapshot = ASP_ServiceController.getLatestSnapshot(standardA.Id);
 
+            Assert.areEqual(snapshot.executiveSummary, 'My executive summary.');
         }
 
         Test.stopTest();
@@ -4022,6 +4092,7 @@ private class ASP_ServiceControllerTests {
             try {
                 ASP_SnapshotContentDTO snapshot = ASP_ServiceController.getLatestSnapshot(standardA.Id);
             } catch (AuraHandledException e) {
+                Assert.areEqual(e.getMessage(), 'Standard has no snapshots.');
             }
         }
 
@@ -4042,6 +4113,7 @@ private class ASP_ServiceControllerTests {
 
         ASP_SnapshotContentDTO details = ASP_ServiceController.getSnapshotDetails(snapshot.Id);
 
+        Assert.areEqual(details.executiveSummary, 'My executive summary.');
     }
 
     @isTest
@@ -4065,6 +4137,7 @@ private class ASP_ServiceControllerTests {
         System.runAs(user) {
             List<String> permissionSets = ASP_ServiceController.getUserPermissionSets(user.Id);
 
+            Assert.isTrue(permissionSets.contains('PERM_SET_A'));
         }
     }
 
@@ -4077,6 +4150,7 @@ private class ASP_ServiceControllerTests {
         System.runAs(user) {
             String employeeNumber = ASP_ServiceController.getUserEmployeeNumber(user.Id);
 
+            Assert.areEqual(employeeNumber, 'E000A');
         }
     }
 
@@ -4089,6 +4163,7 @@ private class ASP_ServiceControllerTests {
         System.runAs(user) {
             String employeeNumber = ASP_ServiceController.getUserEmployeeNumber(user.Id);
 
+            Assert.areEqual(employeeNumber, null);
         }
     }
 
@@ -4096,6 +4171,7 @@ private class ASP_ServiceControllerTests {
     static void getVisualforceHostname_ReturnsVisualforceHostname() {
         String hostname = ASP_ServiceController.getVisualforceHostname();
 
+        Assert.isTrue(hostname.contains('vf.force.com'));
     }
 
     //getStatus tests - check each of the following combinations of isActive, status, stage and expected overall and revision status
@@ -4141,6 +4217,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Draft');
     }
 
     @isTest
@@ -4169,6 +4246,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Draft');
     }
 
     @isTest
@@ -4197,6 +4275,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Draft');
     }
 
     @isTest
@@ -4225,6 +4304,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Acknowledged');
     }
 
     @isTest
@@ -4253,6 +4333,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @isTest
@@ -4280,6 +4361,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @isTest
@@ -4307,6 +4389,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @isTest
@@ -4334,6 +4417,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @isTest
@@ -4361,6 +4445,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @isTest
@@ -4388,6 +4473,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Retired');
     }
 
     @isTest
@@ -4415,6 +4501,7 @@ private class ASP_ServiceControllerTests {
         Test.stopTest();
 
         ASP_StatusDTO status = ASP_ServiceController.getStatus(standardA, true);
+        Assert.areEqual(status.overallStatus, 'Withdrawn');
     }
 
     @isTest
@@ -4451,6 +4538,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(status.overallStatus, 'Approved');
     }
 
     @IsTest
@@ -4489,6 +4577,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getUserStandardAuthorAssignmentsByUserId(userA.Id);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @IsTest
@@ -4530,6 +4619,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getUserStandardAcknowledgerAssignmentsByUserId(userA.Id);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @IsTest
@@ -4612,6 +4702,7 @@ private class ASP_ServiceControllerTests {
 
         // Expect that user is only returned as an acknowledger for standards B, C, F, G, and H since those are the only
         // standards with an active approval submission (stage = pending acknowledgement/approval || stage = revising from send back)
+        Assert.areEqual(acknowledgerAssignments.size(), 5);
        
     }
 
@@ -4645,6 +4736,7 @@ private class ASP_ServiceControllerTests {
             workItems = ASP_ServiceController.getUserWorkItemsByStandardIdAndUserId(userA.Id, standardA.Id);
         }
 
+        Assert.areEqual(0, workItems.size());
     }
 
     @isTest
@@ -4677,6 +4769,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(0, approvals.size());
     }
 
     @isTest
@@ -4723,6 +4816,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(2, approvals.size());
     }
 
     @isTest
@@ -4775,6 +4869,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(1, approvals.size());
 
         List<ASP_USAAEmployeeDTO> submittedAcknowledgers = approvals[0].submittedAcknowledgers;
     }
@@ -4824,6 +4919,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(2, approvals.size());
     }
 
     @isTest
@@ -4861,6 +4957,7 @@ private class ASP_ServiceControllerTests {
 
         Test.stopTest();
 
+        Assert.areEqual(1, approvals.size());
     }
     @isTest
     static void getWaiversForStandardByStandardId_ReturnsEmptyListWhenNoWaivers() {
@@ -4892,6 +4989,7 @@ private class ASP_ServiceControllerTests {
             waivers = ASP_ServiceController.getWaiversForStandardByStandardId(standardA.Id);
         }
 
+        Assert.areEqual(0, waivers.size());
     }
     @isTest
     static void getWaiversForStandardByStandardId_ReturnsWaivers() {
@@ -4932,6 +5030,7 @@ private class ASP_ServiceControllerTests {
 
         waivers = ASP_ServiceController.getWaiversForStandardByStandardId(standardA.Id);
 
+        Assert.areEqual(2, waivers.size());
     }
     @isTest
     static void getWaiversForStandardByStandardId_InvalidStandardIdThrowsException() {
@@ -4942,6 +5041,7 @@ private class ASP_ServiceControllerTests {
         } catch (Exception e) {
             exceptionThrown = true;
         }
+        System.assert(exceptionThrown, 'Should throw exception for invalid standard Id');
     }
     @isTest
     static void getStackLayersForStandardByStandardId_ReturnsEmptyListWhenNoStackLayerss() {
@@ -4972,6 +5072,7 @@ private class ASP_ServiceControllerTests {
             stackLayers = ASP_ServiceController.getStackLayersForStandardByStandardId(standardA.Id);
         }
 
+        Assert.areEqual(0, stackLayers.size());
     }
     @isTest
     static void getStackLayersForStandardByStandardId_ReturnsStackLayers() {
@@ -5015,6 +5116,7 @@ private class ASP_ServiceControllerTests {
 
         stackLayers = ASP_ServiceController.getstackLayersForStandardByStandardId(standardA.Id);
 
+        Assert.areEqual(2, stackLayers.size());
     }
 
     @isTest
@@ -5026,6 +5128,7 @@ private class ASP_ServiceControllerTests {
         } catch (Exception e) {
             exceptionThrown = true;
         }
+        System.assert(exceptionThrown, 'Should throw exception for invalid standard Id');
     }
 
     @IsTest
@@ -5067,6 +5170,7 @@ private class ASP_ServiceControllerTests {
             standards = ASP_ServiceController.getUserStandardFollowerAssignmentsByUserId(userA.Id);
         }
 
+        Assert.areEqual(standards.size(), 1);
     }
 
     @isTest
@@ -5109,6 +5213,7 @@ private class ASP_ServiceControllerTests {
         System.runAs(userA) {
             standards = ASP_ServiceController.getUserStandardFollowerAssignmentsByUserId(userA.Id);
         }
+        Assert.areEqual(standards.size(), 2);
 
         System.runAs(userA) {
             ASP_ServiceController.removeUserStandardFollowerAssignmentsByEmployeeNumberAndStandardId(employeeA.Employee_Id__c,standardC.Id); // prettier-ignore
@@ -5155,6 +5260,7 @@ private class ASP_ServiceControllerTests {
         System.runAs(userA) {
             standards = ASP_ServiceController.getUserStandardFollowerAssignmentsByUserId(userA.Id);
         }
+        Assert.areEqual(standards.size(), 1);
 
         System.runAs(userA) {
             ASP_ServiceController.addUserStandardFollowerAssignmentsByEmployeeNumberAndStandardId(employeeA.Employee_Id__c,standardA.Id); // prettier-ignore
