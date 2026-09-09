@@ -1,23 +1,18 @@
-ASP Workflow Access Summary		
-		
-Permission Set by Standard Class		
-Standard Class	Owner Permission Set	Approver Permission Set
-Business	ASP_BUS_OWNER	ASP_BUS_APPROVER
-Data	ASP_DATA_OWNER	ASP_DATA_APPROVER
-Application	ASP_APP_OWNER	ASP_APP_APPROVER
-Technology	ASP_TECH_OWNER	ASP_TECH_APPROVER
-		
-Submit for Approval - Lookup Lists		
-Lookup List	Permission Set Rule	Notes
-Approver List	Approver permission set based on Standard Class	Business/Data/Application/Technology use the approver permission sets shown above
-Acknowledger List	ASP_ACKNOWLEDGER	Single acknowledger permission set; not class-specific
-		
-Button Visibility		
-Button	Permission Set	Work Item Condition
-Submit for Approval	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
-Withdraw	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
-Reassign Approver	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
-Recall	Owner permission set based on Standard Class	None — visibility uses owner + status/stage
-Acknowledge	ASP_ACKNOWLEDGER	Assigned work item with label = Acknowledgement
-Approve	Approver permission set based on Standard Class	Assigned work item with label = Approval
-Send Back	ASP_ACKNOWLEDGER OR Approver permission set based on Standard Class	User must qualify for Acknowledge or Approve
+ stackStatus: this.selectedStackStatus
+
+ get selectedStackStatus() {
+    if (this.statusFilter === 'all') {
+        return null;
+    }
+
+    const selectedOption = this.stackStatusOptions.find(
+        (option) => option.slug === this.statusFilter
+    );
+
+    return selectedOption
+        ? selectedOption.label
+        : null;
+}
+
+
+ this.loadRecords();
