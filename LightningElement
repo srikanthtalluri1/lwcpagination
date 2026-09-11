@@ -1,18 +1,482 @@
- stackStatus: this.selectedStackStatus
+public with sharing class ASP_GetEligibleEmployeesAction {
 
- get selectedStackStatus() {
-    if (this.statusFilter === 'all') {
-        return null;
+    public class Request {
+
+        @InvocableVariable(
+            label='Permission Set Name'
+            description='Permission Set API name, for example ASP_AUTHOR or ASP_ACKNOWLEDGER'
+            required=true
+        )
+        public String permissionSetName;
+
+        @InvocableVariable(
+            label='Owner Employee Record Id'
+            description='UCH_Employee__c Id of the Standard owner'
+            required=false
+        )
+        public String ownerEmployeeRecordId;
+
+        @InvocableVariable(
+            label='Standard Id'
+            description='Architecture Standard Id. Required when assigned authors need to be excluded.'
+            required=false
+        )
+        public String standardId;
+
+        @InvocableVariable(
+            label='Exclude Assigned Authors'
+            description='Set true for Approvers so currently assigned authors are excluded'
+            required=false
+        )
+        public Boolean excludeAssignedAuthors;
     }
 
-    const selectedOption = this.stackStatusOptions.find(
-        (option) => option.slug === this.statusFilter
-    );
 
-    return selectedOption
-        ? selectedOption.label
-        : null;
+    public class Response {
+
+        @InvocableVariable(
+            label='Eligible Employees'
+            description='UCH Employee records eligible for the requested role'
+        )
+        public List<UCH_Employee__c> eligibleEmployees;
+
+        public Response() {
+            eligibleEmployees = new List<UCH_Employee__c>();
+        }
+    }
+
+
+    @InvocableMethod(
+        label='Get Eligible ASP Employees'
+        description='Returns eligible UCH employees based on Permission Set assignment without creating large Flow IN queries.'
+    )
+    public static List<Response> getEligibleEmployees(
+        List<Request> requests
+    ) {
+
+        List<Response> responses = new List<Response>();
+
+        if (requests == null || requests.isEmpty()) {
+            return responses;
+        }
+
+        /*
+         * -------------------------------------------------------
+         * Always create one response for every request.
+         * -------------------------------------------------------
+         */
+        for (Integer i = 0; i < requests.size(); i++) {
+            responses.add(new Response());
+        }
+
+
+        /*
+         * -------------------------------------------------------
+         * 1. Collect Permission Set names.
+         * -------------------------------------------------------
+         */
+        Set<String> permissionSetNames = new Set<String>();
+
+        for (Request req : requests) {
+
+            if (
+                req != null &&
+                String.isNotBlank(req.permissionSetName)
+            ) {
+                permissionSetNames.add(
+                    req.permissionSetName.trim()
+                );
+            }
+        }
+
+        if (permissionSetNames.isEmpty()) {
+            return responses;
+        }
+
+
+        /*
+         * -------------------------------------------------------
+         * 2. Get Permission Set Assignments.
+         *
+         * IMPORTANT:
+         * This intentionally matches the CURRENT Flow XML:
+         *
+         * IsActive = true
+         * IsRevoked = false
+         * AND
+         * (
+         *     ExpirationDate = null
+         *     OR
+         *     ExpirationDate < CurrentDateTime
+         * )
+         *
+         * I am preserving the existing behavior here rather than
+         * changing the business logic while fixing the PROD issue.
+         * -------------------------------------------------------
+         */
+        Datetime currentDateTime = System.now();
+
+        List<PermissionSetAssignment> psaList = [
+            SELECT
+                Id,
+                AssigneeId,
+                PermissionSet.Name,
+                ExpirationDate,
+                IsActive,
+                IsRevoked
+            FROM PermissionSetAssignment
+            WHERE PermissionSet.Name IN :permissionSetNames
+            AND IsActive = true
+            AND IsRevoked = false
+            AND (
+                ExpirationDate = NULL
+                OR ExpirationDate < :currentDateTime
+            )
+        ];
+
+
+        /*
+         * Permission Set Name -> User Ids
+         */
+        Map<String, Set<Id>> userIdsByPermissionSet =
+            new Map<String, Set<Id>>();
+
+        Set<Id> allUserIds = new Set<Id>();
+
+        for (PermissionSetAssignment psa : psaList) {
+
+            if (
+                psa.AssigneeId == null ||
+                psa.PermissionSet == null ||
+                String.isBlank(psa.PermissionSet.Name)
+            ) {
+                continue;
+            }
+
+            String psName = psa.PermissionSet.Name;
+
+            if (!userIdsByPermissionSet.containsKey(psName)) {
+                userIdsByPermissionSet.put(
+                    psName,
+                    new Set<Id>()
+                );
+            }
+
+            userIdsByPermissionSet
+                .get(psName)
+                .add(psa.AssigneeId);
+
+            allUserIds.add(psa.AssigneeId);
+        }
+
+        if (allUserIds.isEmpty()) {
+            return responses;
+        }
+
+
+        /*
+         * -------------------------------------------------------
+         * 3. Get User.EmployeeNumber.
+         *
+         * This replaces the Flow:
+         *
+         * Get Assignee Users
+         * WHERE Id IN {!Create_assignee_Ids_collection}
+         * -------------------------------------------------------
+         */
+        Map<Id, User> usersById = new Map<Id, User>([
+            SELECT
+                Id,
+                EmployeeNumber
+            FROM User
+            WHERE Id IN :allUserIds
+        ]);
+
+
+        /*
+         * Permission Set Name -> Employee Numbers
+         */
+        Map<String, Set<String>> employeeNumbersByPermissionSet =
+            new Map<String, Set<String>>();
+
+        Set<String> allEmployeeNumbers = new Set<String>();
+
+        for (String psName : userIdsByPermissionSet.keySet()) {
+
+            Set<String> employeeNumbers =
+                new Set<String>();
+
+            for (
+                Id userId :
+                userIdsByPermissionSet.get(psName)
+            ) {
+
+                User userRecord = usersById.get(userId);
+
+                if (
+                    userRecord != null &&
+                    String.isNotBlank(
+                        userRecord.EmployeeNumber
+                    )
+                ) {
+                    employeeNumbers.add(
+                        userRecord.EmployeeNumber
+                    );
+
+                    allEmployeeNumbers.add(
+                        userRecord.EmployeeNumber
+                    );
+                }
+            }
+
+            employeeNumbersByPermissionSet.put(
+                psName,
+                employeeNumbers
+            );
+        }
+
+        if (allEmployeeNumbers.isEmpty()) {
+            return responses;
+        }
+
+
+        /*
+         * -------------------------------------------------------
+         * 4. Get UCH Employee records.
+         *
+         * This replaces:
+         *
+         * Employee_ID__c
+         * IN {!Create_employee_numbers_collection}
+         *
+         * Apex uses a bind Set instead of Flow generating a very
+         * large literal query.
+         * -------------------------------------------------------
+         */
+        List<UCH_Employee__c> allEligibleEmployees = [
+            SELECT
+                Id,
+                Name,
+                Employee_ID__c
+            FROM UCH_Employee__c
+            WHERE Employee_ID__c IN :allEmployeeNumbers
+            ORDER BY Name
+        ];
+
+
+        /*
+         * -------------------------------------------------------
+         * 5. For Approvers only:
+         * collect assigned Authors for each Standard.
+         *
+         * Current Approver Flow excludes:
+         *
+         * Owner
+         * AND
+         * existing assigned authors.
+         * -------------------------------------------------------
+         */
+        Set<Id> standardIds = new Set<Id>();
+
+        for (Request req : requests) {
+
+            if (
+                req != null &&
+                req.excludeAssignedAuthors == true &&
+                String.isNotBlank(req.standardId)
+            ) {
+
+                try {
+                    standardIds.add((Id)req.standardId);
+                } catch (Exception ex) {
+                    // Invalid Id - simply don't add it.
+                }
+            }
+        }
+
+
+        /*
+         * Standard Id -> Author Employee Ids
+         */
+        Map<Id, Set<Id>> authorEmployeeIdsByStandard =
+            new Map<Id, Set<Id>>();
+
+        if (!standardIds.isEmpty()) {
+
+            for (
+                ASP_Architecture_Standard_Author__c author :
+                [
+                    SELECT
+                        Id,
+                        Standard__c,
+                        Author__c
+                    FROM ASP_Architecture_Standard_Author__c
+                    WHERE Standard__c IN :standardIds
+                ]
+            ) {
+
+                if (
+                    author.Standard__c == null ||
+                    author.Author__c == null
+                ) {
+                    continue;
+                }
+
+                if (
+                    !authorEmployeeIdsByStandard.containsKey(
+                        author.Standard__c
+                    )
+                ) {
+                    authorEmployeeIdsByStandard.put(
+                        author.Standard__c,
+                        new Set<Id>()
+                    );
+                }
+
+                authorEmployeeIdsByStandard
+                    .get(author.Standard__c)
+                    .add(author.Author__c);
+            }
+        }
+
+
+        /*
+         * -------------------------------------------------------
+         * 6. Build response for every Flow request.
+         * -------------------------------------------------------
+         */
+        for (Integer i = 0; i < requests.size(); i++) {
+
+            Request req = requests[i];
+            Response res = responses[i];
+
+            if (
+                req == null ||
+                String.isBlank(req.permissionSetName)
+            ) {
+                continue;
+            }
+
+            String permissionSetName =
+                req.permissionSetName.trim();
+
+            Set<String> eligibleEmployeeNumbers =
+                employeeNumbersByPermissionSet.get(
+                    permissionSetName
+                );
+
+            if (
+                eligibleEmployeeNumbers == null ||
+                eligibleEmployeeNumbers.isEmpty()
+            ) {
+                continue;
+            }
+
+
+            /*
+             * Owner Employee Id
+             */
+            Id ownerEmployeeId;
+
+            if (
+                String.isNotBlank(
+                    req.ownerEmployeeRecordId
+                )
+            ) {
+                try {
+                    ownerEmployeeId =
+                        (Id)req.ownerEmployeeRecordId;
+                } catch (Exception ex) {
+                    ownerEmployeeId = null;
+                }
+            }
+
+
+            /*
+             * Standard Id
+             */
+            Id currentStandardId;
+
+            if (String.isNotBlank(req.standardId)) {
+                try {
+                    currentStandardId =
+                        (Id)req.standardId;
+                } catch (Exception ex) {
+                    currentStandardId = null;
+                }
+            }
+
+
+            /*
+             * Assigned authors that must be excluded
+             * for Approvers.
+             */
+            Set<Id> authorEmployeeIds =
+                new Set<Id>();
+
+            if (
+                req.excludeAssignedAuthors == true &&
+                currentStandardId != null &&
+                authorEmployeeIdsByStandard.containsKey(
+                    currentStandardId
+                )
+            ) {
+                authorEmployeeIds.addAll(
+                    authorEmployeeIdsByStandard.get(
+                        currentStandardId
+                    )
+                );
+            }
+
+
+            /*
+             * allEligibleEmployees is already ordered by Name,
+             * so the returned lookup collection stays ordered.
+             */
+            for (
+                UCH_Employee__c employee :
+                allEligibleEmployees
+            ) {
+
+                /*
+                 * User must belong to requested Permission Set.
+                 */
+                if (
+                    !eligibleEmployeeNumbers.contains(
+                        employee.Employee_ID__c
+                    )
+                ) {
+                    continue;
+                }
+
+
+                /*
+                 * Existing Flow excludes the Standard owner.
+                 */
+                if (
+                    ownerEmployeeId != null &&
+                    employee.Id == ownerEmployeeId
+                ) {
+                    continue;
+                }
+
+
+                /*
+                 * Approver Flow also excludes assigned authors.
+                 */
+                if (
+                    req.excludeAssignedAuthors == true &&
+                    authorEmployeeIds.contains(employee.Id)
+                ) {
+                    continue;
+                }
+
+
+                res.eligibleEmployees.add(employee);
+            }
+        }
+
+
+        return responses;
+    }
 }
-
-
- this.loadRecords();
