@@ -1,184 +1,138 @@
-@isTest
-private class ASP_GetEligibleEmployeesActionTest {
+<template>
+    <!-- Class -->
+    <c-asp-class-filter
+        value={filters.classes}
+        default-value={classFilterDefaultValue}
+        onchange={handleClassFilterChange}
+        class="slds-m-horizontal_medium"
+    ></c-asp-class-filter>
 
-    private static User createUser(String empNo, String suffix) {
-        Profile p = [SELECT Id FROM Profile WHERE Name = 'Unassigned Users Profile' LIMIT 1];
-        User u = new User(
-            EmployeeNumber = empNo,
-            Alias = empNo.left(8),
-            Username = 'asp.test.' + suffix + '.' + System.currentTimeMillis() + '@usaa.com',
-            Email = 'asp.test.' + suffix + '@usaa.com',
-            FirstName = 'Test',
-            LastName = suffix,
-            LocaleSidKey = 'en_US',
-            LanguageLocaleKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            TimeZoneSidKey = 'America/Chicago',
-            ProfileId = p.Id
-        );
-        insert u;
-        return u;
-    }
+    <!-- Filter accordion sections -->
+    <div class="slds-border_top">
+        <lightning-accordion allow-multiple-sections-open active-section-name={activeFilterSections}>
+            <lightning-accordion-section data-id="status-filter-section" label="Status" name="status">
+                <lightning-button
+                    lwc:if={hasStatusFilterApplied}
+                    slot="actions"
+                    variant="base"
+                    label="clear"
+                    onclick={handleStatusClearClick}
+                    class="clear-button"
+                ></lightning-button>
+                <lightning-checkbox-group
+                    data-id="status-filter-checkbox-group"
+                    name="Status"
+                    options={statusOptions}
+                    value={filters.statuses}
+                    onchange={handleStatusChange}
+                    variant="label-hidden"
+                    class="slds-m-bottom_x-small"
+                ></lightning-checkbox-group>
+            </lightning-accordion-section>
+            <lightning-accordion-section
+                data-id="owner-filter-section"
+                label="Owner"
+                name="owner"
+                class="slds-border_bottom"
+            >
+                <lightning-button
+                    lwc:if={hasOwnerFilterApplied}
+                    slot="actions"
+                    variant="base"
+                    label="clear"
+                    onclick={handleOwnerClearClick}
+                    class="clear-button"
+                ></lightning-button>
+                <lightning-checkbox-group
+                    data-id="owner-filter-checkbox-group"
+                    name="Owner"
+                    options={ownerOptions}
+                    value={filters.owners}
+                    onchange={handleOwnerChange}
+                    variant="label-hidden"
+                    class="slds-m-bottom_x-small"
+                ></lightning-checkbox-group>
+            </lightning-accordion-section>
 
-    private static void assignPermission(User u, String psName) {
-        PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = :psName LIMIT 1];
-        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
-    }
-
-    private static UCH_Employee__c createEmployee(String empNo, String name) {
-        UCH_Employee__c emp = new UCH_Employee__c(
-            Name = name,
-            Employee_ID__c = empNo,
-            Department_Description__c = 'Dept',
-            Department_ID__c = '1'
-        );
-        insert emp;
-        return emp;
-    }
-
-    @isTest
-    static void nullRequestReturnsEmpty() {
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(null);
-        Test.stopTest();
-
-        Assert.areEqual(0, result.size());
-    }
-
-    @isTest
-    static void blankPermissionSetReturnsEmpty() {
-        ASP_GetEligibleEmployeesAction.Request req = new ASP_GetEligibleEmployeesAction.Request();
-
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(
-                new List<ASP_GetEligibleEmployeesAction.Request>{ req }
-            );
-        Test.stopTest();
-
-        Assert.areEqual(0, result[0].eligibleEmployees.size());
-    }
-
-    @isTest
-    static void validPermissionSetReturnsEmployee() {
-        User userA = createUser('E100A', 'AuthorA');
-        assignPermission(userA, 'ASP_AUTHOR');
-
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        UCH_Employee__c employeeA;
-        System.runAs(thisUser) {
-            employeeA = createEmployee('E100A', 'Employee A');
-        }
-
-        ASP_GetEligibleEmployeesAction.Request req = new ASP_GetEligibleEmployeesAction.Request();
-        req.permissionSetName = 'ASP_AUTHOR';
-
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(
-                new List<ASP_GetEligibleEmployeesAction.Request>{ req }
-            );
-        Test.stopTest();
-
-        Assert.areEqual(employeeA.Id, result[0].eligibleEmployees[0].Id);
-    }
-
-    @isTest
-    static void ownerExcludedReturnsEmpty() {
-        User userA = createUser('E100B', 'AuthorB');
-        assignPermission(userA, 'ASP_AUTHOR');
-
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        UCH_Employee__c employeeA;
-        System.runAs(thisUser) {
-            employeeA = createEmployee('E100B', 'Employee B');
-        }
-
-        ASP_GetEligibleEmployeesAction.Request req = new ASP_GetEligibleEmployeesAction.Request();
-        req.permissionSetName = 'ASP_AUTHOR';
-        req.ownerEmployeeRecordId = employeeA.Id;
-
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(
-                new List<ASP_GetEligibleEmployeesAction.Request>{ req }
-            );
-        Test.stopTest();
-
-        Assert.areEqual(0, result[0].eligibleEmployees.size());
-    }
-
-    @isTest
-    static void assignedAuthorExcludedReturnsEmpty() {
-        User userA = createUser('E100C', 'AuthorC');
-        User adminUser = createUser('E100D', 'AdminD');
-        assignPermission(userA, 'ASP_AUTHOR');
-        assignPermission(adminUser, 'ASP_ADMIN');
-
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        UCH_Employee__c employeeA;
-        System.runAs(thisUser) {
-            employeeA = createEmployee('E100C', 'Employee C');
-            createEmployee('E100D', 'Employee D');
-        }
-
-        ASP_Architecture_Standard__c standard;
-        System.runAs(adminUser) {
-            standard = new ASP_Architecture_Standard__c(
-                Name = 'Standard A',
-                Active__c = true,
-                Status__c = 'Draft',
-                Stage__c = 'New',
-                Classification__c = 'Architecture',
-                Class__c = 'Application'
-            );
-            insert standard;
-
-            insert new ASP_Architecture_Standard_Author__c(
-                Author__c = employeeA.Id,
-                Standard__c = standard.Id
-            );
-        }
-
-        ASP_GetEligibleEmployeesAction.Request req = new ASP_GetEligibleEmployeesAction.Request();
-        req.permissionSetName = 'ASP_AUTHOR';
-        req.standardId = standard.Id;
-        req.excludeAssignedAuthors = true;
-
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(
-                new List<ASP_GetEligibleEmployeesAction.Request>{ req }
-            );
-        Test.stopTest();
-
-        Assert.areEqual(0, result[0].eligibleEmployees.size());
-    }
-
-    @isTest
-    static void invalidIdsStillReturnsEmployee() {
-        User userA = createUser('E100E', 'AuthorE');
-        assignPermission(userA, 'ASP_AUTHOR');
-
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        System.runAs(thisUser) {
-            createEmployee('E100E', 'Employee E');
-        }
-
-        ASP_GetEligibleEmployeesAction.Request req = new ASP_GetEligibleEmployeesAction.Request();
-        req.permissionSetName = 'ASP_AUTHOR';
-        req.ownerEmployeeRecordId = 'invalid';
-        req.standardId = 'invalid';
-        req.excludeAssignedAuthors = true;
-
-        Test.startTest();
-        List<ASP_GetEligibleEmployeesAction.Response> result =
-            ASP_GetEligibleEmployeesAction.getEligibleEmployees(
-                new List<ASP_GetEligibleEmployeesAction.Request>{ req }
-            );
-        Test.stopTest();
-
-        Assert.areEqual(1, result[0].eligibleEmployees.size());
-    }
-}
+            <template lwc:if={showArchAppAndTechFilters}>
+                <h4 class="slds-text-title_caps filter-section-header">Class Specific Filters</h4>
+                <h5 class="filter-section-sub-header">Architecture</h5>
+                <h6 class="filter-section-sub-sub-header">Application &amp; Technology</h6>
+                <lightning-accordion-section data-id="portfolio-filter-section" label="Portfolio" name="portfolio">
+                    <lightning-button
+                        lwc:if={hasPortfolioFilterApplied}
+                        slot="actions"
+                        variant="base"
+                        label="clear"
+                        onclick={handlePortfolioClearClick}
+                        class="clear-button"
+                    ></lightning-button>
+                    <lightning-checkbox-group
+                        data-id="portfolio-filter-checkbox-group"
+                        name="Portfolio"
+                        options={portfolioOptions}
+                        value={filters.portfolios}
+                        onchange={handlePortfolioChange}
+                        variant="label-hidden"
+                        class="slds-m-bottom_x-small"
+                    ></lightning-checkbox-group>
+                </lightning-accordion-section>
+                <lightning-accordion-section data-id="domain-filter-section" label="Domain" name="domain">
+                    <lightning-button
+                        lwc:if={hasDomainFilterApplied}
+                        slot="actions"
+                        variant="base"
+                        label="clear"
+                        onclick={handleDomainClearClick}
+                        class="clear-button"
+                    ></lightning-button>
+                    <template iterator:it={domainOptionsByPortfolio}>
+                        <div key={it.value.id}>
+                            <template lwc:if={it.first}></template>
+                            <div lwc:else class="slds-m-top_x-small"></div>
+                            <lightning-checkbox-group
+                                data-portfolio-group-id={it.value.id}
+                                label={it.value.name}
+                                name={it.value.id}
+                                options={it.value.options}
+                                value={it.value.value}
+                                onchange={handleDomainChange}
+                                class="slds-m-bottom_x-small"
+                            ></lightning-checkbox-group>
+                        </div>
+                    </template>
+                </lightning-accordion-section>
+                <lightning-accordion-section
+                    data-id="stack-layer-filter-section"
+                    label="Stack Layer"
+                    name="stackLayer"
+                    class="slds-border_bottom"
+                >
+                    <lightning-button
+                        lwc:if={hasStackLayerFilterApplied}
+                        slot="actions"
+                        variant="base"
+                        label="clear"
+                        onclick={handleStackLayerClearClick}
+                        class="clear-button"
+                    ></lightning-button>
+                    <template iterator:it={layerOptionsByStack}>
+                        <div key={it.value.id}>
+                            <template lwc:if={it.first}></template>
+                            <div lwc:else class="slds-m-top_x-small"></div>
+                            <lightning-checkbox-group
+                                data-stack-group-id={it.value.id}
+                                label={it.value.name}
+                                name={it.value.id}
+                                options={it.value.options}
+                                value={it.value.value}
+                                onchange={handleStackLayerChange}
+                                class="slds-m-bottom_x-small"
+                            ></lightning-checkbox-group>
+                        </div>
+                    </template>
+                </lightning-accordion-section>
+            </template>
+        </lightning-accordion>
+    </div>
+</template>
