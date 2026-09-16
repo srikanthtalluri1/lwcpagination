@@ -1,138 +1,235 @@
-<template>
-    <!-- Class -->
-    <c-asp-class-filter
-        value={filters.classes}
-        default-value={classFilterDefaultValue}
-        onchange={handleClassFilterChange}
-        class="slds-m-horizontal_medium"
-    ></c-asp-class-filter>
+import { ownerPermissionSetsByClass } from 'c/aspLookups';
+import { NavigationMixin } from 'lightning/navigation';
+import { api, LightningElement } from 'lwc';
 
-    <!-- Filter accordion sections -->
-    <div class="slds-border_top">
-        <lightning-accordion allow-multiple-sections-open active-section-name={activeFilterSections}>
-            <lightning-accordion-section data-id="status-filter-section" label="Status" name="status">
-                <lightning-button
-                    lwc:if={hasStatusFilterApplied}
-                    slot="actions"
-                    variant="base"
-                    label="clear"
-                    onclick={handleStatusClearClick}
-                    class="clear-button"
-                ></lightning-button>
-                <lightning-checkbox-group
-                    data-id="status-filter-checkbox-group"
-                    name="Status"
-                    options={statusOptions}
-                    value={filters.statuses}
-                    onchange={handleStatusChange}
-                    variant="label-hidden"
-                    class="slds-m-bottom_x-small"
-                ></lightning-checkbox-group>
-            </lightning-accordion-section>
-            <lightning-accordion-section
-                data-id="owner-filter-section"
-                label="Owner"
-                name="owner"
-                class="slds-border_bottom"
-            >
-                <lightning-button
-                    lwc:if={hasOwnerFilterApplied}
-                    slot="actions"
-                    variant="base"
-                    label="clear"
-                    onclick={handleOwnerClearClick}
-                    class="clear-button"
-                ></lightning-button>
-                <lightning-checkbox-group
-                    data-id="owner-filter-checkbox-group"
-                    name="Owner"
-                    options={ownerOptions}
-                    value={filters.owners}
-                    onchange={handleOwnerChange}
-                    variant="label-hidden"
-                    class="slds-m-bottom_x-small"
-                ></lightning-checkbox-group>
-            </lightning-accordion-section>
+export default class AspSidebar extends NavigationMixin(LightningElement) {
+    @api filters;
+    @api classFilterDefaultValue;
+    @api statusOptions;
+    @api userEmployeeNumber;
+    @api owners;
+    @api portfolios;
+    @api domains;
+    @api stackLayers;
+    @api userPermissionSets;
 
-            <template lwc:if={showArchAppAndTechFilters}>
-                <h4 class="slds-text-title_caps filter-section-header">Class Specific Filters</h4>
-                <h5 class="filter-section-sub-header">Architecture</h5>
-                <h6 class="filter-section-sub-sub-header">Application &amp; Technology</h6>
-                <lightning-accordion-section data-id="portfolio-filter-section" label="Portfolio" name="portfolio">
-                    <lightning-button
-                        lwc:if={hasPortfolioFilterApplied}
-                        slot="actions"
-                        variant="base"
-                        label="clear"
-                        onclick={handlePortfolioClearClick}
-                        class="clear-button"
-                    ></lightning-button>
-                    <lightning-checkbox-group
-                        data-id="portfolio-filter-checkbox-group"
-                        name="Portfolio"
-                        options={portfolioOptions}
-                        value={filters.portfolios}
-                        onchange={handlePortfolioChange}
-                        variant="label-hidden"
-                        class="slds-m-bottom_x-small"
-                    ></lightning-checkbox-group>
-                </lightning-accordion-section>
-                <lightning-accordion-section data-id="domain-filter-section" label="Domain" name="domain">
-                    <lightning-button
-                        lwc:if={hasDomainFilterApplied}
-                        slot="actions"
-                        variant="base"
-                        label="clear"
-                        onclick={handleDomainClearClick}
-                        class="clear-button"
-                    ></lightning-button>
-                    <template iterator:it={domainOptionsByPortfolio}>
-                        <div key={it.value.id}>
-                            <template lwc:if={it.first}></template>
-                            <div lwc:else class="slds-m-top_x-small"></div>
-                            <lightning-checkbox-group
-                                data-portfolio-group-id={it.value.id}
-                                label={it.value.name}
-                                name={it.value.id}
-                                options={it.value.options}
-                                value={it.value.value}
-                                onchange={handleDomainChange}
-                                class="slds-m-bottom_x-small"
-                            ></lightning-checkbox-group>
-                        </div>
-                    </template>
-                </lightning-accordion-section>
-                <lightning-accordion-section
-                    data-id="stack-layer-filter-section"
-                    label="Stack Layer"
-                    name="stackLayer"
-                    class="slds-border_bottom"
-                >
-                    <lightning-button
-                        lwc:if={hasStackLayerFilterApplied}
-                        slot="actions"
-                        variant="base"
-                        label="clear"
-                        onclick={handleStackLayerClearClick}
-                        class="clear-button"
-                    ></lightning-button>
-                    <template iterator:it={layerOptionsByStack}>
-                        <div key={it.value.id}>
-                            <template lwc:if={it.first}></template>
-                            <div lwc:else class="slds-m-top_x-small"></div>
-                            <lightning-checkbox-group
-                                data-stack-group-id={it.value.id}
-                                label={it.value.name}
-                                name={it.value.id}
-                                options={it.value.options}
-                                value={it.value.value}
-                                onchange={handleStackLayerChange}
-                                class="slds-m-bottom_x-small"
-                            ></lightning-checkbox-group>
-                        </div>
-                    </template>
-                </lightning-accordion-section>
-            </template>
-        </lightning-accordion>
-    </div>
-</template>
+    activeFilterSections = [];
+
+    ownerOptions = [];
+    portfolioOptions = [];
+    domainOptionsByPortfolio = [];
+    layerOptionsByStack = [];
+
+    get showArchAppAndTechFilters() {
+        return this.getShouldShowArchAppAndTechFilters(this.filters.classes);
+    }
+
+    get isOwnedByMeChecked() {
+        return this.filters.owners.includes(this.userEmployeeNumber);
+    }
+
+    get hasStatusFilterApplied() {
+        return this.filters.statuses && this.filters.statuses.length > 0;
+    }
+
+    get hasOwnerFilterApplied() {
+        return this.filters.owners && this.filters.owners.length > 0;
+    }
+
+    get hasPortfolioFilterApplied() {
+        return this.filters.portfolios && this.filters.portfolios.length > 0;
+    }
+
+    get hasDomainFilterApplied() {
+        return this.filters.domains && this.filters.domains.length > 0;
+    }
+
+    get hasStackLayerFilterApplied() {
+        return this.filters.layers && this.filters.layers.length > 0;
+    }
+
+    connectedCallback() {
+        this.ownerOptions = this.getOwnerFilterOptions(this.owners);
+        this.portfolioOptions = this.getPortfolioFilterOptions(this.portfolios, this.domains);
+        this.domainOptionsByPortfolio = this.getDomainFilterOptions(this.domains);
+        this.layerOptionsByStack = this.getStackLayerFilterOptions(this.stackLayers);
+        this.activeFilterSections = this.getActiveFilterSections();
+    }
+
+    getOwnerFilterOptions(owners) {
+        return owners
+            .map(owner => ({ label: owner.name, value: owner.employeeId }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    getPortfolioFilterOptions(portfolios, domains) {
+        const allPortfolios = [...portfolios];
+        domains.forEach(domain => {
+            if (!allPortfolios.some(portfolio => portfolio.id === domain.portfolio.id))
+                allPortfolios.push({ ...domain.portfolio });
+        });
+
+        return allPortfolios
+            .map(portfolio => ({ label: portfolio.name, value: portfolio.id }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    getDomainFilterOptions(domains) {
+        const domainOptionsByPortfolio = [];
+        domains.forEach(domain => {
+            let portfolioMatch = domainOptionsByPortfolio.find(portfolio => portfolio.id === domain.portfolio.id);
+
+            if (!portfolioMatch) {
+                domainOptionsByPortfolio.push({
+                    id: domain.portfolio.id,
+                    name: domain.portfolio.name,
+                    options: [{ label: domain.name, value: domain.id }],
+                    value: this.filters.domains.includes(domain.id) ? [domain.id] : []
+                });
+            } else {
+                portfolioMatch.options.push({ label: domain.name, value: domain.id });
+                if (this.filters.domains.includes(domain.id)) portfolioMatch.value.push(domain.id);
+            }
+        });
+
+        domainOptionsByPortfolio
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(portfolio => portfolio.options.sort((a, b) => a.label.localeCompare(b.label)));
+
+        return domainOptionsByPortfolio;
+    }
+
+    getStackLayerFilterOptions(stackLayers) {
+        const layerOptionsByStack = [];
+        stackLayers.forEach(stackLayer => {
+            let stackMatch = layerOptionsByStack.find(stack => stack.id === stackLayer.stack.id);
+
+            if (!stackMatch) {
+                layerOptionsByStack.push({
+                    id: stackLayer.stack.id,
+                    name: stackLayer.stack.name,
+                    options: [{ label: stackLayer.name, value: stackLayer.id }],
+                    value: this.filters.layers.includes(stackLayer.id) ? [stackLayer.id] : []
+                });
+            } else {
+                stackMatch.options.push({ label: stackLayer.name, value: stackLayer.id });
+                if (this.filters.layers.includes(stackLayer.id)) stackMatch.value.push(stackLayer.id);
+            }
+        });
+
+        layerOptionsByStack
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(stack => stack.options.sort((a, b) => a.label.localeCompare(b.label)));
+
+        return layerOptionsByStack;
+    }
+
+    getActiveFilterSections() {
+        const sections = [];
+        if (this.filters.statuses && this.filters.statuses.length > 0) sections.push('status');
+        if (this.filters.owners && this.filters.owners.length > 0) sections.push('owner');
+        if (this.filters.portfolios && this.filters.portfolios.length > 0) sections.push('portfolio');
+        if (this.filters.domains && this.filters.domains.length > 0) sections.push('domain');
+        if (this.filters.layers && this.filters.layers.length > 0) sections.push('stackLayer');
+
+        return sections;
+    }
+
+    getShouldShowArchAppAndTechFilters(classes) {
+        return (
+            classes.length === 0 ||
+            classes.some(classMatch => ['application', 'technology'].includes(classMatch.toLowerCase()))
+        );
+    }
+
+    handleClassFilterChange(event) {
+        const newFilters = { ...this.filters, classes: event.detail };
+
+        if (!this.getShouldShowArchAppAndTechFilters(event.detail)) {
+            newFilters.portfolios = [];
+            newFilters.domains = [];
+            newFilters.layers = [];
+
+            this.domainOptionsByPortfolio.forEach(portfolio => (portfolio.value = []));
+            this.layerOptionsByStack.forEach(stack => (stack.value = []));
+        }
+
+        this.updateUrlParams(newFilters);
+    }
+
+    handleStatusChange(event) {
+        this.updateUrlParams({ ...this.filters, statuses: event.detail.value });
+    }
+
+    handleOwnerChange(event) {
+        this.updateUrlParams({ ...this.filters, owners: event.detail.value });
+    }
+
+    handlePortfolioChange(event) {
+        this.updateUrlParams({ ...this.filters, portfolios: event.detail.value });
+    }
+
+    handleDomainChange(event) {
+        const portfolioMatch = this.domainOptionsByPortfolio.find(
+            portfolio => portfolio.id === event.currentTarget.name
+        );
+        portfolioMatch.value = event.detail.value;
+
+        const domains = this.domainOptionsByPortfolio.flatMap(portfolio => portfolio.value);
+
+        this.updateUrlParams({ ...this.filters, domains });
+    }
+
+    handleStackLayerChange(event) {
+        const stackMatch = this.layerOptionsByStack.find(stack => stack.id === event.currentTarget.name);
+        stackMatch.value = event.detail.value;
+
+        const layers = this.layerOptionsByStack.flatMap(stack => stack.value);
+
+        this.updateUrlParams({ ...this.filters, layers });
+    }
+
+    handleStatusClearClick() {
+        this.updateUrlParams({ ...this.filters, statuses: [] });
+    }
+
+    handleOwnerClearClick() {
+        this.updateUrlParams({ ...this.filters, owners: [] });
+    }
+
+    handlePortfolioClearClick() {
+        this.updateUrlParams({ ...this.filters, portfolios: [] });
+    }
+
+    handleDomainClearClick() {
+        this.domainOptionsByPortfolio.forEach(portfolio => (portfolio.value = []));
+
+        this.updateUrlParams({ ...this.filters, domains: [] });
+    }
+
+    handleStackLayerClearClick() {
+        this.layerOptionsByStack.forEach(stack => (stack.value = []));
+
+        this.updateUrlParams({ ...this.filters, layers: [] });
+    }
+
+    updateUrlParams(filters) {
+        this[NavigationMixin.Navigate](
+            {
+                type: 'standard__navItemPage',
+                attributes: {
+                    apiName: 'ASP_Standards'
+                },
+                state: {
+                    c__classes: filters.classes && filters.classes.length > 0 ? filters.classes.toString() : 'any',
+                    c__owners: filters.owners && filters.owners.length > 0 ? filters.owners.toString() : undefined,
+                    c__statuses: filters.statuses && filters.statuses.length > 0 ? filters.statuses.toString() : undefined,
+                    c__portfolios: filters.portfolios && filters.portfolios.length > 0 ? filters.portfolios.toString() : undefined,
+                    c__domains: filters.domains && filters.domains.length > 0 ? filters.domains.toString() : undefined,
+                    c__layers: filters.layers && filters.layers.length > 0 ? filters.layers.toString() : undefined
+                }
+            },
+            true
+        );
+    }
+}
