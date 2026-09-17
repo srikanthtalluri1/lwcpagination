@@ -1,235 +1,54 @@
-import { ownerPermissionSetsByClass } from 'c/aspLookups';
-import { NavigationMixin } from 'lightning/navigation';
-import { api, LightningElement } from 'lwc';
+@AuraEnabled
+public static List<ASP_StackLayerDTO> getStackLayersAppliedToStandards() {
+    try {
+        Set<String> standardSourceIds = new Set<String>();
 
-export default class AspSidebar extends NavigationMixin(LightningElement) {
-    @api filters;
-    @api classFilterDefaultValue;
-    @api statusOptions;
-    @api userEmployeeNumber;
-    @api owners;
-    @api portfolios;
-    @api domains;
-    @api stackLayers;
-    @api userPermissionSets;
+        List<ASP_Architecture_Standard__c> standards = [
+            SELECT Source_System_ID__c
+            FROM ASP_Architecture_Standard__c
+            WHERE Source_System_ID__c != null
+            WITH SYSTEM_MODE
+        ];
 
-    activeFilterSections = [];
-
-    ownerOptions = [];
-    portfolioOptions = [];
-    domainOptionsByPortfolio = [];
-    layerOptionsByStack = [];
-
-    get showArchAppAndTechFilters() {
-        return this.getShouldShowArchAppAndTechFilters(this.filters.classes);
-    }
-
-    get isOwnedByMeChecked() {
-        return this.filters.owners.includes(this.userEmployeeNumber);
-    }
-
-    get hasStatusFilterApplied() {
-        return this.filters.statuses && this.filters.statuses.length > 0;
-    }
-
-    get hasOwnerFilterApplied() {
-        return this.filters.owners && this.filters.owners.length > 0;
-    }
-
-    get hasPortfolioFilterApplied() {
-        return this.filters.portfolios && this.filters.portfolios.length > 0;
-    }
-
-    get hasDomainFilterApplied() {
-        return this.filters.domains && this.filters.domains.length > 0;
-    }
-
-    get hasStackLayerFilterApplied() {
-        return this.filters.layers && this.filters.layers.length > 0;
-    }
-
-    connectedCallback() {
-        this.ownerOptions = this.getOwnerFilterOptions(this.owners);
-        this.portfolioOptions = this.getPortfolioFilterOptions(this.portfolios, this.domains);
-        this.domainOptionsByPortfolio = this.getDomainFilterOptions(this.domains);
-        this.layerOptionsByStack = this.getStackLayerFilterOptions(this.stackLayers);
-        this.activeFilterSections = this.getActiveFilterSections();
-    }
-
-    getOwnerFilterOptions(owners) {
-        return owners
-            .map(owner => ({ label: owner.name, value: owner.employeeId }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    getPortfolioFilterOptions(portfolios, domains) {
-        const allPortfolios = [...portfolios];
-        domains.forEach(domain => {
-            if (!allPortfolios.some(portfolio => portfolio.id === domain.portfolio.id))
-                allPortfolios.push({ ...domain.portfolio });
-        });
-
-        return allPortfolios
-            .map(portfolio => ({ label: portfolio.name, value: portfolio.id }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    getDomainFilterOptions(domains) {
-        const domainOptionsByPortfolio = [];
-        domains.forEach(domain => {
-            let portfolioMatch = domainOptionsByPortfolio.find(portfolio => portfolio.id === domain.portfolio.id);
-
-            if (!portfolioMatch) {
-                domainOptionsByPortfolio.push({
-                    id: domain.portfolio.id,
-                    name: domain.portfolio.name,
-                    options: [{ label: domain.name, value: domain.id }],
-                    value: this.filters.domains.includes(domain.id) ? [domain.id] : []
-                });
-            } else {
-                portfolioMatch.options.push({ label: domain.name, value: domain.id });
-                if (this.filters.domains.includes(domain.id)) portfolioMatch.value.push(domain.id);
-            }
-        });
-
-        domainOptionsByPortfolio
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .forEach(portfolio => portfolio.options.sort((a, b) => a.label.localeCompare(b.label)));
-
-        return domainOptionsByPortfolio;
-    }
-
-    getStackLayerFilterOptions(stackLayers) {
-        const layerOptionsByStack = [];
-        stackLayers.forEach(stackLayer => {
-            let stackMatch = layerOptionsByStack.find(stack => stack.id === stackLayer.stack.id);
-
-            if (!stackMatch) {
-                layerOptionsByStack.push({
-                    id: stackLayer.stack.id,
-                    name: stackLayer.stack.name,
-                    options: [{ label: stackLayer.name, value: stackLayer.id }],
-                    value: this.filters.layers.includes(stackLayer.id) ? [stackLayer.id] : []
-                });
-            } else {
-                stackMatch.options.push({ label: stackLayer.name, value: stackLayer.id });
-                if (this.filters.layers.includes(stackLayer.id)) stackMatch.value.push(stackLayer.id);
-            }
-        });
-
-        layerOptionsByStack
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .forEach(stack => stack.options.sort((a, b) => a.label.localeCompare(b.label)));
-
-        return layerOptionsByStack;
-    }
-
-    getActiveFilterSections() {
-        const sections = [];
-        if (this.filters.statuses && this.filters.statuses.length > 0) sections.push('status');
-        if (this.filters.owners && this.filters.owners.length > 0) sections.push('owner');
-        if (this.filters.portfolios && this.filters.portfolios.length > 0) sections.push('portfolio');
-        if (this.filters.domains && this.filters.domains.length > 0) sections.push('domain');
-        if (this.filters.layers && this.filters.layers.length > 0) sections.push('stackLayer');
-
-        return sections;
-    }
-
-    getShouldShowArchAppAndTechFilters(classes) {
-        return (
-            classes.length === 0 ||
-            classes.some(classMatch => ['application', 'technology'].includes(classMatch.toLowerCase()))
-        );
-    }
-
-    handleClassFilterChange(event) {
-        const newFilters = { ...this.filters, classes: event.detail };
-
-        if (!this.getShouldShowArchAppAndTechFilters(event.detail)) {
-            newFilters.portfolios = [];
-            newFilters.domains = [];
-            newFilters.layers = [];
-
-            this.domainOptionsByPortfolio.forEach(portfolio => (portfolio.value = []));
-            this.layerOptionsByStack.forEach(stack => (stack.value = []));
+        for (ASP_Architecture_Standard__c standard : standards) {
+            standardSourceIds.add(standard.Source_System_ID__c);
         }
 
-        this.updateUrlParams(newFilters);
-    }
+        if (standardSourceIds.isEmpty()) {
+            return new List<ASP_StackLayerDTO>();
+        }
 
-    handleStatusChange(event) {
-        this.updateUrlParams({ ...this.filters, statuses: event.detail.value });
-    }
+        List<TPM_Stack_Layer_Config__c> results = [
+            SELECT Id, Name, StackId__r.Id, StackId__r.Name
+            FROM TPM_Stack_Layer_Config__c
+            WHERE Supporting_Standard__c != null
+            AND Supporting_Standard__r.Zephyr_Standard_ID__c IN :standardSourceIds
+            AND Inactive__c != TRUE
+            WITH SYSTEM_MODE
+        ];
 
-    handleOwnerChange(event) {
-        this.updateUrlParams({ ...this.filters, owners: event.detail.value });
-    }
+        Map<String, ASP_StackLayerDTO> stackLayers =
+            new Map<String, ASP_StackLayerDTO>();
 
-    handlePortfolioChange(event) {
-        this.updateUrlParams({ ...this.filters, portfolios: event.detail.value });
-    }
+        for (TPM_Stack_Layer_Config__c result : results) {
+            stackLayers.put(
+                result.Id,
+                new ASP_StackLayerDTO(
+                    result.Id,
+                    result.Name,
+                    new ASP_StackDTO(
+                        result.StackId__r.Id,
+                        result.StackId__r.Name
+                    )
+                )
+            );
+        }
 
-    handleDomainChange(event) {
-        const portfolioMatch = this.domainOptionsByPortfolio.find(
-            portfolio => portfolio.id === event.currentTarget.name
-        );
-        portfolioMatch.value = event.detail.value;
+        return stackLayers.values();
 
-        const domains = this.domainOptionsByPortfolio.flatMap(portfolio => portfolio.value);
-
-        this.updateUrlParams({ ...this.filters, domains });
-    }
-
-    handleStackLayerChange(event) {
-        const stackMatch = this.layerOptionsByStack.find(stack => stack.id === event.currentTarget.name);
-        stackMatch.value = event.detail.value;
-
-        const layers = this.layerOptionsByStack.flatMap(stack => stack.value);
-
-        this.updateUrlParams({ ...this.filters, layers });
-    }
-
-    handleStatusClearClick() {
-        this.updateUrlParams({ ...this.filters, statuses: [] });
-    }
-
-    handleOwnerClearClick() {
-        this.updateUrlParams({ ...this.filters, owners: [] });
-    }
-
-    handlePortfolioClearClick() {
-        this.updateUrlParams({ ...this.filters, portfolios: [] });
-    }
-
-    handleDomainClearClick() {
-        this.domainOptionsByPortfolio.forEach(portfolio => (portfolio.value = []));
-
-        this.updateUrlParams({ ...this.filters, domains: [] });
-    }
-
-    handleStackLayerClearClick() {
-        this.layerOptionsByStack.forEach(stack => (stack.value = []));
-
-        this.updateUrlParams({ ...this.filters, layers: [] });
-    }
-
-    updateUrlParams(filters) {
-        this[NavigationMixin.Navigate](
-            {
-                type: 'standard__navItemPage',
-                attributes: {
-                    apiName: 'ASP_Standards'
-                },
-                state: {
-                    c__classes: filters.classes && filters.classes.length > 0 ? filters.classes.toString() : 'any',
-                    c__owners: filters.owners && filters.owners.length > 0 ? filters.owners.toString() : undefined,
-                    c__statuses: filters.statuses && filters.statuses.length > 0 ? filters.statuses.toString() : undefined,
-                    c__portfolios: filters.portfolios && filters.portfolios.length > 0 ? filters.portfolios.toString() : undefined,
-                    c__domains: filters.domains && filters.domains.length > 0 ? filters.domains.toString() : undefined,
-                    c__layers: filters.layers && filters.layers.length > 0 ? filters.layers.toString() : undefined
-                }
-            },
-            true
+    } catch (Exception e) {
+        throw new AuraHandledException(
+            'Failed to retrieve stack layers.'
         );
     }
 }
