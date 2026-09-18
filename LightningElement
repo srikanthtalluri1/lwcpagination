@@ -1,143 +1,250 @@
-<template>
-    
-    <div class={rootClass}>
-        <c-placemat-nav
-            rows={navRows}
-            onnavselect={handleNavSelect}
-            onnavtoggle={handleNavToggle}
-        ></c-placemat-nav>
+import { LightningElement, track } from 'lwc';
+import {
+    DOMAINS,
+    L1_META,
+    buildGroups,
+    buildNavRows,
+    computeDomainStats
+} from 'c/placematData';
 
-        <button class="nav-toggle" type="button" title={navToggleTitle} onclick={handleNavRailToggle}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6"></path>
-            </svg>
-        </button>
 
-        <div class="app-main">
-            <!-- ══ HERO ══ -->
-            <header class="hero">
-                <div class="hero-top">
-                    <div class="hero-brand">
-                        <span class="usaa-badge">USAA</span>
-                        <div class="crumb">
-                            <span class="crumb-link" onclick={handleHome}>Capability Placemat</span>
-                            <template lwc:if={hasCrumbTail}>
-                                <span class="sep">/</span>
-                                <span class="hi">{crumbTail}</span>
-                            </template>
-                        </div>
-                    </div>
+export default class CapabilityPlacemat extends LightningElement {
+    @track currentDomain = null;
+    @track currentGroup = null;
+    @track dataState = 'current';
+    @track navCollapsed = false;
+    @track expandedKeys = [];
+    @track activeLeafId = null;
 
-                    <div class="toggle" role="group" aria-label="Data state">
-                        <button type="button" class={curBtnClass} data-mode="current" onclick={handleState}>Current</button>
-                        <button type="button" class={tgtBtnClass} data-mode="target" onclick={handleState}>Target</button>
-                        <button type="button" class={rygBtnClass} data-mode="ryg" onclick={handleState}>RYG</button>
-                    </div>
-                </div>
+    /* ── root wrapper class: replaces body[data-state] ── */
+    get rootClass() {
+        let c = 'placemat-root state-' + this.dataState;
+        if (this.navCollapsed) c += ' nav-collapsed';
+        return c;
+    }
 
-                <div class="hero-body">
-                    <h1 class="hero-title">{heroTitle}</h1>
-                    <p class="hero-desc">{heroDesc}</p>
-                </div>
+    /* ── hero ── */
+    get domainRecord() {
+        return this.currentDomain ? DOMAINS.find((d) => d.key === this.currentDomain) : null;
+    }
 
-                <template lwc:if={showKpis}>
-                    <div class="kpi-strip">
-                        <template for:each={kpis} for:item="kpi">
-                            <div key={kpi.id} class="kpi">
-                                <div class="kpi-value">{kpi.value}</div>
-                                <div class="kpi-label">{kpi.label}</div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </header>
+    get isLevel1() {
+        return !this.currentDomain;
+    }
 
-            <!-- ══ LEVEL 1 LANDING ══ -->
-            <template lwc:if={isLevel1}>
-                <main class="l1-main">
-                    <div class="owners-strip">
-                        <template for:each={owners} for:item="o">
-                            <div key={o.id} class="owner-item">
-                                <div class="owner-label">{o.label}</div>
-                                <div class="owner-value">{o.value}</div>
-                            </div>
-                        </template>
-                    </div>
+    get isLiveDomain() {
+        const d = this.domainRecord;
+        return !!d && d.status === 'live';
+    }
 
-                    <div class="domain-grid">
-                        <template for:each={domainCards} for:item="d">
-                            <button
-                                key={d.key}
-                                class={d.cardClass}
-                                type="button"
-                                data-nav-id={d.key}
-                                data-nav-type="domain"
-                                onclick={handleNavSelectFromCard}
-                            >
-                                <div class="domain-name">{d.name}</div>
-                                <div class="domain-desc">{d.desc}</div>
-                                <template lwc:if={d.isWip}>
-                                    <span class="domain-wip">In progress</span>
-                                </template>
-                            </button>
-                        </template>
-                    </div>
-                </main>
-            </template>
+    get heroTitle() {
+        return this.domainRecord ? this.domainRecord.name : 'Member Communications';
+    }
 
-            <!-- ══ LIVE DOMAIN ══ -->
-            <template lwc:elseif={isLiveDomain}>
-                <div class="legend-bar">
-                    <template for:each={legendItems} for:item="l">
-                        <span key={l.id} class="legend-item">
-                            <span class={l.swatchClass}></span>{l.label}
-                        </span>
-                    </template>
-                </div>
+    get heroDesc() {
+        return this.domainRecord ? this.domainRecord.desc : L1_META.desc;
+    }
 
-                <main class="sections">
-                    <template lwc:if={isGroupFocused}>
-                        <button class="group-focus-back" type="button" onclick={handleExitFocus}>
-                            &larr; All capability groups
-                        </button>
-                    </template>
+    get hasCrumbTail() {
+        return !!this.domainRecord;
+    }
 
-                    <template for:each={visibleGroups} for:item="g">
-                        <c-placemat-group-card
-                            key={g.id}
-                            group={g}
-                            focused={isGroupFocused}
-                            ongroupfocus={handleGroupFocus}
-                        ></c-placemat-group-card>
-                    </template>
+    get crumbTail() {
+        if (!this.domainRecord) return '';
+        return this.currentGroup
+            ? this.domainRecord.name + ' / Group ' + this.currentGroup
+            : this.domainRecord.name;
+    }
 
-                    <template lwc:if={hasNoGroups}>
-                        <div class="empty-state">No capability groups are published for this domain yet.</div>
-                    </template>
-                </main>
-            </template>
+    get architect() {
+        return L1_META.architect;
+    }
 
-            <!-- ══ WORK IN PROGRESS DOMAIN ══ -->
-            <template lwc:else>
-                <main class="wip-main">
-                    <div class="wip-card">
-                        <div class="wip-title">{heroTitle} is still being mapped</div>
-                        <div class="wip-text">
-                            Capability groups for this domain have not been published. Check back once the
-                            architecture review completes.
-                        </div>
-                    </div>
-                </main>
-            </template>
+    get annualForecast() {
+        return L1_META.annualForecast;
+    }
 
-            <footer class="placemat-footer">
-                <span>Capability Placemat</span>
-                <span class="footer-sep">·</span>
-                <span>Architect {architect}</span>
-                <span class="footer-sep">·</span>
-                <span>Annual forecast {annualForecast}</span>
-            </footer>
-        </div>
-    </div>
-</template>
+    get owners() {
+        return [
+            { id: 'o1', label: 'Business Owner', value: L1_META.owner },
+            { id: 'o2', label: 'Delivery Owner', value: L1_META.deliveryOwner },
+            { id: 'o3', label: 'Architect', value: L1_META.architect },
+            { id: 'o4', label: 'Annual Forecast', value: L1_META.annualForecast }
+        ];
+    }
+
+    /* ── KPI strip ── */
+    get showKpis() {
+        return this.isLiveDomain;
+    }
+
+    get kpis() {
+        return this.currentDomain ? computeDomainStats(this.currentDomain) : [];
+    }
+
+    /* ── state toggle button classes (precomputed, not expressions) ── */
+    get curBtnClass() {
+        return this.dataState === 'current' ? 'active' : '';
+    }
+    get tgtBtnClass() {
+        return this.dataState === 'target' ? 'active' : '';
+    }
+    get rygBtnClass() {
+        return this.dataState === 'ryg' ? 'active' : '';
+    }
+
+    /* ── level 1 domain cards ── */
+    get domainCards() {
+        return DOMAINS.map((d) => ({
+            ...d,
+            isWip: d.status !== 'live',
+            cardClass: d.status === 'live' ? 'domain-card' : 'domain-card is-wip'
+        }));
+    }
+
+    /* ── groups ── */
+    get allGroups() {
+        return this.currentDomain ? buildGroups(this.currentDomain) : [];
+    }
+
+    get isGroupFocused() {
+        return !!this.currentGroup;
+    }
+
+    get visibleGroups() {
+        const groups = this.allGroups;
+        if (!this.currentGroup) return groups;
+        const one = groups.find((g) => g.num === this.currentGroup);
+        return one ? [one] : groups;
+    }
+
+    get hasNoGroups() {
+        return this.allGroups.length === 0;
+    }
+
+    /* ── legend ── */
+    get legendItems() {
+        if (this.dataState === 'ryg') {
+            return [
+                { id: 'r', label: 'Not in target', swatchClass: 'swatch sw-red' },
+                { id: 'y', label: 'Constrained', swatchClass: 'swatch sw-yellow' },
+                { id: 'g', label: 'Target', swatchClass: 'swatch sw-green' },
+                { id: 'b', label: 'Under consideration', swatchClass: 'swatch sw-blue' }
+            ];
+        }
+        return [
+            { id: 'n', label: 'New in target', swatchClass: 'swatch sw-new' },
+            { id: 'rt', label: 'Retiring', swatchClass: 'swatch sw-ret' },
+            { id: 'c', label: 'Constrained', swatchClass: 'swatch sw-con' },
+            { id: 'u', label: 'Under consideration', swatchClass: 'swatch sw-under' }
+        ];
+    }
+
+    /* ── nav ── */
+    get navRows() {
+        return buildNavRows(this.expandedKeys, this.activeLeafId, this.currentDomain);
+    }
+
+    get navToggleTitle() {
+        return this.navCollapsed ? 'Expand navigation' : 'Collapse navigation';
+    }
+
+    /* ════════ HANDLERS ════════ */
+
+    handleHome() {
+        this.currentDomain = null;
+        this.currentGroup = null;
+        this.activeLeafId = null;
+    }
+
+    handleState(event) {
+        this.dataState = event.currentTarget.dataset.mode;
+    }
+
+    handleNavRailToggle() {
+        this.navCollapsed = !this.navCollapsed;
+        /*
+         * localStorage works under Lightning Web Security, but it is namespaced
+         * per site and unavailable to some guest-user configurations, so it is
+         * wrapped and failure is silently ignored.
+         */
+        try {
+            window.localStorage.setItem('placematNavCollapsed', this.navCollapsed ? '1' : '0');
+        } catch (e) {
+            /* preference simply not persisted */
+        }
+    }
+
+    handleNavToggle(event) {
+        const key = event.detail.navId;
+        const i = this.expandedKeys.indexOf(key);
+        this.expandedKeys =
+            i === -1
+                ? [...this.expandedKeys, key]
+                : this.expandedKeys.filter((k) => k !== key);
+    }
+
+    handleNavSelect(event) {
+        this.applyNav(event.detail.navId, event.detail.navType);
+    }
+
+    handleNavSelectFromCard(event) {
+        const { navId, navType } = event.currentTarget.dataset;
+        this.applyNav(navId, navType);
+    }
+
+    applyNav(navId, navType) {
+        if (navType === 'domain') {
+            this.currentDomain = navId;
+            this.currentGroup = null;
+            this.activeLeafId = null;
+            if (!this.expandedKeys.includes(navId)) {
+                this.expandedKeys = [...this.expandedKeys, navId];
+            }
+            return;
+        }
+
+        const [domainKey, num] = navId.split('::');
+        this.currentDomain = domainKey;
+
+        if (navType === 'group') {
+            this.currentGroup = num;
+            this.activeLeafId = null;
+        } else {
+            this.currentGroup = null;
+            this.activeLeafId = navId;
+            this.scrollToCapability(num);
+        }
+    }
+
+    handleGroupFocus(event) {
+        const num = event.detail.groupNum;
+        this.currentGroup = this.currentGroup === num ? null : num;
+    }
+
+    handleExitFocus() {
+        this.currentGroup = null;
+    }
+
+    /**
+     * document.getElementById() cannot see into shadow DOM.
+     * this.template.querySelector() is the equivalent, and it must run after
+     * the re-render, hence the rAF.
+     */
+    scrollToCapability(num) {
+        window.requestAnimationFrame(() => {
+            const el = this.template.querySelector(`[data-cap-num="${num}"]`);
+            if (el && el.scrollIntoView) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        });
+    }
+
+    connectedCallback() {
+        try {
+            this.navCollapsed = window.localStorage.getItem('placematNavCollapsed') === '1';
+        } catch (e) {
+            this.navCollapsed = false;
+        }
+    }
+}
