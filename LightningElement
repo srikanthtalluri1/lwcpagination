@@ -1,137 +1,163 @@
+<template>
+    
+    <div class={cardClass} style={group.accentStyle}>
+        <div class="group-ribbon"></div>
 
+        <div class="group-hdr">
+            <div class="group-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                     stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                </svg>
+            </div>
 
-.side-nav {
-    width: 296px;
-    flex: 0 0 296px;
-    background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%);
-    color: rgba(255, 255, 255, 0.82);
-    border-right: 1px solid rgba(198, 161, 91, 0.28);
-    overflow-y: auto;
-    max-height: 100%;
-}
+            <div class="group-hdr-txt">
+                <div class="group-tag">Level 3 · Capability Group</div>
+                <button class="group-name" type="button" onclick={handleFocus} title="View this capability group on its own">
+                    {group.name}
+                </button>
+                <span class="group-count">{group.countLabel}</span>
+                <template lwc:if={group.hasDesc}>
+                    <div class="group-desc">{group.desc}</div>
+                </template>
+            </div>
 
-.nav-head {
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    position: sticky;
-    top: 0;
-    background: var(--navy-deep);
-    z-index: 2;
-}
+            <template lwc:if={group.hasShift}>
+                <span class="group-shift">{group.shiftLabel}</span>
+            </template>
+        </div>
 
-.nav-head-title {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    color: var(--gold-lt);
-}
+        <div class="group-content">
+            <div class={bodyClass} style={bodyStyleAttr}>
+                <template for:each={group.columns} for:item="col">
+                    <div key={col.id} class="col-slot">
+                        <!-- SUB-GROUP BRANCH -->
+                        <template lwc:if={col.isSubGroup}>
+                            <div class="subgrp">
+                                <div class="subgrp-hdr">
+                                    <span class="subgrp-tag">Sub-Group</span>
+                                    <span class="cap-num">{col.num}</span>
+                                    <span class="subgrp-name">{col.name}</span>
+                                    <template lwc:if={col.hasDesc}>
+                                        <span class="subgrp-desc">{col.desc}</span>
+                                    </template>
+                                </div>
+                                <div class="subgrp-body" style={col.gridStyle}>
+                                    <template for:each={col.children} for:item="child">
+                                        <div key={child.id} class="cap-col">
+                                            <div class="cap-col-hdr">
+                                                <div class="cap-num">{child.num}</div>
+                                                <div class="cap-name">
+                                                    {child.name}<span class={child.dotClass}></span>
+                                                </div>
+                                                <template lwc:if={child.hasDesc}>
+                                                    <div class="cap-desc">{child.desc}</div>
+                                                </template>
+                                            </div>
+                                            <div class="tile-grid">
+                                                <template for:each={child.tiles} for:item="tile">
+                                                    <div key={tile.id} class={tile.cssClass} title={tile.title}>
+                                                        <template lwc:if={tile.hasRyg}>
+                                                            <span class={tile.rygLetterClass}>{tile.rygLetter}</span>
+                                                        </template>
+                                                        <template lwc:if={tile.isGap}>
+                                                            <div class="gap-label">Gap</div>
+                                                        </template>
+                                                        <template lwc:else>
+                                                            <span class="tile-badge" style={tile.badgeStyle}>{tile.badgeLabel}</span>
+                                                            <div class="tile-name">{tile.name}</div>
+                                                            <div class="tile-vendor">{tile.vendor}</div>
+                                                            <template lwc:if={tile.hasCaptions}>
+                                                                <div class="tile-captions">
+                                                                    <template for:each={tile.captions} for:item="cap">
+                                                                        <span key={cap.id} class={cap.cls}>{cap.text}</span>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
 
-.nav-body {
-    padding: 6px 0 24px;
-}
+                        <!-- PLAIN CAPABILITY BRANCH -->
+                        <template lwc:else>
+                            <div class="cap-col">
+                                <div class="cap-col-hdr">
+                                    <div class="cap-num">{col.num}</div>
+                                    <div class="cap-name">
+                                        {col.name}<span class={col.dotClass}></span>
+                                    </div>
+                                    <template lwc:if={col.hasDesc}>
+                                        <div class="cap-desc">{col.desc}</div>
+                                    </template>
+                                    <template lwc:if={col.hasStandards}>
+                                        <div class="cap-standards-links">
+                                            <template for:each={col.standardsLinks} for:item="sl">
+                                                <a key={sl.id} class="cap-standards-link" href={sl.link}
+                                                   target="_blank" rel="noopener noreferrer">{sl.label}</a>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
 
-.nav-row {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding-right: 8px;
-    min-height: 30px;
-}
+                                <div class="tile-grid">
+                                    <template for:each={col.tiles} for:item="tile">
+                                        <div key={tile.id} class={tile.cssClass} title={tile.title}>
+                                            <template lwc:if={tile.hasRyg}>
+                                                <span class={tile.rygLetterClass}>{tile.rygLetter}</span>
+                                            </template>
+                                            <template lwc:if={tile.isGap}>
+                                                <div class="gap-label">Gap</div>
+                                            </template>
+                                            <template lwc:else>
+                                                <span class="tile-badge" style={tile.badgeStyle}>{tile.badgeLabel}</span>
+                                                <div class="tile-name">{tile.name}</div>
+                                                <div class="tile-vendor">{tile.vendor}</div>
+                                                <template lwc:if={tile.hasCaptions}>
+                                                    <div class="tile-captions">
+                                                        <template for:each={tile.captions} for:item="cap">
+                                                            <span key={cap.id} class={cap.cls}>{cap.text}</span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
 
-.nav-row:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
+                                <template lwc:if={col.hasTechDecision}>
+                                    <div class={col.techDecision.blockClass}>
+                                        <div class="td-block-body">
+                                            <div class="td-block-label">Tech Decision</div>
+                                            <template lwc:if={col.techDecision.hasSummary}>
+                                                <div class="td-block-name">{col.techDecision.title}</div>
+                                                <div class="td-block-date">{col.techDecision.dateLabel}</div>
+                                            </template>
+                                            <a class="td-block-link" href={col.techDecision.link}
+                                               target="_blank" rel="noopener noreferrer">View Tech Decision</a>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
 
-.nav-caret,
-.nav-caret-spacer {
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.nav-caret {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.55);
-    transition: transform 0.18s ease;
-}
-
-.nav-caret svg {
-    width: 12px;
-    height: 12px;
-}
-
-.nav-caret.is-open {
-    transform: rotate(90deg);
-    color: var(--gold);
-}
-
-.nav-label {
-    background: none;
-    border: none;
-    padding: 5px 4px;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-    flex: 1 1 auto;
-    line-height: 1.32;
-}
-
-.nav-label:focus-visible,
-.nav-caret:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: -2px;
-    border-radius: 3px;
-}
-
-.nav-l1 .nav-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-}
-
-.nav-l2 .nav-label {
-    font-size: 12.5px;
-    color: rgba(255, 255, 255, 0.78);
-}
-
-.nav-l3 .nav-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.nav-row.is-active {
-    background: rgba(198, 161, 91, 0.16);
-    box-shadow: inset 3px 0 0 var(--gold);
-}
-
-.nav-row.is-active-leaf .nav-label {
-    color: var(--gold-lt);
-    font-weight: 600;
-}
-
-.nav-wip {
-    display: inline-block;
-    margin-left: 7px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.14);
-    color: rgba(255, 255, 255, 0.72);
-    vertical-align: middle;
-}
-
-@media (max-width: 760px) {
-    .side-nav {
-        width: 250px;
-        flex-basis: 250px;
-    }
-}
+            <template lwc:if={group.hasNarrative}>
+                <div class="group-narrative">
+                    <div class="group-narrative-label">Target State Rationale</div>
+                    <div class="group-narrative-text">{group.narrative}</div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
