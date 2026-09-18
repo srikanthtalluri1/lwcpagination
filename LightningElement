@@ -1,21 +1,137 @@
-import { LightningElement, api } from 'lwc';
 
 
-export default class PlacematNav extends LightningElement {
-    @api rows = [];
+.side-nav {
+    width: 296px;
+    flex: 0 0 296px;
+    background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%);
+    color: rgba(255, 255, 255, 0.82);
+    border-right: 1px solid rgba(198, 161, 91, 0.28);
+    overflow-y: auto;
+    max-height: 100%;
+}
 
-    handleCaret(event) {
-        event.stopPropagation();
-        this.dispatchEvent(
-            new CustomEvent('navtoggle', {
-                detail: { navId: event.currentTarget.dataset.navId }
-            })
-        );
-    }
+.nav-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    background: var(--navy-deep);
+    z-index: 2;
+}
 
-    handleSelect(event) {
-        const { navId, navType } = event.currentTarget.dataset;
-        this.dispatchEvent(new CustomEvent('navselect', { detail: { navId, navType } }));
+.nav-head-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--gold-lt);
+}
+
+.nav-body {
+    padding: 6px 0 24px;
+}
+
+.nav-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 8px;
+    min-height: 30px;
+}
+
+.nav-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-caret,
+.nav-caret-spacer {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-caret {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.55);
+    transition: transform 0.18s ease;
+}
+
+.nav-caret svg {
+    width: 12px;
+    height: 12px;
+}
+
+.nav-caret.is-open {
+    transform: rotate(90deg);
+    color: var(--gold);
+}
+
+.nav-label {
+    background: none;
+    border: none;
+    padding: 5px 4px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    flex: 1 1 auto;
+    line-height: 1.32;
+}
+
+.nav-label:focus-visible,
+.nav-caret:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: -2px;
+    border-radius: 3px;
+}
+
+.nav-l1 .nav-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.nav-l2 .nav-label {
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.nav-l3 .nav-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.nav-row.is-active {
+    background: rgba(198, 161, 91, 0.16);
+    box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.nav-row.is-active-leaf .nav-label {
+    color: var(--gold-lt);
+    font-weight: 600;
+}
+
+.nav-wip {
+    display: inline-block;
+    margin-left: 7px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.72);
+    vertical-align: middle;
+}
+
+@media (max-width: 760px) {
+    .side-nav {
+        width: 250px;
+        flex-basis: 250px;
     }
 }
-s
