@@ -1,8 +1,12 @@
-<aura:component
-    implements="forceCommunity:availableForAllPageTypes,flexipage:availableForAllPageTypes"
-    access="global"
-    description="Capability Placemat">
+AWP_Confluence_Published_Standard__c rec =
+    new AWP_Confluence_Published_Standard__c();
 
-    <c:capabilityPlacemat />
+rec.Zephyr_Standard_ID__c = wrapRec.Id;
 
-</aura:component>
+// other field mappings
+
+Database.upsert(
+    rec,
+    AWP_Confluence_Published_Standard__c.Fields.Zephyr_Standard_ID__c,
+    AccessLevel.USER_MODE
+);
