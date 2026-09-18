@@ -1,455 +1,143 @@
+<template>
+    
+    <div class={rootClass}>
+        <c-placemat-nav
+            rows={navRows}
+            onnavselect={handleNavSelect}
+            onnavtoggle={handleNavToggle}
+        ></c-placemat-nav>
 
+        <button class="nav-toggle" type="button" title={navToggleTitle} onclick={handleNavRailToggle}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                 stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+        </button>
 
-.group-card {
-    position: relative;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(12, 20, 40, 0.07);
-    overflow: hidden;
-    margin-bottom: 20px;
-}
+        <div class="app-main">
+            <!-- ══ HERO ══ -->
+            <header class="hero">
+                <div class="hero-top">
+                    <div class="hero-brand">
+                        <span class="usaa-badge">USAA</span>
+                        <div class="crumb">
+                            <span class="crumb-link" onclick={handleHome}>Capability Placemat</span>
+                            <template lwc:if={hasCrumbTail}>
+                                <span class="sep">/</span>
+                                <span class="hi">{crumbTail}</span>
+                            </template>
+                        </div>
+                    </div>
 
-.group-ribbon {
-    height: 4px;
-    background: linear-gradient(90deg, var(--gc), var(--gcb));
-}
+                    <div class="toggle" role="group" aria-label="Data state">
+                        <button type="button" class={curBtnClass} data-mode="current" onclick={handleState}>Current</button>
+                        <button type="button" class={tgtBtnClass} data-mode="target" onclick={handleState}>Target</button>
+                        <button type="button" class={rygBtnClass} data-mode="ryg" onclick={handleState}>RYG</button>
+                    </div>
+                </div>
 
-.group-hdr {
-    display: flex;
-    align-items: flex-start;
-    gap: 13px;
-    padding: 15px 18px 12px;
-    border-bottom: 1px solid var(--line);
-}
+                <div class="hero-body">
+                    <h1 class="hero-title">{heroTitle}</h1>
+                    <p class="hero-desc">{heroDesc}</p>
+                </div>
 
-.group-icon-wrap {
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(145deg, var(--gc), var(--gcb));
-    color: #fff;
-}
+                <template lwc:if={showKpis}>
+                    <div class="kpi-strip">
+                        <template for:each={kpis} for:item="kpi">
+                            <div key={kpi.id} class="kpi">
+                                <div class="kpi-value">{kpi.value}</div>
+                                <div class="kpi-label">{kpi.label}</div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </header>
 
-.group-icon-wrap svg {
-    width: 19px;
-    height: 19px;
-}
+            <!-- ══ LEVEL 1 LANDING ══ -->
+            <template lwc:if={isLevel1}>
+                <main class="l1-main">
+                    <div class="owners-strip">
+                        <template for:each={owners} for:item="o">
+                            <div key={o.id} class="owner-item">
+                                <div class="owner-label">{o.label}</div>
+                                <div class="owner-value">{o.value}</div>
+                            </div>
+                        </template>
+                    </div>
 
-.group-hdr-txt {
-    flex: 1 1 auto;
-    min-width: 0;
-}
+                    <div class="domain-grid">
+                        <template for:each={domainCards} for:item="d">
+                            <button
+                                key={d.key}
+                                class={d.cardClass}
+                                type="button"
+                                data-nav-id={d.key}
+                                data-nav-type="domain"
+                                onclick={handleNavSelectFromCard}
+                            >
+                                <div class="domain-name">{d.name}</div>
+                                <div class="domain-desc">{d.desc}</div>
+                                <template lwc:if={d.isWip}>
+                                    <span class="domain-wip">In progress</span>
+                                </template>
+                            </button>
+                        </template>
+                    </div>
+                </main>
+            </template>
 
-.group-tag {
-    font-size: 10.5px;
-    color: var(--muted-soft);
-    letter-spacing: 0.4px;
-    margin-bottom: 2px;
-}
+            <!-- ══ LIVE DOMAIN ══ -->
+            <template lwc:elseif={isLiveDomain}>
+                <div class="legend-bar">
+                    <template for:each={legendItems} for:item="l">
+                        <span key={l.id} class="legend-item">
+                            <span class={l.swatchClass}></span>{l.label}
+                        </span>
+                    </template>
+                </div>
 
-.group-name {
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    font-size: 16.5px;
-    font-weight: 750;
-    color: var(--ink);
-    cursor: pointer;
-    text-align: left;
-}
+                <main class="sections">
+                    <template lwc:if={isGroupFocused}>
+                        <button class="group-focus-back" type="button" onclick={handleExitFocus}>
+                            &larr; All capability groups
+                        </button>
+                    </template>
 
-.group-name:hover {
-    color: var(--gc);
-}
+                    <template for:each={visibleGroups} for:item="g">
+                        <c-placemat-group-card
+                            key={g.id}
+                            group={g}
+                            focused={isGroupFocused}
+                            ongroupfocus={handleGroupFocus}
+                        ></c-placemat-group-card>
+                    </template>
 
-.group-name:focus-visible {
-    outline: 2px solid var(--gc);
-    outline-offset: 3px;
-    border-radius: 3px;
-}
+                    <template lwc:if={hasNoGroups}>
+                        <div class="empty-state">No capability groups are published for this domain yet.</div>
+                    </template>
+                </main>
+            </template>
 
-.group-count {
-    margin-left: 9px;
-    font-size: 11px;
-    color: var(--muted);
-}
+            <!-- ══ WORK IN PROGRESS DOMAIN ══ -->
+            <template lwc:else>
+                <main class="wip-main">
+                    <div class="wip-card">
+                        <div class="wip-title">{heroTitle} is still being mapped</div>
+                        <div class="wip-text">
+                            Capability groups for this domain have not been published. Check back once the
+                            architecture review completes.
+                        </div>
+                    </div>
+                </main>
+            </template>
 
-.group-desc {
-    font-size: 12.5px;
-    color: var(--muted);
-    margin-top: 4px;
-    max-width: 78ch;
-    line-height: 1.45;
-}
-
-.group-shift {
-    flex: 0 0 auto;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 20px;
-    background: rgba(51, 85, 168, 0.1);
-    color: var(--under);
-    border: 1px solid rgba(51, 85, 168, 0.25);
-}
-
-.group-content {
-    padding: 15px 18px 18px;
-}
-
-.group-body {
-    display: grid;
-    gap: 16px;
-    align-items: start;
-}
-
-.group-body.is-focused {
-    grid-template-columns: 1fr;
-}
-
-.col-slot {
-    min-width: 0;
-}
-
-/* ── capability column ── */
-.cap-col {
-    border: 1px solid var(--line);
-    border-radius: 9px;
-    padding: 11px 12px 12px;
-    background: #fcfdff;
-    min-width: 0;
-}
-
-.cap-col-hdr {
-    margin-bottom: 9px;
-}
-
-.cap-num {
-    font-size: 10.5px;
-    font-weight: 800;
-    color: var(--gc);
-    letter-spacing: 0.4px;
-}
-
-.cap-name {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--ink);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    line-height: 1.3;
-}
-
-.cap-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: transparent;
-    flex: 0 0 7px;
-}
-
-.cap-dot.on {
-    background: var(--under);
-    box-shadow: 0 0 0 3px rgba(51, 85, 168, 0.16);
-}
-
-.cap-desc {
-    font-size: 11.5px;
-    color: var(--muted);
-    margin-top: 3px;
-    line-height: 1.45;
-}
-
-.cap-standards-links {
-    margin-top: 6px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.cap-standards-link {
-    font-size: 11px;
-    color: var(--under);
-    text-decoration: none;
-    border-bottom: 1px dotted currentColor;
-}
-
-.cap-standards-link:hover {
-    color: var(--navy);
-}
-
-/* ── sub-group ── */
-.subgrp {
-    border: 1px dashed var(--line);
-    border-radius: 10px;
-    padding: 10px;
-    background: rgba(240, 243, 249, 0.55);
-}
-
-.subgrp-hdr {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 9px;
-}
-
-.subgrp-tag {
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    background: var(--gc);
-    color: #fff;
-}
-
-.subgrp-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-}
-
-.subgrp-desc {
-    font-size: 11.5px;
-    color: var(--muted);
-}
-
-.subgrp-body {
-    display: grid;
-    gap: 10px;
-}
-
-/* ── tiles ── */
-.tile-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-    gap: 8px;
-}
-
-.tech-tile {
-    position: relative;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 9px 8px 8px;
-    background: #fff;
-    min-height: 74px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.tile-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.4px;
-    margin-bottom: 3px;
-}
-
-.tile-name {
-    font-size: 11.5px;
-    font-weight: 650;
-    color: var(--text);
-    line-height: 1.3;
-    word-break: break-word;
-}
-
-.tile-vendor {
-    font-size: 10px;
-    color: var(--muted-soft);
-    line-height: 1.25;
-}
-
-.tile-captions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    margin-top: 4px;
-}
-
-.tile-caption {
-    font-size: 8.5px;
-    font-weight: 800;
-    letter-spacing: 0.4px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: #eef1f7;
-    color: var(--muted);
-}
-
-.cap-new {
-    background: rgba(138, 100, 20, 0.14);
-    color: var(--new);
-}
-
-.cap-retiring {
-    background: rgba(152, 162, 176, 0.2);
-    color: var(--ret);
-}
-
-.cap-con-cur,
-.cap-con-tgt {
-    background: rgba(154, 74, 18, 0.13);
-    color: var(--con);
-}
-
-.cap-under {
-    background: rgba(51, 85, 168, 0.12);
-    color: var(--under);
-}
-
-.ryg-letter {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    font-size: 9px;
-    font-weight: 900;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ryg-letter-red {
-    background: var(--ryg-red);
-}
-.ryg-letter-yellow {
-    background: var(--ryg-yellow);
-}
-.ryg-letter-green {
-    background: var(--ryg-green);
-}
-.ryg-letter-blue {
-    background: var(--ryg-blue);
-}
-
-.ryg-label-red {
-    background: rgba(192, 57, 43, 0.12);
-    color: var(--ryg-red);
-}
-.ryg-label-yellow {
-    background: rgba(201, 154, 16, 0.14);
-    color: var(--ryg-yellow);
-}
-.ryg-label-green {
-    background: rgba(26, 122, 76, 0.12);
-    color: var(--ryg-green);
-}
-.ryg-label-blue {
-    background: rgba(51, 85, 168, 0.12);
-    color: var(--ryg-blue);
-}
-
-.tech-tile.is-retiring {
-    border-style: dashed;
-    opacity: 0.72;
-}
-
-.tech-tile.under-target {
-    border-color: rgba(51, 85, 168, 0.45);
-}
-
-.gap-tile {
-    align-items: center;
-    justify-content: center;
-    border-style: dashed;
-    border-color: rgba(192, 57, 43, 0.4);
-    background: rgba(192, 57, 43, 0.04);
-}
-
-.gap-label {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--ryg-red);
-    letter-spacing: 0.5px;
-}
-
-/* ── tech decision block ── */
-.td-block {
-    margin-top: 10px;
-    display: flex;
-    gap: 9px;
-    padding: 9px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(51, 85, 168, 0.22);
-    background: rgba(51, 85, 168, 0.05);
-}
-
-.td-block-label {
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-    color: var(--under);
-}
-
-.td-block-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--ink);
-    margin-top: 2px;
-}
-
-.td-block-date {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 1px;
-}
-
-.td-block-link {
-    display: inline-block;
-    margin-top: 5px;
-    font-size: 11px;
-    color: var(--under);
-    text-decoration: none;
-    font-weight: 650;
-}
-
-.td-block-link:hover {
-    text-decoration: underline;
-}
-
-/* ── narrative ── */
-.group-narrative {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-left: 3px solid var(--gc);
-    background: rgba(240, 243, 249, 0.7);
-    border-radius: 0 8px 8px 0;
-}
-
-.group-narrative-label {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-    color: var(--gc);
-    margin-bottom: 4px;
-}
-
-.group-narrative-text {
-    font-size: 12.5px;
-    color: var(--text);
-    line-height: 1.55;
-    max-width: 80ch;
-}
-
-@media (max-width: 900px) {
-    .group-body {
-        grid-template-columns: 1fr !important;
-    }
-}
+            <footer class="placemat-footer">
+                <span>Capability Placemat</span>
+                <span class="footer-sep">·</span>
+                <span>Architect {architect}</span>
+                <span class="footer-sep">·</span>
+                <span>Annual forecast {annualForecast}</span>
+            </footer>
+        </div>
+    </div>
+</template>
