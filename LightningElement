@@ -1,1059 +1,677 @@
-:host{
-  display:block;
-  width:100%;
-  max-width:none;
-  margin:0;
-  padding:0;
-  overflow:visible;
-  --ink:#0a1220;
-  --navy:#0d1b33;
-  --navy-deep:#07101f;
-  --gold:#c6a15b;
-  --gold-lt:#eddcb3;
-  --text:#111826;
-  --muted:#66707e;
-  --muted-soft:#99a3b0;
-  --line:#e4e7ee;
-  --bg:#e9edf4;
-  --card:#fff;
-  --g1:#2554a6;
-  --g1b:#5c8fd6;
-  --red:#c0392b;
-  --yellow:#c99a10;
-  --green:#1a7a4c;
-  --blue:#3355a8;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
-  color:var(--text);
-}
-*{box-sizing:border-box}
-button{font:inherit}
-.shell{
-  width:100%;
-  max-width:100%;
-  min-height:100vh;
-  position:relative;
-  overflow-x:hidden;
-  background:
-    radial-gradient(circle at 1px 1px,rgba(15,23,42,.05) 1px,transparent 0) 0 0/22px 22px,
-    linear-gradient(180deg,#eef1f7 0%,#e3e8f1 100%);
-}
-.side-nav{
-  position:fixed;
-  top:0;
-  left:0;
-  width:290px;
-  height:100vh;
-  overflow-y:auto;
-  overflow-x:hidden;
-  background:linear-gradient(180deg,var(--navy-deep) 0%,var(--navy) 55%,#12274a 100%);
-  color:#fff;
-  z-index:500;
-  padding:20px 0 40px;
-  box-shadow:6px 0 24px rgba(5,10,25,.35);
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
-}
-.side-nav::-webkit-scrollbar{width:7px}
-.side-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:10px}
-.brand{
-  width:100%;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:2px 20px 16px;
-  margin-bottom:10px;
-  border:0;
-  border-bottom:1px solid rgba(255,255,255,.1);
-  background:transparent;
-  color:inherit;
-  cursor:pointer;
-  text-align:left;
-}
-.brand:hover{background:rgba(255,255,255,.07)}
-.brand-badge,.mini-usaa{
-  background:linear-gradient(145deg,#fff,#dfe6f2);
-  color:var(--navy-deep);
-  font-weight:900;
-  letter-spacing:1.7px;
-  border-radius:4px;
-  box-shadow:0 2px 6px rgba(0,0,0,.25);
-}
-.brand-badge{font-size:10px;padding:4px 9px}
-.brand-title{font-size:10px;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.55);text-transform:uppercase}
-.nav-section{padding:0 10px}
-.nav-root{font-size:15px;font-weight:800;color:#fff;padding:8px 10px 7px}
-.nav-domain,.nav-group,.nav-cap{
-  width:100%;
-  border:0;
-  background:transparent;
-  color:rgba(255,255,255,.72);
-  text-align:left;
-  cursor:pointer;
-  border-radius:7px;
-  transition:background .18s ease,color .18s ease;
-}
-.nav-domain{display:flex;align-items:flex-start;gap:6px;padding:7px 10px;margin:1px 0;font-size:14px;font-weight:700}
-.nav-domain:hover,.nav-domain.active{background:rgba(255,255,255,.08);color:#fff}
-.nav-domain.active{background:rgba(198,161,91,.20)}
-.nav-caret{width:14px;min-width:14px;color:rgba(255,255,255,.4);font-size:13px;line-height:1.4}
-.nav-groups{padding-left:13px}
-.nav-group{display:flex;align-items:flex-start;gap:6px;padding:7px 10px;margin:1px 0;font-size:13px;font-weight:700;color:rgba(255,255,255,.88)}
-.nav-cap{padding:6px 10px 6px 31px;font-size:12px;color:rgba(255,255,255,.60);line-height:1.35}
-.nav-group:hover,.nav-cap:hover{background:rgba(255,255,255,.08);color:#fff}
-.views-label{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:16px 20px 6px;margin-top:8px;border-top:1px solid rgba(255,255,255,.1)}
-.rail-toggle{
-  position:fixed;
-  top:20px;
-  left:266px;
-  z-index:600;
-  width:30px;
-  height:30px;
-  border-radius:50%;
-  border:1px solid rgba(255,255,255,.22);
-  background:linear-gradient(145deg,var(--navy),var(--navy-deep));
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  line-height:1;
-  cursor:pointer;
-  box-shadow:0 3px 10px rgba(5,10,25,.4);
-  transition:left .3s cubic-bezier(.4,0,.2,1),transform .2s ease;
-}
-.rail-toggle:hover{transform:scale(1.08)}
-.main{
-  width:calc(100% - 290px);
-  min-width:0;
-  margin-left:290px;
-  transition:margin-left .3s cubic-bezier(.4,0,.2,1),width .3s cubic-bezier(.4,0,.2,1);
-}
-.rail-collapsed .side-nav{transform:translateX(-100%)}
-.rail-collapsed .main{margin-left:0;width:100%}
-.rail-collapsed .rail-toggle{left:14px;transform:rotate(180deg)}
-
-.hero{
-  position:relative;
-  color:#fff;
-  background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 46px),
-    radial-gradient(1100px 420px at 12% -20%,rgba(120,160,255,.16),transparent 60%),
-    linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 62%,#12274a 100%);
-  box-shadow:0 10px 34px rgba(5,10,25,.45);
-  border-bottom:1px solid rgba(198,161,91,.35);
-}
-.hero-top{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:9px 34px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-  gap:16px;
-}
-.crumbs{display:flex;align-items:center;gap:7px;font-size:11.5px;color:rgba(255,255,255,.4);letter-spacing:.2px}
-.mini-usaa{font-size:11px;padding:5px 11px;letter-spacing:1.8px}
-.crumb-current{color:rgba(255,255,255,.88);font-weight:600}
-.sep{opacity:.45}
-.state-toggle{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:3px;display:flex;gap:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}
-.state-toggle button{padding:7px 18px;border:none;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,.55);transition:background .25s,color .25s,box-shadow .25s;letter-spacing:.2px;white-space:nowrap}
-.state-toggle button.active{background:linear-gradient(145deg,#fff,#eef2f9);color:var(--navy-deep);box-shadow:0 2px 10px rgba(0,0,0,.35)}
-.state-toggle button.active::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);margin-left:8px;vertical-align:middle;box-shadow:0 0 6px var(--gold)}
-.state-toggle button:not(.active):hover{color:#fff}
-.hero-main{padding:12px 34px 10px}
-.eyebrow{font-size:9px;letter-spacing:2.8px;text-transform:uppercase;color:var(--gold-lt);margin-bottom:4px;font-weight:700}
-.hero h1{font-size:21px;font-weight:800;letter-spacing:-.3px;line-height:1;margin:0;background:linear-gradient(90deg,#fff 0%,#dce8ff 55%,#fff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.gold-rule{width:40px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:8px 0;border-radius:2px}
-.hero p{font-size:11px;color:rgba(255,255,255,.46);margin:0 0 8px;max-width:760px;line-height:1.4}
-.kpis{display:flex;gap:12px;align-items:stretch;padding:8px 0 0}
-.kpi{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);border-radius:9px;padding:7px 16px;display:flex;flex-direction:column;min-width:120px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.kpi span{font-size:18px;font-weight:800;color:#fff;line-height:1}
-.kpi small{font-size:9.5px;color:rgba(255,255,255,.46);margin-top:3px;letter-spacing:.2px}
-
-.legend{background:#fff;border-bottom:1px solid var(--line);padding:7px 34px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;box-shadow:0 1px 0 rgba(15,23,42,.03)}
-.legend-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted-soft)}
-.legend-item{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text);font-weight:500}
-.pill{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:20px}
-.pill.new{background:#fbead0;color:#7a5a12}.pill.retiring{background:#eef1f5;color:#64748b}.pill.constrained{background:#fdecd2;color:#92400e}.pill.under{background:#dbe4fb;color:#1e3a8a}.pill.red{background:var(--red);color:#fff}.pill.yellow{background:var(--yellow);color:#4a3600}.pill.green{background:var(--green);color:#fff}.pill.blue{background:var(--blue);color:#fff}
-
-.content{max-width:none;margin:0;padding:16px clamp(20px,2.8vw,64px) 6px;display:flex;flex-direction:column;gap:22px}
-.group-card{background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 28px -10px rgba(15,23,42,.14);transition:box-shadow .25s ease,transform .25s ease}
-.group-card:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 36px -10px rgba(15,23,42,.20);transform:translateY(-1px)}
-.group-ribbon{height:5px;background:linear-gradient(90deg,var(--g1) 0%,var(--g1b) 100%)}
-.group-header{display:flex;align-items:flex-start;gap:15px;padding:17px 24px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#f6f9ff 0%,#fff 70%)}
-.group-icon{width:42px;height:42px;border-radius:11px;background:linear-gradient(145deg,var(--g1),var(--g1b));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(37,84,166,.35),inset 0 1px 0 rgba(255,255,255,.3);color:#fff;margin-top:1px}
-.group-icon svg{width:22px;height:22px}
-.group-tag{font-size:10.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--g1);font-weight:800;margin-bottom:3px}
-.group-title-line{display:flex;align-items:baseline;flex-wrap:wrap}
-.group-title-line h2{font-size:18.5px;font-weight:800;color:var(--text);letter-spacing:-.2px;margin:0}
-.group-title-line span{font-size:12.5px;color:var(--muted);margin-left:9px;font-weight:500}
-.group-title-wrap p{font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5;max-width:640px}
-.group-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));min-width:0;overflow-x:auto}
-.cap-col{padding:17px 19px 19px;display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0}
-.cap-col:last-child{border-right:none}
-.cap-header{margin-bottom:13px}
-.cap-num{font-size:11px;font-weight:800;color:var(--g1);letter-spacing:.3px}
-.cap-header h3{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;margin:2px 0 0}
-.cap-header p{font-size:12px;color:var(--muted);line-height:1.45;margin:4px 0 0}
-.tile-grid{display:flex;flex-wrap:wrap;gap:14px;flex:1;align-content:flex-start;align-items:flex-start;margin-top:0}
-.tech-tile{width:116px;height:116px;flex-shrink:0;background:radial-gradient(circle at 32% 28%,#eef3fb 0%,#dde6f2 62%,#cfdaec 100%);border:2px solid #b9c6dc;border-radius:16px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;box-shadow:0 2px 6px rgba(15,23,42,.07),0 8px 18px -8px rgba(15,23,42,.2),inset 0 1px 2px rgba(255,255,255,.6);transition:opacity .35s ease,filter .35s ease,box-shadow .25s ease,transform .2s ease,border-color .3s ease,background .3s ease;overflow:hidden;position:relative}
-.tech-tile:hover{box-shadow:0 4px 10px rgba(15,23,42,.1),0 14px 26px -8px rgba(15,23,42,.26),inset 0 1px 2px rgba(255,255,255,.6);transform:translateY(-2px) scale(1.03)}
-.tech-tile.logo-tile{background:#fff;padding:12px 10px}
-.tile-logo{max-width:78px;max-height:44px;object-fit:contain;display:block}
-.tile-icon-label{font-size:9px;font-weight:800;color:var(--text);line-height:1.15;margin-top:7px;word-break:break-word;text-align:center}
-.tile-name{font-size:10.5px;font-weight:800;color:var(--text);line-height:1.22;word-break:break-word}
-.tile-vendor{font-size:7.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.35px;margin-top:1px}
-.tile-caption{font-size:6.5px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;padding:2px 6px;border-radius:20px;margin-top:2px}
-.cap-new{color:#7a5a12;background:#fbead0}.cap-retiring{color:#64748b;background:#eef1f5}.cap-constrained{color:#92400e;background:#fdecd2}.cap-under{color:#1e3a8a;background:#dbe4fb}
-.state-current .tech-tile.new-tile{display:none}
-.state-target .tech-tile.retiring{opacity:.42;filter:grayscale(1);box-shadow:none}
-.state-ryg .tech-tile{opacity:1;filter:none;overflow:visible}
-.state-ryg .ryg-red{background:color-mix(in srgb,var(--red) 32%,#fff);border-color:var(--red)}
-.state-ryg .ryg-yellow{background:color-mix(in srgb,var(--yellow) 32%,#fff);border-color:var(--yellow)}
-.state-ryg .ryg-green{background:color-mix(in srgb,var(--green) 32%,#fff);border-color:var(--green)}
-.state-ryg .ryg-blue{background:color-mix(in srgb,var(--blue) 32%,#fff);border-color:var(--blue);border-style:dashed}
-.ryg-letter{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.06);z-index:2}
-.letter-red{color:var(--red)}.letter-yellow{color:#8a6a08}.letter-green{color:var(--green)}.letter-blue{color:var(--blue)}
-.gap-tile{background:repeating-linear-gradient(135deg,#fff7e6,#fff7e6 8px,#fdecc4 8px,#fdecc4 16px);border:2px dashed #c9922c;color:#7a5a12;border-radius:50%}
-.gap-plus{font-size:28px;line-height:1;color:#c9922c}.gap-label{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8a6414;margin-top:4px}
-.subgroup{grid-column:1/-1;background:linear-gradient(180deg,#fafbfd,#f7f8fb);display:flex;flex-direction:column;border-top:1px solid var(--line)}
-.subgroup-header{padding:11px 19px 9px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
-.subgroup-tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted-soft)}
-.subgroup-header small{color:var(--muted);font-size:11.5px;line-height:1.45}
-.subgroup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));overflow-x:auto}
-.nested{border-bottom:0}
-.footer{max-width:none;margin:8px clamp(20px,2.8vw,64px) 30px;padding:13px 26px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
-.footer div{display:flex;gap:12px;flex-wrap:wrap}.footer em{font-style:italic;color:var(--muted-soft)}
-
-
-
-/* ===== LEVEL 0 ENTERPRISE PORTFOLIO ===== */
-.portfolio-shell{
-  width:100%;
-  min-height:100vh;
-  background:
-    radial-gradient(circle at 1px 1px,rgba(15,23,42,.045) 1px,transparent 0) 0 0/22px 22px,
-    linear-gradient(180deg,#eef1f7 0%,#e5eaf2 100%);
-  color:var(--text);
-}
-.portfolio-hero{
-  position:relative;
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(360px,520px);
-  gap:44px;
-  padding:28px clamp(32px,3vw,58px) 26px;
-  color:#fff;
-  background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.022) 0 2px,transparent 2px 47px),
-    radial-gradient(950px 380px at 12% -25%,rgba(115,155,240,.13),transparent 62%),
-    linear-gradient(160deg,#081326 0%,#0d1d38 62%,#122b50 100%);
-  box-shadow:0 12px 30px rgba(5,10,25,.28);
-  border-bottom:1px solid rgba(198,161,91,.26);
-}
-.portfolio-hero-copy{min-width:0}
-.portfolio-usaa{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:64px;padding:7px 14px;margin-bottom:14px;
-  border-radius:4px;background:linear-gradient(145deg,#fff,#dfe6f2);
-  color:#07101f;font-size:12px;font-weight:900;letter-spacing:2px;
-  box-shadow:0 2px 6px rgba(0,0,0,.25);
-}
-.portfolio-eyebrow{font-size:10px;font-weight:800;letter-spacing:3px;color:#eddcb3;margin-bottom:8px}
-.portfolio-hero h1{margin:0;font-size:30px;line-height:1.05;font-weight:850;letter-spacing:-.6px;color:#fff}
-.portfolio-gold-rule{width:42px;height:2px;margin:12px 0 14px;border-radius:2px;background:linear-gradient(90deg,#c6a15b,transparent)}
-.portfolio-hero p{max-width:980px;margin:0;color:rgba(255,255,255,.55);font-size:14px;line-height:1.55}
-.portfolio-hero-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:22px}
-.portfolio-search{
-  width:min(100%,390px);height:46px;display:flex;align-items:center;gap:10px;padding:0 15px;
-  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.16);border-radius:10px;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.16);
-}
-.portfolio-search svg{width:18px;height:18px;fill:none;stroke:rgba(255,255,255,.45);stroke-width:2;flex:none}
-.portfolio-search input{width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:13px}
-.portfolio-search input::placeholder{color:rgba(255,255,255,.42)}
-.portfolio-spend{text-align:right}
-.portfolio-spend span{display:block;color:rgba(255,255,255,.52);font-size:10px;font-weight:800;letter-spacing:1.4px}
-.portfolio-spend strong{display:block;margin-top:5px;color:#d8af5d;font-size:32px;line-height:1;font-weight:900;letter-spacing:-.8px}
-.portfolio-body{padding:24px clamp(32px,3vw,58px) 40px}
-.portfolio-toolbar{display:flex;justify-content:flex-end;gap:12px;margin-bottom:16px}
-.portfolio-tool-btn{
-  border:1px solid #e5e9f0;background:#fff;color:#172033;border-radius:12px;padding:11px 18px;
-  font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(15,23,42,.08);
-}
-.portfolio-tool-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(15,23,42,.12)}
-.portfolio-expand-btn{min-width:190px}.chevron{margin-left:8px}
-.portfolio-section{background:#fff;border:1px solid #e3e7ee;border-radius:18px;padding:20px 28px 26px;box-shadow:0 7px 22px rgba(15,23,42,.08)}
-.portfolio-section-heading{display:flex;align-items:flex-start;gap:18px;margin:0 4px 14px}
-.portfolio-section-rule{width:42px;height:3px;margin-top:2px;border-radius:3px;background:#a84e2f;flex:none}
-.portfolio-section-copy{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.portfolio-section-copy h2{margin:0;color:#a84e2f;font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
-.portfolio-section-copy p{margin:0;color:#707988;font-size:13px}
-.portfolio-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.portfolio-card{
-  --accent:#2f65b2;position:relative;min-height:192px;overflow:hidden;border:1px solid #e4e7ed;border-radius:16px;background:#fff;
-  padding:20px 22px 18px;box-shadow:0 4px 12px rgba(15,23,42,.08);transition:transform .18s ease,box-shadow .18s ease;
-}
-.portfolio-card:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,23,42,.12)}
-.portfolio-card-ribbon{position:absolute;top:0;left:0;right:0;height:5px;background:var(--accent)}
-.accent-olive{--accent:#8d9c35}.accent-blue{--accent:#2d61ae}.accent-teal{--accent:#3b9e95}.accent-purple{--accent:#7750a6}
-.portfolio-card-topline{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-top:2px}
-.portfolio-card-topline h3{margin:0;font-size:18px;line-height:1.2;font-weight:850;color:#141b2b;letter-spacing:-.25px}
-.portfolio-card-topline strong{font-size:17px;line-height:1.2;color:var(--accent);font-weight:900;white-space:nowrap}
-.portfolio-card-divider{height:1px;background:#e7eaf0;margin:14px 0 12px}
-.portfolio-card>p{min-height:58px;margin:0;color:#747c8a;font-size:13px;line-height:1.45}
-.portfolio-card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
-.platform-link,.level-two-label{border:0;background:transparent;color:var(--accent);padding:0;font-size:12px;font-weight:850;cursor:pointer}
-.platform-link:hover,.level-two-label:hover{text-decoration:underline}
-.level-two-list{display:grid;grid-template-columns:1fr;gap:5px;margin-top:14px;padding-top:12px;border-top:1px dashed #d7dce5}
-.level-two-list button{border:0;background:#f7f9fc;color:#334155;text-align:left;border-radius:7px;padding:7px 9px;font-size:11px;font-weight:650;cursor:pointer}
-.level-two-list button:hover{background:#eef3fb;color:#1f4e96}
-.portfolio-list .portfolio-card-grid{grid-template-columns:1fr}
-.portfolio-list .portfolio-card{min-height:0}
-.portfolio-list .portfolio-card>p{min-height:0}
-.load-error{padding:12px 16px;margin-bottom:14px;border:1px solid #efc4c4;background:#fff5f5;color:#8b1e1e;border-radius:10px;font-size:12px}
-
-/* ===== LEVEL 1 PLATFORM LANDING ===== */
-.nav-root-button{width:100%;border:0;background:transparent;color:#fff;font-size:15px;font-weight:800;padding:8px 10px 7px;text-align:left;cursor:pointer;border-radius:7px}
-.nav-root-button:hover{background:rgba(255,255,255,.08)}
-.crumb-button{border:0;background:transparent;padding:0;color:rgba(255,255,255,.45);cursor:pointer;font:inherit}
-.crumb-button:hover{color:#fff;text-decoration:underline}
-.crumb-button.mini-usaa{padding:5px 11px;color:#07101f;text-decoration:none}
-.platform-hero-main{position:relative;padding-right:260px}
-.platform-owner-row{display:flex;flex-wrap:wrap;gap:24px;margin-top:10px}
-.platform-owner-row div{display:flex;flex-direction:column;gap:2px}
-.platform-owner-row span,.platform-spend-box span{font-size:8.5px;font-weight:800;letter-spacing:.8px;color:rgba(255,255,255,.4)}
-.platform-owner-row strong{font-size:11.5px;color:rgba(255,255,255,.82)}
-.platform-spend-box{position:absolute;right:34px;top:16px;text-align:right}
-.platform-spend-box strong{display:block;color:#c6a15b;font-size:22px;font-weight:900;margin-top:4px}
-.platform-domain-section{padding:28px clamp(20px,2.8vw,64px) 36px}
-.platform-section-title{font-size:10px;font-weight:800;letter-spacing:1.6px;color:#99a3b0;margin-bottom:16px}
-.platform-domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
-.platform-domain-card{overflow:hidden;border:1px solid #e4e7ee;border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 28px -10px rgba(15,23,42,.14)}
-.platform-domain-ribbon{height:5px;background:linear-gradient(90deg,#0d1b33,#c6a15b)}
-.platform-domain-body{padding:20px 22px 22px}
-.platform-domain-tag{font-size:9.5px;font-weight:800;letter-spacing:1.4px;color:#99a3b0;margin-bottom:8px}
-.platform-domain-body h2{margin:0 0 8px;font-size:18px;color:#111826}.platform-domain-body p{margin:0 0 14px;min-height:54px;color:#66707e;font-size:12px;line-height:1.55}
-.platform-live{display:inline-block;padding:4px 10px;border-radius:20px;background:#fbead0;color:#7a5a12;font-size:9px;font-weight:800;letter-spacing:.7px}
-.platform-domain-body button{display:block;margin-top:16px;border:0;background:transparent;color:#0d1b33;font-size:11.5px;font-weight:800;padding:0;cursor:pointer}
-.platform-domain-body button:hover{text-decoration:underline}
-
-@media (max-width:980px){
-  .side-nav{width:250px}
-  .main{width:calc(100% - 250px);margin-left:250px}
-  .rail-toggle{left:226px}
-  .rail-collapsed .main{margin-left:0;width:100%}
-}
-@media (max-width:760px){
-  :host{width:100%}
-  .shell{width:100%;max-width:100%}
-  .side-nav{width:82vw;max-width:300px;transform:translateX(-100%)}
-  .main{width:100%;margin-left:0!important}
-  .rail-toggle{left:14px!important;top:14px}
-  .shell:not(.rail-collapsed) .side-nav{transform:translateX(0)}
-  .shell:not(.rail-collapsed) .rail-toggle{left:min(calc(82vw - 24px),276px)!important}
-  .hero-top{flex-wrap:wrap;padding:8px 16px;gap:8px;padding-left:54px}
-  .crumbs{font-size:10px;gap:5px;flex-wrap:wrap}
-  .state-toggle{flex:1 1 100%;justify-content:center}
-  .state-toggle button{padding:6px 10px;font-size:10px}
-  .hero-main{padding:10px 16px 8px}
-  .eyebrow{font-size:8px;letter-spacing:2px}
-  .hero h1{font-size:17px}
-  .hero p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px}
-  .kpis{flex-wrap:wrap;gap:8px;padding-top:6px}
-  .kpi{flex:1 1 calc(50% - 8px);min-width:0;padding:6px 10px}
-  .kpi span{font-size:15px}.kpi small{font-size:8.5px}
-  .legend{padding:6px 16px;gap:10px 14px}.legend-title{font-size:8.5px}.legend-item{font-size:10.5px;gap:6px}
-  .content{padding:10px 14px 6px;gap:14px}
-  .group-header{padding:12px 14px;gap:10px}.group-icon{width:34px;height:34px;border-radius:9px}.group-icon svg{width:18px;height:18px}.group-title-line h2{font-size:16px}.group-title-line span{display:block;margin-left:0;margin-top:2px}.group-title-wrap p{font-size:12px;max-width:none}
-  .group-body,.subgroup-grid{grid-template-columns:1fr!important;overflow-x:visible}.cap-col{border-right:none!important;border-bottom:1px solid var(--line)}.cap-col:last-child{border-bottom:none}
-  .tile-grid{gap:10px}.tech-tile{width:88px;height:88px;padding:10px 8px}.tile-name{font-size:9.5px}.tile-vendor{font-size:7px}.tile-logo{max-width:58px;max-height:34px}.tile-icon-label{font-size:8px;margin-top:4px}
-  .footer{flex-direction:column;align-items:flex-start;padding:10px 14px;margin:6px 14px 20px;gap:6px}.footer div{gap:6px}
-}
-@media (max-width:480px){
-  .hero h1{font-size:15px}.kpi{flex:1 1 100%}.tech-tile{width:78px;height:78px;padding:8px 6px}
-}
-
-@media (max-width:1100px){
-  .portfolio-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .portfolio-hero{grid-template-columns:minmax(0,1fr) 360px}
-}
-@media (max-width:760px){
-  .portfolio-hero{grid-template-columns:1fr;padding:22px 18px;gap:24px}
-  .portfolio-hero-actions{align-items:stretch}.portfolio-search{width:100%}.portfolio-spend{text-align:left}
-  .portfolio-hero h1{font-size:24px}.portfolio-body{padding:16px 14px 28px}.portfolio-toolbar{justify-content:stretch;flex-wrap:wrap}.portfolio-tool-btn{flex:1}
-  .portfolio-section{padding:18px 14px 20px}.portfolio-card-grid{grid-template-columns:1fr}.portfolio-section-heading{gap:12px}
-  .platform-hero-main{padding-right:16px}.platform-spend-box{position:static;text-align:left;margin-top:10px}.platform-owner-row{gap:14px}
-}
-
-/* V4 portfolio expansion: Business + Enablement sections from the enterprise portfolio */
-.portfolio-section + .portfolio-section{margin-top:24px}
-.portfolio-grid-three{grid-template-columns:repeat(3,minmax(0,1fr))}
-.portfolio-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
-.portfolio-section-business .portfolio-section-rule{background:#2f7a52}
-.portfolio-section-business .portfolio-section-copy h2{color:#2f7a52}
-.portfolio-section-enablement .portfolio-section-rule{background:#2d61ae}
-.portfolio-section-enablement .portfolio-section-copy h2{color:#2d61ae}
-.accent-green{--accent:#2f7a52}
-.accent-red{--accent:#a34a47}
-.accent-slate{--accent:#52657e}
-.accent-brown{--accent:#765348}
-.accent-orange{--accent:#b36a36}
-.portfolio-grid-two .portfolio-card{min-height:178px}
-.portfolio-grid-two .portfolio-card>p{min-height:52px}
-@media (max-width:1100px){
-  .portfolio-grid-three,.portfolio-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media (max-width:760px){
-  .portfolio-grid-three,.portfolio-grid-two{grid-template-columns:1fr}
-}
-
-
-
-
-
-import { LightningElement } from 'lwc';
-import ASSETS from '@salesforce/resourceUrl/usaaCapabilityAssets';
-import getPlacematData from '@salesforce/apex/USAACapabilityPlacematController.getPlacematData';
-
-export default class UsaaCapabilityPlacemat extends LightningElement {
-    domains = [];
-    groupMap = {};
-    portfolio = { title: 'Enterprise Capability Portfolio', description: '', annualForecastSpend: '', groups: [] };
-    loadError = '';
-
-    page = 'portfolio'; // portfolio -> platform -> domain
-    currentDomainKey = 'communication_insights';
-    state = 'current';
-    railCollapsed = false;
-    searchTerm = '';
-    portfolioListView = false;
-    expandLevelTwos = false;
-
-    connectedCallback() {
-        this.loadPlacematData();
-    }
-
-    async loadPlacematData() {
-        try {
-            const payload = await getPlacematData();
-            const data = JSON.parse(payload || '{}');
-            this.domains = Array.isArray(data.domains) ? data.domains : [];
-            this.groupMap = data.groups || {};
-            this.portfolio = data.portfolio || this.portfolio;
-            if (!this.domains.some((d) => d.key === this.currentDomainKey) && this.domains.length) {
-                this.currentDomainKey = this.domains[0].key;
-            }
-            this.loadError = '';
-        } catch (e) {
-            this.loadError = e?.body?.message || e?.message || 'Unable to load capability placemat data.';
-            this.domains = [];
-            this.groupMap = {};
-        }
-    }
-
-    get usaaLogoUrl() { return `${ASSETS}/usaa.png`; }
-    get isPortfolioPage() { return this.page === 'portfolio'; }
-    get isPlatformPage() { return this.page === 'platform'; }
-    get isDomainPage() { return this.page === 'domain'; }
-    get hasLoadError() { return !!this.loadError; }
-
-    get portfolioShellClass() {
-        return `portfolio-shell ${this.portfolioListView ? 'portfolio-list' : 'portfolio-grid'}`;
-    }
-
-    get portfolioGroups() {
-        const term = (this.searchTerm || '').trim().toLowerCase();
-        return (this.portfolio.groups || []).map((group) => {
-            const platforms = (group.platforms || [])
-                .filter((platform) => {
-                    if (!term) return true;
-                    return [platform.name, platform.description, platform.spend]
-                        .filter(Boolean)
-                        .some((value) => String(value).toLowerCase().includes(term));
-                })
-                .map((platform) => ({
-                    ...platform,
-                    cardClass: `portfolio-card accent-${platform.accent || 'blue'}`,
-                    hasLevelTwos: !!(this.expandLevelTwos && platform.key === 'public_cloud' && this.domains.length),
-                    levelTwos: platform.key === 'public_cloud' ? this.domains : []
-                }));
-            return {
-                ...group,
-                platforms,
-                hasPlatforms: platforms.length > 0,
-                sectionClass: `portfolio-section portfolio-section-${group.key || 'default'}`,
-                gridClass: `portfolio-card-grid ${group.key === 'experience' ? 'portfolio-grid-three' : 'portfolio-grid-two'}`
-            };
-        }).filter((group) => group.hasPlatforms);
-    }
-
-    get portfolioViewButtonLabel() { return this.portfolioListView ? 'Grid View' : 'List View'; }
-    get expandButtonLabel() { return this.expandLevelTwos ? 'Collapse All Level 2s' : 'Expand All Level 2s'; }
-
-    get currentDomain() {
-        return this.domains.find((d) => d.key === this.currentDomainKey) || this.domains[0] || { key: '', name: '', desc: '' };
-    }
-    get groups() { return this.groupMap[this.currentDomainKey] || []; }
-    get shellClass() { return `shell state-${this.state} ${this.railCollapsed ? 'rail-collapsed' : ''}`; }
-    get sideNavClass() { return 'side-nav'; }
-    get currentButtonClass() { return this.state === 'current' ? 'active' : ''; }
-    get targetButtonClass() { return this.state === 'target' ? 'active' : ''; }
-    get rygButtonClass() { return this.state === 'ryg' ? 'active' : ''; }
-    get isRyg() { return this.state === 'ryg'; }
-
-    get navDomains() {
-        return this.domains.map((d) => {
-            const selected = d.key === this.currentDomainKey && this.page === 'domain';
-            const gs = this.groupMap[d.key] || [];
-            return {
-                ...d,
-                selected,
-                buttonClass: `nav-domain ${selected ? 'active' : ''}`,
-                groups: gs.map((g) => ({
-                    ...g,
-                    key: `${d.key}-${g.num}`,
-                    childrenKey: `${d.key}-${g.num}-kids`,
-                    expanded: selected,
-                    caps: this.flattenNavCaps(g.caps || [])
-                }))
-            };
-        });
-    }
-
-    flattenNavCaps(caps) {
-        const out = [];
-        caps.forEach((c) => {
-            if (c.subGroup) {
-                (c.caps || []).forEach((x) => out.push({ ...x, key: `nav-${x.num}-${x.name}`, anchor: `cap-${this.safe(x.num)}` }));
-            } else {
-                out.push({ ...c, key: `nav-${c.num}-${c.name}`, anchor: `cap-${this.safe(c.num)}` });
-            }
-        });
-        return out;
-    }
-
-    get metrics() {
-        let capCount = 0;
-        let active = 0;
-        let gaps = 0;
-        this.groups.forEach((g) => (g.caps || []).forEach((c) => {
-            const leaves = c.subGroup ? (c.caps || []) : [c];
-            leaves.forEach((x) => {
-                capCount += 1;
-                active += (x.cur || []).filter((t) => t.n !== 'None').length;
-                if (!(x.cur || []).length || (x.cur || []).some((t) => t.n === 'None')) gaps += 1;
-            });
-        }));
-        return { groupCount: this.groups.length, capabilityCount: capCount, activeCount: active, gapCount: gaps };
-    }
-
-    get displayGroups() {
-        return this.groups.map((g) => {
-            let leafCount = 0;
-            const caps = (g.caps || []).map((c) => {
-                if (c.subGroup) {
-                    const children = (c.caps || []).map((x) => { leafCount += 1; return this.decorateCap(x); });
-                    return { ...c, key: `sg-${c.num}-${c.name}`, anchor: `cap-${this.safe(c.num)}`, isSubGroup: true, children };
-                }
-                leafCount += 1;
-                return { ...this.decorateCap(c), isSubGroup: false };
-            });
-            return {
-                ...g,
-                key: `grp-${g.num}-${g.name}`,
-                anchor: `grp-${this.safe(g.num)}`,
-                leafCountLabel: `${leafCount} ${leafCount === 1 ? 'capability' : 'capabilities'}`,
-                caps
-            };
-        });
-    }
-
-    decorateCap(cap) {
-        const tiles = this.unionTech(cap.cur || [], cap.tgt || []).map((t, i) => this.decorateTile(t, i));
-        const showGap = ((cap.cur || []).length === 0) || (cap.cur || []).some((x) => x.n === 'None');
-        return { ...cap, key: `cap-${cap.num}-${cap.name}`, anchor: `cap-${this.safe(cap.num)}`, tiles, showGap };
-    }
-
-    unionTech(cur, tgt) {
-        const names = [];
-        cur.forEach((t) => { if (!names.includes(t.n)) names.push(t.n); });
-        tgt.forEach((t) => { if (!names.includes(t.n)) names.push(t.n); });
-        return names.filter((n) => n !== 'None').map((n) => {
-            const c = cur.find((x) => x.n === n);
-            const t = tgt.find((x) => x.n === n);
-            return {
-                name: n,
-                vendor: (t || c)?.v || '',
-                inCur: !!c,
-                inTgt: !!t,
-                conCur: !!c?.c,
-                conTgt: !!t?.c,
-                isNew: !c && !!t,
-                isRetiring: !!c && !t,
-                underTgt: !!t?.u,
-                rationale: (t?.c && t.rationale) || (c?.c && c.rationale) || '',
-                considerationNote: (t?.u && t.note) || ''
-            };
-        });
-    }
-
-    decorateTile(t, i) {
-        let ryg = '';
-        let letter = '';
-        let letterClass = '';
-        if (t.isRetiring) { ryg = 'ryg-red'; letter = 'R'; letterClass = 'ryg-letter letter-red'; }
-        else if (t.inTgt && t.underTgt) { ryg = 'ryg-blue'; letter = 'U'; letterClass = 'ryg-letter letter-blue'; }
-        else if (t.inTgt && t.conTgt) { ryg = 'ryg-yellow'; letter = 'Y'; letterClass = 'ryg-letter letter-yellow'; }
-        else if (t.inTgt) { ryg = 'ryg-green'; letter = 'G'; letterClass = 'ryg-letter letter-green'; }
-
-        const showLogo = t.vendor === 'USAA';
-        let cls = `tech-tile ${showLogo ? 'logo-tile' : ''} ${t.isNew ? 'new-tile' : ''} ${t.isRetiring ? 'retiring' : ''}`;
-        if (this.state === 'ryg' && ryg) cls += ` ${ryg}`;
-
-        let caption = '';
-        let captionClass = '';
-        if (this.state === 'target') {
-            if (t.isNew) { caption = 'New'; captionClass = 'tile-caption cap-new'; }
-            else if (t.isRetiring) { caption = 'Retiring'; captionClass = 'tile-caption cap-retiring'; }
-            else if (t.underTgt) { caption = 'Under Consideration'; captionClass = 'tile-caption cap-under'; }
-            else if (t.conTgt) { caption = 'Constrained'; captionClass = 'tile-caption cap-constrained'; }
-        } else if (this.state === 'current' && t.conCur) {
-            caption = 'Constrained';
-            captionClass = 'tile-caption cap-constrained';
-        } else if (this.state === 'ryg') {
-            caption = letter === 'R' ? 'Not in Target' : letter === 'Y' ? 'Constrained' : letter === 'U' ? 'Under Consideration' : letter === 'G' ? 'Target' : '';
-            captionClass = `tile-caption ${letter === 'R' ? 'cap-retiring' : letter === 'Y' ? 'cap-constrained' : letter === 'U' ? 'cap-under' : 'cap-new'}`;
-        }
-
-        const notes = [
-            t.rationale ? `Constrained: ${t.rationale}` : '',
-            t.considerationNote ? `Under Consideration: ${t.considerationNote}` : ''
-        ].filter(Boolean).join(' — ');
-
-        return {
-            ...t,
-            key: `tile-${i}-${t.name}`,
-            className: cls,
-            showLogo,
-            caption,
-            captionClass,
-            rygLetter: this.state === 'ryg' ? letter : '',
-            rygLetterClass: letterClass,
-            title: `${t.name}${t.vendor ? ` · ${t.vendor}` : ''}${notes ? ` — ${notes}` : ''}`
-        };
-    }
-
-    safe(v) { return String(v).replace(/[^a-zA-Z0-9_-]/g, '-'); }
-
-    handlePortfolioSearch(event) { this.searchTerm = event.target.value || ''; }
-    togglePortfolioView() { this.portfolioListView = !this.portfolioListView; }
-    toggleLevelTwos() { this.expandLevelTwos = !this.expandLevelTwos; }
-
-    handleOpenPlatform(event) {
-        const key = event.currentTarget.dataset.key;
-        if (key === 'public_cloud') {
-            this.page = 'platform';
-            this.state = 'current';
-            this.scrollWindowTop();
-        }
-    }
-
-    handleLevelTwoOpen(event) {
-        const key = event.currentTarget.dataset.key;
-        if (!key) return;
-        this.currentDomainKey = key;
-        this.page = 'domain';
-        this.state = 'current';
-        this.scrollWindowTop();
-    }
-
-    handlePortfolioHome() {
-        this.page = 'portfolio';
-        this.searchTerm = '';
-        this.railCollapsed = false;
-        this.scrollWindowTop();
-    }
-
-    handlePlatformHome() {
-        this.page = 'platform';
-        this.state = 'current';
-        this.scrollWindowTop();
-    }
-
-    handleState(event) { this.state = event.currentTarget.dataset.state; }
-    toggleRail() { this.railCollapsed = !this.railCollapsed; }
-
-    handleDomainSelect(event) {
-        this.currentDomainKey = event.currentTarget.dataset.key;
-        this.page = 'domain';
-        this.state = 'current';
-        this.scrollTop();
-    }
-
-    handleGroupScroll(event) { this.scrollTo(`[data-group-anchor="grp-${this.safe(event.currentTarget.dataset.group)}"]`); }
-    handleCapScroll(event) { this.scrollTo(`[data-cap-anchor="${event.currentTarget.dataset.cap}"]`); }
-
-    scrollWindowTop() { window.scrollTo?.({ top: 0, behavior: 'smooth' }); }
-    scrollTop() {
-        const main = this.template.querySelector('.main');
-        if (main) main.scrollTo?.({ top: 0, behavior: 'smooth' });
-        this.scrollWindowTop();
-    }
-    scrollTo(selector) {
-        const el = this.template.querySelector(selector);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-
-
-
-
-<template>
-    <template if:true={isPortfolioPage}>
-        <section class={portfolioShellClass}>
-            <header class="portfolio-hero">
-                <div class="portfolio-hero-copy">
-                    <span class="portfolio-usaa">USAA</span>
-                    <div class="portfolio-eyebrow">LEVEL 0 · ENTERPRISE</div>
-                    <h1>{portfolio.title}</h1>
-                    <div class="portfolio-gold-rule"></div>
-                    <p>{portfolio.description}</p>
-                </div>
-
-                <div class="portfolio-hero-actions">
-                    <label class="portfolio-search">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-                        <input type="search" placeholder="Search capabilities, apps & technologies..." value={searchTerm} oninput={handlePortfolioSearch}/>
-                    </label>
-                    <div class="portfolio-spend">
-                        <span>ENTERPRISE ANNUAL FORECAST SPEND</span>
-                        <strong>{portfolio.annualForecastSpend}</strong>
-                    </div>
-                </div>
-            </header>
-
-            <div class="portfolio-body">
-                <div class="portfolio-toolbar">
-                    <button type="button" class="portfolio-tool-btn" onclick={togglePortfolioView}>{portfolioViewButtonLabel}</button>
-                    <button type="button" class="portfolio-tool-btn portfolio-expand-btn" onclick={toggleLevelTwos}>
-                        {expandButtonLabel}
-                        <span class="chevron">⌄</span>
-                    </button>
-                </div>
-
-                <template if:true={hasLoadError}>
-                    <div class="load-error">{loadError}</div>
-                </template>
-
-                <template for:each={portfolioGroups} for:item="group">
-                    <section key={group.key} class={group.sectionClass}>
-                        <div class="portfolio-section-heading">
-                            <span class="portfolio-section-rule"></span>
-                            <div class="portfolio-section-copy">
-                                <h2>{group.name}</h2>
-                                <p>{group.description}</p>
-                            </div>
-                        </div>
-
-                        <div class={group.gridClass}>
-                            <template for:each={group.platforms} for:item="platform">
-                                <article key={platform.key} class={platform.cardClass}>
-                                    <div class="portfolio-card-ribbon"></div>
-                                    <div class="portfolio-card-topline">
-                                        <h3>{platform.name}</h3>
-                                        <strong>{platform.spend}</strong>
-                                    </div>
-                                    <div class="portfolio-card-divider"></div>
-                                    <p>{platform.description}</p>
-
-                                    <div class="portfolio-card-actions">
-                                        <button type="button" class="platform-link" data-key={platform.key} onclick={handleOpenPlatform}>Open Platform →</button>
-                                        <button type="button" class="level-two-label" data-key={platform.key} onclick={handleOpenPlatform}>Level 2s <span>⌄</span></button>
-                                    </div>
-
-                                    <template if:true={platform.hasLevelTwos}>
-                                        <div class="level-two-list">
-                                            <template for:each={platform.levelTwos} for:item="domain">
-                                                <button key={domain.key} type="button" data-key={domain.key} onclick={handleLevelTwoOpen}>{domain.name}</button>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </article>
-                            </template>
-                        </div>
-                    </section>
-                </template>
-            </div>
-        </section>
-    </template>
-
-    <template if:true={isPlatformPage}>
-        <div class={shellClass}>
-            <aside class={sideNavClass}>
-                <button class="brand" onclick={handlePortfolioHome} title="Back to enterprise capability portfolio">
-                    <span class="brand-badge">USAA</span>
-                    <span class="brand-title">CAPABILITY MODEL</span>
-                </button>
-
-                <div class="nav-section">
-                    <button class="nav-root-button" onclick={handlePlatformHome}>Public Cloud</button>
-                    <template for:each={navDomains} for:item="domain">
-                        <div key={domain.key} class="nav-domain-wrap">
-                            <button class={domain.buttonClass} data-key={domain.key} onclick={handleDomainSelect}>
-                                <span class="nav-caret">›</span>
-                                <span>{domain.name}</span>
-                            </button>
-                        </div>
-                    </template>
-                </div>
-                <div class="views-label">VIEWS</div>
-            </aside>
-
-            <button class="rail-toggle" onclick={toggleRail} aria-label="Toggle navigation">‹</button>
-
-            <main class="main">
-                <header class="hero platform-hero">
-                    <div class="hero-top">
-                        <div class="crumbs">
-                            <button class="crumb-button mini-usaa" onclick={handlePortfolioHome}>USAA</button>
-                            <span class="crumb-current">Public Cloud</span>
-                        </div>
-                    </div>
-                    <div class="hero-main platform-hero-main">
-                        <div class="eyebrow">LEVEL 1 · ENTERPRISE CAPABILITY</div>
-                        <h1>Public Cloud</h1>
-                        <div class="gold-rule"></div>
-                        <p>Creates, orchestrates, delivers, archives, and reports member and operational communications across channels.</p>
-                        <div class="platform-owner-row">
-                            <div><span>OWNER</span><strong>Member Communications</strong></div>
-                            <div><span>DELIVERY OWNER</span><strong>Digital Tech</strong></div>
-                            <div><span>ARCHITECT</span><strong>Enterprise Architecture</strong></div>
-                        </div>
-                        <div class="platform-spend-box"><span>ANNUAL FORECAST SPEND</span><strong>$23.4M</strong></div>
-                    </div>
-                </header>
-
-                <section class="platform-domain-section">
-                    <div class="platform-section-title">CAPABILITY DOMAINS</div>
-                    <div class="platform-domain-grid">
-                        <template for:each={domains} for:item="domain">
-                            <article key={domain.key} class="platform-domain-card">
-                                <div class="platform-domain-ribbon"></div>
-                                <div class="platform-domain-body">
-                                    <div class="platform-domain-tag">LEVEL 2 · CAPABILITY DOMAIN</div>
-                                    <h2>{domain.name}</h2>
-                                    <p>{domain.desc}</p>
-                                    <span class="platform-live">LIVE</span>
-                                    <button type="button" data-key={domain.key} onclick={handleLevelTwoOpen}>View Capability Model →</button>
-                                </div>
-                            </article>
-                        </template>
-                    </div>
-                </section>
-            </main>
-        </div>
-    </template>
-
-    <template if:true={isDomainPage}>
-        <div class={shellClass}>
-            <aside class={sideNavClass}>
-                <button class="brand" onclick={handlePortfolioHome} title="Back to enterprise capability portfolio">
-                    <span class="brand-badge">USAA</span>
-                    <span class="brand-title">CAPABILITY MODEL</span>
-                </button>
-
-                <div class="nav-section">
-                    <button class="nav-root-button" onclick={handlePlatformHome}>Public Cloud</button>
-                    <template for:each={navDomains} for:item="domain">
-                        <div key={domain.key} class="nav-domain-wrap">
-                            <button class={domain.buttonClass} data-key={domain.key} onclick={handleDomainSelect}>
-                                <span class="nav-caret">›</span>
-                                <span>{domain.name}</span>
-                            </button>
-                            <template if:true={domain.selected}>
-                                <div class="nav-groups">
-                                    <template for:each={domain.groups} for:item="group">
-                                        <button key={group.key} class="nav-group" data-group={group.num} onclick={handleGroupScroll}>
-                                            <span class="nav-caret small">›</span>
-                                            <span><strong>{group.num}.</strong> {group.name}</span>
-                                        </button>
-                                        <template if:true={group.expanded}>
-                                            <div key={group.childrenKey} class="nav-caps">
-                                                <template for:each={group.caps} for:item="cap">
-                                                    <button key={cap.key} class="nav-cap" data-cap={cap.anchor} onclick={handleCapScroll}>
-                                                        <span><strong>{cap.num}</strong> {cap.name}</span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="views-label">VIEWS</div>
-            </aside>
-
-            <button class="rail-toggle" onclick={toggleRail} aria-label="Toggle navigation">‹</button>
-
-            <main class="main">
-                <header class="hero">
-                    <div class="hero-top">
-                        <div class="crumbs">
-                            <button class="crumb-button mini-usaa" onclick={handlePortfolioHome}>USAA</button>
-                            <button class="crumb-button" onclick={handlePlatformHome}>Public Cloud</button>
-                            <span class="sep">/</span>
-                            <span class="crumb-current">{currentDomain.name}</span>
-                        </div>
-                        <div class="state-toggle" role="tablist" aria-label="Capability state">
-                            <button class={currentButtonClass} data-state="current" onclick={handleState}>Current State</button>
-                            <button class={targetButtonClass} data-state="target" onclick={handleState}>Target State</button>
-                            <button class={rygButtonClass} data-state="ryg" onclick={handleState}>Full Footprint (RYG)</button>
-                        </div>
-                    </div>
-
-                    <div class="hero-main">
-                        <div class="eyebrow">LEVEL 2 · CAPABILITY DOMAIN</div>
-                        <h1>{currentDomain.name}</h1>
-                        <div class="gold-rule"></div>
-                        <p>{currentDomain.desc}</p>
-
-                        <div class="kpis">
-                            <div class="kpi"><span>{metrics.groupCount}</span><small>Capability Groups</small></div>
-                            <div class="kpi"><span>{metrics.capabilityCount}</span><small>Capabilities</small></div>
-                            <div class="kpi"><span>{metrics.activeCount}</span><small>Active Tool Instances</small></div>
-                            <div class="kpi"><span>{metrics.gapCount}</span><small>Current-State Gaps</small></div>
-                        </div>
-                    </div>
-                </header>
-
-                <section class="legend">
-                    <span class="legend-title">LEGEND</span>
-                    <template if:false={isRyg}>
-                        <span class="legend-item"><b class="pill new">NEW</b>Introduced in target state</span>
-                        <span class="legend-item"><b class="pill retiring">RETIRING</b>Removed from target state</span>
-                        <span class="legend-item"><b class="pill constrained">CONSTRAINED</b>Approved with restricted use</span>
-                        <span class="legend-item"><b class="pill under">UNDER CONSIDERATION</b>Candidate for target state, direction not yet decided</span>
-                    </template>
-                    <template if:true={isRyg}>
-                        <span class="legend-item"><b class="pill red">R · RED</b>Not part of target state</span>
-                        <span class="legend-item"><b class="pill yellow">Y · YELLOW</b>In target state, constrained</span>
-                        <span class="legend-item"><b class="pill green">G · GREEN</b>Our target apps</span>
-                        <span class="legend-item"><b class="pill blue">U · BLUE</b>Candidate for target state</span>
-                    </template>
-                </section>
-
-                <section class="content">
-                    <template for:each={displayGroups} for:item="group">
-                        <article key={group.key} class="group-card" data-group-anchor={group.anchor}>
-                            <div class="group-ribbon"></div>
-                            <div class="group-header">
-                                <div class="group-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
-                                </div>
-                                <div class="group-title-wrap">
-                                    <div class="group-tag">LEVEL 3 · CAPABILITY GROUP</div>
-                                    <div class="group-title-line"><h2>{group.name}</h2><span>{group.leafCountLabel}</span></div>
-                                    <template if:true={group.desc}><p>{group.desc}</p></template>
-                                </div>
-                            </div>
-
-                            <div class="group-body">
-                                <template for:each={group.caps} for:item="cap">
-                                    <template if:false={cap.isSubGroup}>
-                                        <section key={cap.key} class="cap-col" data-cap-anchor={cap.anchor}>
-                                            <div class="cap-header">
-                                                <div class="cap-num">{cap.num}</div>
-                                                <h3>{cap.name}</h3>
-                                                <template if:true={cap.desc}><p>{cap.desc}</p></template>
-                                            </div>
-                                            <div class="tile-grid">
-                                                <template for:each={cap.tiles} for:item="tile">
-                                                    <div key={tile.key} class={tile.className} title={tile.title}>
-                                                        <template if:true={tile.rygLetter}><span class={tile.rygLetterClass}>{tile.rygLetter}</span></template>
-                                                        <template if:true={tile.showLogo}>
-                                                            <img src={usaaLogoUrl} alt="USAA" class="tile-logo"/>
-                                                        </template>
-                                                        <template if:false={tile.showLogo}>
-                                                            <div class="tile-name">{tile.name}</div>
-                                                            <div class="tile-vendor">{tile.vendor}</div>
-                                                        </template>
-                                                        <template if:true={tile.showLogo}><div class="tile-icon-label">{tile.name}</div></template>
-                                                        <template if:true={tile.caption}><span class={tile.captionClass}>{tile.caption}</span></template>
-                                                    </div>
-                                                </template>
-                                                <template if:true={cap.showGap}>
-                                                    <div class="tech-tile gap-tile"><div class="gap-plus">+</div><div class="gap-label">Gap</div></div>
-                                                </template>
-                                            </div>
-                                        </section>
-                                    </template>
-
-                                    <template if:true={cap.isSubGroup}>
-                                        <section key={cap.key} class="subgroup" data-cap-anchor={cap.anchor}>
-                                            <div class="subgroup-header">
-                                                <span class="subgroup-tag">SUB-GROUP</span>
-                                                <span class="cap-num">{cap.num}</span>
-                                                <strong>{cap.name}</strong>
-                                                <template if:true={cap.desc}><small>{cap.desc}</small></template>
-                                            </div>
-                                            <div class="subgroup-grid">
-                                                <template for:each={cap.children} for:item="child">
-                                                    <section key={child.key} class="cap-col nested" data-cap-anchor={child.anchor}>
-                                                        <div class="cap-header">
-                                                            <div class="cap-num">{child.num}</div>
-                                                            <h3>{child.name}</h3>
-                                                            <template if:true={child.desc}><p>{child.desc}</p></template>
-                                                        </div>
-                                                        <div class="tile-grid">
-                                                            <template for:each={child.tiles} for:item="tile">
-                                                                <div key={tile.key} class={tile.className} title={tile.title}>
-                                                                    <template if:true={tile.rygLetter}><span class={tile.rygLetterClass}>{tile.rygLetter}</span></template>
-                                                                    <template if:true={tile.showLogo}><img src={usaaLogoUrl} alt="USAA" class="tile-logo"/></template>
-                                                                    <template if:false={tile.showLogo}><div class="tile-name">{tile.name}</div><div class="tile-vendor">{tile.vendor}</div></template>
-                                                                    <template if:true={tile.showLogo}><div class="tile-icon-label">{tile.name}</div></template>
-                                                                    <template if:true={tile.caption}><span class={tile.captionClass}>{tile.caption}</span></template>
-                                                                </div>
-                                                            </template>
-                                                            <template if:true={child.showGap}><div class="tech-tile gap-tile"><div class="gap-plus">+</div><div class="gap-label">Gap</div></div></template>
-                                                        </div>
-                                                    </section>
-                                                </template>
-                                            </div>
-                                        </section>
-                                    </template>
-                                </template>
-                            </div>
-                        </article>
-                    </template>
-                </section>
-
-                <footer class="footer">
-                    <div><strong>USAA Public Cloud</strong><span>|</span><span>Enterprise Architecture</span><span>|</span><span>{currentDomain.name} Capability Placemat</span><span>|</span><span>August 2026</span></div>
-                    <em>Constrained use: approved but restricted to specific patterns or teams</em>
-                </footer>
-            </main>
-        </div>
-    </template>
-</template>
-
-
-public with sharing class USAACapabilityPlacematController {
-    private static final String PLACEMAT_JSON =
-            '{"domains":[{"key":"channel_delivery","name":"Channel Delivery","status":"live","desc":"Deliver communications through print, email, SMS, push notification, and digital channels."},{"key":"communication_insights","name":"Communication Insights","status":"live","desc":"Gathers, analyzes, and interprets data to provide actionable understanding of communication effectiveness and audience engagement."},{"key":"communication_orchestration","name":"Communication Orchestration","status":"live","desc":"Trigger, coordinate, and track messages from business events and journeys."},{"key":"communication_preferences","name":"Communication Preferences","status":"live","desc":"Manages how individuals prefer to be communicated with and their explicit agreement for receiving communications and data processing."},{"key":"document_management","name":"Document Management","status":"live","desc":"Manages the capture, lifecycle, access, governance, and retention of business documents and their data."}],"groups":{"channel_delivery":[{"num":"1","name":"Print Delivery","accent":"g1","desc":"Print Delivery supports Channel Delivery.","narrative":"","caps":[{"num":"1.1","name":"Print Delivery","desc":"","cur":[{"n":"Crawford Automated Braille and Large Print","v":"CRAWFORD TECHNOLOGIES INC"},{"n":"Brailleworks Print Provider","v":"BRAILLE WORKS INT INC"},{"n":"FedEx Web Portal","v":"FEDEX"},{"n":"Mail Manufacturing Catalog","v":"USAA"},{"n":"Noosh","v":"NEWLINENOOSH INC"},{"n":"Postal Delivery Batch","v":"USAA"},{"n":"Postal Delivery Service","v":"USAA"},{"n":"RR Donnelley Print Provider","v":"RR DONNELLEY"}],"tgt":[]}]},{"num":"2","name":"Email Delivery","accent":"g2","desc":"Email Delivery supports Channel Delivery.","narrative":"","caps":[{"num":"2.1","name":"Email Delivery","desc":"","cur":[{"n":"EMAIL Delivery Service","v":"USAA"}],"tgt":[]}]},{"num":"3","name":"SMS Delivery","accent":"g3","desc":"SMS Delivery supports Channel Delivery.","narrative":"","caps":[{"num":"3.1","name":"SMS Delivery","desc":"","cur":[{"n":"Twilio for SMS","v":"TWILIO INC"},{"n":"SMS Delivery Service","v":"USAA"},{"n":"Drips","v":"DRIPS"}],"tgt":[]}]},{"num":"4","name":"Push Notification Delivery","accent":"g4","desc":"Push Notification Delivery supports Channel Delivery.","narrative":"","caps":[{"num":"4.1","name":"Push Notification Delivery","desc":"","cur":[{"n":"Push Message Delivery Service","v":"USAA"}],"tgt":[]}]},{"num":"5","name":"Digital Delivery","accent":"g5","desc":"Deliver digital, push, and link-based member communications.","narrative":"","caps":[{"num":"5.1","name":"Digital Delivery","desc":"","cur":[{"n":"Enterprise Message Hub","v":"USAA"},{"n":"Personalized Messaging","v":"USAA"},{"n":"Push Device Management","v":"USAA"},{"n":"SendLink","v":"USAA"},{"n":"Smart Links","v":"USAA"}],"tgt":[]}]}],"communication_insights":[{"num":"1","name":"Communication Insights","accent":"g1","desc":"","narrative":"","caps":[{"num":"1.1","name":"Communication Insights","desc":"","cur":[{"n":"Messaging Analytics Models","v":"USAA"}],"tgt":[]}]}],"communication_orchestration":[{"num":"1","name":"Message orchestration and event management","accent":"g1","desc":"","narrative":"","caps":[{"num":"1.1","name":"Message orchestration and event management","desc":"","cur":[{"n":"Communication Generate and Delivery Service","v":"USAA"},{"n":"Communications Event Management","v":"USAA"},{"n":"Content Comparison Utility","v":"USAA"},{"n":"Delivery Billing","v":"USAA"},{"n":"Mass Operational Co' +
-            'mmunication Tool","v":"USAA"},{"n":"MDCOMMS Control RPAs","v":"USAA"},{"n":"Transmission and Delivery Application","v":"USAA"}],"tgt":[]}]}],"communication_preferences":[{"num":"1","name":"Document Delivery Preferences","accent":"g1","desc":"Manage member choices and permissions for communications.","narrative":"","caps":[{"num":"1.1","name":"Document Delivery Preferences","desc":"","cur":[{"n":"Legacy Document Delivery Preference","v":"USAA"},{"n":"Document Delivery Preference","v":"USAA"}],"tgt":[]}]},{"num":"2","name":"Notification Preferences","accent":"g2","desc":"Manage member choices and permissions for communications.","narrative":"","caps":[]},{"num":"3","name":"Marketing Preferences","accent":"g3","desc":"Manage member choices and permissions for communications.","narrative":"","caps":[{"num":"3.1","name":"Marketing Preferences","desc":"","cur":[{"n":"Advertising Consent Management","v":"TEALIUM INC"},{"n":"TCPA Contactability Management for 3rd Party Exposure","v":"USAA"},{"n":"TCPA Prior Express Written Consent Capture","v":"USAA"}],"tgt":[]}]},{"num":"4","name":"Preferences and consent","accent":"g4","desc":"","narrative":"","caps":[{"num":"4.1","name":"Preferences and consent","desc":"","cur":[{"n":"Enterprise Contact Consent Operations","v":"USAA"}],"tgt":[]}]}],"document_management":[{"num":"1","name":"Document intake and capture","accent":"g1","desc":"Receive documents through uploads, email, fax, and enterprise capture services.","narrative":"","caps":[{"num":"1.1","name":"Document intake and capture","desc":"Receive documents through uploads, email, fax, and enterprise capture services.","subGroup":true,"caps":[{"num":"1.1.1","name":"Document intake and capture","desc":"Receive documents through uploads, email, fax, and enterprise capture services.","cur":[{"n":"ABBYY IDP Trial","v":"Abbyy"},{"n":"Captiva","v":"OpenText"},{"n":"Capture Service Framework","v":"USAA"},{"n":"Doc AI IDP trial","v":"Google"},{"n":"Document Request Tool (DRT)","v":"USAA"},{"n":"DTS","v":"Datamark Inc"},{"n":"Electronic Document Processor","v":"USAA"},{"n":"Enterprise Document Upload","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Inbound Email Processor","v":"USAA"},{"n":"Infrrd IDP trial","v":"Infrrd"},{"n":"iText","v":"Itext Software Corp","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"JDeli Java Library","v":"Idr Solutions Ltd","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Legacy Enterprise Document Upload","v":"USAA"},{"n":"Opentext Fax2Mail Integration","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"PrintTo","v":"USAA"},{"n":"Receive Management and Tracking System","v":"USAA"},{"n":"TIFF Image Printer","v":"Peernet Inc"},{"n":"Tungsten IDP trial","v":"Tungsten"},{"n":"Upload Quarantine Transient Service","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Upload Status Tracker","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for con' +
-            'tinued use but not receiving further investment; not a target-state growth path."},{"n":"AWS Textract Service","v":"AMAZON WEB SERVICES"}],"tgt":[{"n":"ABBYY IDP Trial","v":"Abbyy","u":true,"note":"TIME Recommendation not yet provided by the architecture team; target-state disposition still to be determined."},{"n":"Captiva","v":"OpenText"},{"n":"Doc AI IDP trial","v":"Google","u":true,"note":"TIME Recommendation not yet provided by the architecture team; target-state disposition still to be determined."},{"n":"Document Request Tool (DRT)","v":"USAA"},{"n":"Electronic Document Processor","v":"USAA"},{"n":"Enterprise Document Upload","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Inbound Email Processor","v":"USAA"},{"n":"Infrrd IDP trial","v":"Infrrd","u":true,"note":"TIME Recommendation not yet provided by the architecture team; target-state disposition still to be determined."},{"n":"iText","v":"Itext Software Corp","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"JDeli Java Library","v":"Idr Solutions Ltd","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Opentext Fax2Mail Integration","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"PrintTo","v":"USAA"},{"n":"Receive Management and Tracking System","v":"USAA"},{"n":"Tungsten IDP trial","v":"Tungsten","u":true,"note":"TIME Recommendation not yet provided by the architecture team; target-state disposition still to be determined."},{"n":"Upload Quarantine Transient Service","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."},{"n":"Upload Status Tracker","v":"USAA","c":true,"rationale":"TIME Recommendation: Tolerate — approved for continued use but not receiving further investment; not a target-state growth path."}]}]},{"num":"1.2","name":"Member Document Request","desc":"Receive documents through document request","cur":[],"tgt":[]},{"num":"1.3","name":"Member Document Upload","desc":"Receive documents through uploads","cur":[],"tgt":[]},{"num":"1.4","name":"Internal Document Intake","desc":"Receive documents through email, B2B, and other channels","cur":[],"tgt":[]}]},{"num":"2","name":"Document operations and billing reporting","accent":"g1","desc":"Report on and administer document-services usage and operations.","narrative":"","caps":[]},{"num":"3","name":"Document repositories and access","accent":"g1","desc":"Store, retrieve, and securely access enterprise documents.","narrative":"","caps":[{"num":"3.1","name":"Document repositories and access","desc":"","subGroup":true,"caps":[{"num":"3.1.1","name":"Document repositories and access","desc":"","cur":[{"n":"Bank Document Repositories","v":"OPEN TEXT CORPORATION"},{"n":"Claims Document Repository","v":"OPEN TEXT CORPORATION"},{"n":"ECM Elastic Framework","v":"ELASTICSEARCH INC"},{"n":"HR Document Repository","v":"OPEN TEXT CORPORATION"},{"n":"IMCO Document Repository and Webtop","v":"OPEN TEXT CORPORATION"},{"n":"ISCO Document Repository","v":"OPEN TEXT CORPORATION"},' +
-            '{"n":"Legal Document Repository and Webtop","v":"OPEN TEXT CORPORATION"},{"n":"Member Document Repositories","v":"OPEN TEXT CORPORATION"},{"n":"PNC Document Repository","v":"OPEN TEXT CORPORATION"},{"n":"Staff Document Repository and Webtop","v":"OPEN TEXT CORPORATION"},{"n":"Life Document Repository and Webtop","v":"OPEN TEXT CORPORATION"},{"n":"Temporary Document Repository and services","v":"USAA"}],"tgt":[]}]}]},{"num":"4","name":"Document admin tools and utilities","accent":"g1","desc":"Tools and utilities to manage documents","narrative":"","caps":[{"num":"4.1","name":"Document admin tools and utilities","desc":"","subGroup":true,"caps":[{"num":"4.1.1","name":"Document admin tools and utilities","desc":"","cur":[{"n":"Document Full Text Search","v":"OPEN TEXT CORPORATION"},{"n":"Documentum Admin Tools","v":"OPEN TEXT CORPORATION"}],"tgt":[]}]}]},{"num":"5","name":"Document transformation","accent":"g1","desc":"convert document from one type to another","narrative":"","caps":[]},{"num":"6","name":"Documentum workflow - to be retired","accent":"g1","desc":"Coordinate document-driven work, routing, and related case activity.","narrative":"","caps":[]},{"num":"7","name":"Document presentation","accent":"g1","desc":"provides members/MSRs/Employees the capability to view/edit/manage documents stored in enterprise content repository","narrative":"","caps":[{"num":"7.1","name":"Document presentation","desc":"","subGroup":true,"caps":[{"num":"7.1.1","name":"Document presentation","desc":"","cur":[{"n":"My Documents","v":"USAA"},{"n":"My Documents Cloud","v":"USAA"}],"tgt":[]}]}]},{"num":"8","name":"Document process tracking","accent":"g1","desc":"track document upload or other process","narrative":"","caps":[]},{"num":"9","name":"Electronic signature and notary","accent":"g1","desc":"Capture and validate electronic signatures and document consent, remote online notary.","narrative":"","caps":[{"num":"9.1","name":"Electronic signature and notary","desc":"","subGroup":true,"caps":[{"num":"9.1.1","name":"Electronic signature and notary","desc":"","cur":[{"n":"BoxSign","v":"BOX INC"},{"n":"DocuSign - eSign","v":"DocuSign, Inc."},{"n":"E-Signature","v":"USAA"},{"n":"Enterprise eSign Application","v":"USAA"}],"tgt":[]}]}]},{"num":"10","name":"OCR and Extraction","accent":"g1","desc":"Extract, classify, and validate data from documents.","narrative":"","caps":[{"num":"10.1","name":"OCR and Extraction","desc":"","subGroup":true,"caps":[{"num":"10.1.1","name":"OCR and Extraction","desc":"","cur":[{"n":"Automation Infrastructure for Data Extraction","v":"USAA"},{"n":"Centralized Automation Viability Testing for OCR","v":"USAA"},{"n":"Document Extraction & Classification","v":"EPHESOFT INC"}],"tgt":[]}]}]},{"num":"11","name":"Document Processing","accent":"g1","desc":"image enhancement/OCR/split/classification/extraction/indexing/validation/export","narrative":"","caps":[]},{"num":"12","name":"Document Insight - to be introduced","accent":"g1","desc":"Document summary and insight","narrative":"","caps":[]},{"num":"13","name":"Retention Management","accent":"g1","desc":"Apply retention policy and disposition controls to documents.","narrative":"","caps":[{"num":"13.1","name":"Retention Management","desc":"","subGroup":true,"caps":[{"num":"13.1.1","name":"Retention Management","desc":"","cur":[{"n":"Retention Policy Services","v":"OPEN TEXT CORPORATION"}],"tgt":[]}]}]}]}}';
-
-    private static final String PORTFOLIO_JSON =
-        '{"title":"Enterprise Capability Portfolio","description":"Platform-level capability placemats, each maintained independently by its own build script and data. Open a platform below to view its full capability model — every platform links back here from its own page. Layered top-to-bottom: Experience, Business, then Enablement.","annualForecastSpend":"$415.1M","groups":[{"key":"experience","name":"Experience","description":"Member- and customer-facing channels and engagement surfaces.","platforms":[{"key":"contact_center","name":"Contact Center","spend":"$39.2M","accent":"olive","description":"Enables assisted member service through interaction channels, representative tools, and operational-management services."},{"key":"member_digital","name":"Member Digital","spend":"$23.7M","accent":"blue","description":"Enables the rapid, secure, reliable, cost-effective development, delivery, maintenance, support, and optimization of digital experiences for members across all online channels."},{"key":"communications_documents","name":"Communications & Documents","spend":"$8.8M","accent":"blue","description":"Creates, orchestrates, delivers, archives, and reports member and operational communications across channels."},{"key":"marketing","name":"Marketing","spend":"$8.2M","accent":"teal","description":"Plans, activates, governs, and measures owned, earned, and paid marketing engagement across audiences and channels."},{"key":"public_affairs","name":"Public Affairs","spend":"$457.0K","accent":"purple","description":"Guides corporate communications, public relations, reputation, issues management, and community-impact programs."}]},{"key":"business","name":"Business","description":"Core lines-of-business capability domains.","platforms":[{"key":"banking","name":"Banking","spend":"$54.1M","accent":"green","description":"USAA banking business capabilities and their mapped application portfolio, spanning lending, deposits, payments, risk, compliance, member access, operations, and analytics."},{"key":"pc","name":"P&C","spend":"$4.8M","accent":"red","description":"USAA’s Property & Casualty business capability model and mapped application portfolio, spanning claims, policy administration, underwriting, rating and pricing, billing, distributions, financials, alliance/agency partnerships, and the platform and data capabilities that support them."},{"key":"chief_of_staff_support","name":"Chief of Staff Support","spend":"$2.0M","accent":"slate","description":"Chief of Staff Support encompasses the shared corporate services that support the enterprise’s people, workplace, and technology operations, organized into Corporate Real Estate Management, Corporate Support Services, EMG Facilitation Services (Chief of Staff), Employee Facilitation Services, and Technology Business Management domains."},{"key":"third_party_lifecycle","name":"Third-Party Lifecycle Management","spend":"$4.0M","accent":"brown","description":"The Third-Party Lifecycle Management platform provides the technology capabilities that support USAA’s sourcing, procurement, and third-party risk management operations."},{"key":"finance","name":"Finance","spend":"$40.0M","accent":"green","description":"The Finance Platform provides the technology capabilities that support USAA’s enterprise financial management, financial accounting, tax, and treasury operations, organized into Financial Management, Financial Accounting, Tax, and Treasury domains."},{"key":"innovation","name":"Innovation","spend":"$521.2K","accent":"orange","description":"Innovation is key to accelerating technology transformation and creating new business models. This aligns with the USAA Strategic Imperative to advance modernization, automation and end-to-end digitization."},{"key":"legal_services","name":"Legal Services","spend":"$4.2M","accent":"olive","description":"The General Counsel or Chief Legal Office (CLO) Domain consists of the technology to facilitate USAA achieving its goals, consistent with prevailing laws and regulations, and protect the association from legal and regulatory threats."},{"key":"payments","name":"Payments","spend":"$26.7M","accent":"blue","description":"The Payments Platform provides the technology capabilities that support USAA’s inbound (C2B), outbound (B2C), and corporate payment processing along with shared payments services."},{"key":"investments","name":"Investments","spend":"$1.6M","accent":"blue","description":"Enables members to open, fund, and manage retail investment, financial planning, and education/disability savings relationships across our Pershing (custody/clearing), MoneyGuide (planning), and Ascensus (529/ABLE) integrations."},{"key":"life_company","name":"Life Company","spend":"$12.0M","accent":"purple","description":"The Life Company Portfolio encompasses the processes and technology to support advice, acquisition, servicing, and administration related capabilities in support of the Life Company product lines and services."},{"key":"strategic_portfolio_execution","name":"Strategic Portfolio and Execution Management","spend":"$10.4M","accent":"blue","description":"The capability to evaluate strategic opportunities, prioritize investments, allocate resources, and oversee the execution of initiatives that deliver business outcomes, organizational transformation, and sustained value realization."},{"key":"anti_money_laundering","name":"Anti-money Laundering","spend":"","accent":"blue","description":"Capabilities that support the detection, investigation, prevention, and reporting of money laundering, terrorist financing, sanctions violations, and other financial crimes through customer risk management, transaction monitoring, financial crime investigations, regulatory reporting, and ongoing compliance oversight."},{"key":"audit","name":"Audit","spend":"$545.0K","accent":"red","description":"The Audit Services Platform seeks to ensure that we have a sufficient and effective arsenal of tools to obtain maximum scores on all audits both internal and external, organized into Audit Documentation Services (reporting) and Audit Facilitation Services (execution) capabilities."},{"key":"human_resources","name":"Human Resources","spend":"$9.2M","accent":"red","description":"The Human Resources Management encompasses all technologies that support the acquisition, development, management and benefits of USAA’s most precious resource - our employees, organized into Compensation & Benefits and Workforce Management domains."},{"key":"association_protective_services","name":"Association Protective Services","spend":"$6.2M","accent":"brown","description":"The Physical Security Domain is comprised of Association Protective Services and Business Continuation. APS is dedicated to the protection of personnel and physical assets for all USAA locations, while BC ensures USAA is prepared to respond to unforeseen impact to business processes."},{"key":"association_risk_management","name":"Association Risk Management","spend":"$2.1M","accent":"brown","description":"The Risk Management includes a broad set of applications to support 1st, 2nd and 3rd Line of Defense functions for Enterprise Risk and Compliance, organized into Compliance Management and Risk Management."},{"key":"technology_management","name":"Technology Management","spend":"$321.1K","accent":"blue","description":"The Technology Business Management domain serves as the foundation for managing and optimizing USAA’s technology landscape, unifying tools and practices that support strategic planning, architecture, project portfolio management, collaborative work planning and execution, and IT financial management/decision support."}]},{"key":"enablement","name":"Enablement","description":"Shared platforms and foundational technology that power the business.","platforms":[{"key":"ai_platform","name":"AI Platform","spend":"","accent":"blue","description":"USAA’s AI Platform capability model: the end-to-end capabilities that enable USAA to build, run, secure, and govern AI/ML models, generative-AI foundation models, and autonomous agents, spanning machine learning operations, foundation models, connectivity and access, knowledge and context, agent enablement, security and guardrails, observability, and governance."},{"key":"customer_data","name":"Customer Data","spend":"$11.4M","accent":"purple","description":"Manages information and data produced and consumed for the purpose of providing customer services across USAA’s line of business areas, and through communications and marketing."},{"key":"intelligent_business_automation","name":"Intelligent Business Automation","spend":"$4.8M","accent":"red","description":"The Intelligent Business Automation platform forms the bridge between business operations and the systems that manage the services, data and infrastructure. The platform enables simplification and automation of business processes by integrating with the underlying systems to achieve business goals."},{"key":"mainframe_enablement","name":"Ma' +
-        'inframe Enablement","spend":"","accent":"slate","description":"Software components providing the foundation for development, integration, and execution of z/OS production applications — enabling Z business capabilities and data to participate in USAA’s API ecosystem."},{"key":"observability","name":"Observability","spend":"","accent":"blue","description":"Capabilities that provide visibility into application and system health — logging and error management used to detect, diagnose, and resolve issues across the application portfolio."},{"key":"paas_development","name":"PaaS Development","spend":"$39.4K","accent":"teal","description":"Salesforce is a Platform as a Service cloud offering used across the enterprise. This platform contains all the orgs, applications, and underlying infrastructure needed to support Salesforce and its usage across the enterprise."},{"key":"public_cloud","name":"Public Cloud","spend":"$10.3K","accent":"red","description":"USAA’s Public Cloud Platform capability model: the end-to-end capabilities needed to build, secure, and operate USAA workloads on a public cloud foundation, spanning cloud data, governance, operations, application infrastructure, and cloud security."},{"key":"technology_operations","name":"Technology Operations","spend":"$5.2M","accent":"slate","description":"Core infrastructure and operations capabilities spanning end-user connectivity, technology monitoring and observability, cloud operations, private cloud connectivity, distributed and mainframe computing, external network connectivity, and enterprise storage management."},{"key":"security_enablement","name":"Security Enablement","spend":"$116.4M","accent":"blue","description":"The Security Platform provides the enterprise capabilities that protect USAA’s members, workforce, and technology estate, spanning identity and access management, cloud, network, and infrastructure security, data protection, exposure management, governance, risk, and compliance, resiliency and business continuity."},{"key":"digital_workplace","name":"Digital Workplace","spend":"","accent":"blue","description":""},{"key":"fraud_management","name":"Fraud Management","spend":"","accent":"green","description":"Fraud Management focuses on technologies for preventing, detecting, and recovering from financial fraud."},{"key":"application_runtimes","name":"Application Runtimes","spend":"","accent":"purple","description":"Hosting and execution environments for application workloads — containers, application servers, serverless runtimes, and batch/workload scheduling — plus the configuration and resiliency capabilities that keep them running reliably."},{"key":"data_infrastructure","name":"Data Infrastructure","spend":"$3.6M","accent":"blue","description":"The enterprise capability set that enables USAA to acquire, move, process, govern, store, and share data across the organization in support of operational, analytical, and AI/ML use cases."},{"key":"private_cloud","name":"Private Cloud","spend":"$10.1K","accent":"slate","description":"USAA’s Private Cloud Platform capability model: the end-to-end capabilities needed to build, secure, and operate USAA workloads on USAA’s private cloud foundation, spanning cloud data, governance, operations, application infrastructure, and cloud security."},{"key":"quality_engineering","name":"Quality Engineering","spend":"","accent":"red","description":"Systems and infrastructure supporting software testing throughout the full development lifecycle — accessibility, security, performance, systems, integration, mobile, and unit testing, plus test data and quality management."},{"key":"software_delivery","name":"Software Delivery","spend":"","accent":"teal","description":"Tools used during development and the process of getting changes to runtime environments, including production — developer workstations, source control, build automation, and deploy automation, plus USAA’s FOSS program."},{"key":"document_management_enablement","name":"Document Management","spend":"$14.7M","accent":"purple","description":"Manages the capture, lifecycle, access, governance, and retention of business documents and their data."},{"key":"classic_enablement","name":"Classic Enablement","spend":"","accent":"purple","description":""},{"key":"enterprise_connectivity","name":"Enterprise Connectivity","spend":"","accent":"blue","description":"API gateways, service mesh, and event-driven/data integration enabling synchronous and asynchronous communication across USAA’s application landscape."}]}]}';
-
+public with sharing class TPMUSAAEnterprisePortfolioController {
     @AuraEnabled(cacheable=true)
-    public static String getPlacematData() {
-        Map<String, Object> data = (Map<String, Object>) JSON.deserializeUntyped(PLACEMAT_JSON);
-        data.put('portfolio', JSON.deserializeUntyped(PORTFOLIO_JSON));
-        return JSON.serialize(data);
+    public static PortfolioResponse getPortfolio() {
+        PortfolioResponse response = new PortfolioResponse();
+        response.eyebrow = 'Level 0 · Enterprise';
+        response.title = 'Enterprise Capability Portfolio';
+        response.subtitle = 'Platform-level capability placemats, each maintained independently by its own build         script and data. Open a platform below to view its full capability model — every platform links         back here from its own page. Layered top-to-bottom: Experience, Business, then Enablement.';
+        response.spendLabel = 'Enterprise Annual Forecast Spend';
+        response.spendValue = '$414.9M';
+        response.layers = new List<PortfolioLayer>();
+        {
+            PortfolioLayer layer = new PortfolioLayer();
+            layer.label = 'Experience';
+            layer.tagline = 'Member- and customer-facing channels and engagement surfaces.';
+            layer.accent = '#b0562e';
+            layer.cards = new List<PortfolioCard>();
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Contact Center';
+                card.cost = '$39.2M';
+                card.description = 'Enables assisted member service through interaction channels, representative tools, and operational-management services.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Contact_Center_Placemat.html';
+                card.accent = '#819d39';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'MV (Debra Deck, Kelly Mittiga, Jim Cozzie) & Digital Tech (Kenan Bubela)'));
+                card.owners.add(owner('Delivery Owner', 'Digital Tech (Kenan Bubela, Ben Koerner)'));
+                card.owners.add(owner('Architect', 'Andy Jamison'));
+                card.level2Capabilities = new List<String>{'Analytics, Intelligence, and Governance', 'Contact Infrastructure', 'MSR Desktop and Experience', 'Reliability and Operations', 'Voice and Telephony Foundation', 'Workforce, Quality, and Performance', 'Conversations'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Member Digital';
+                card.cost = '$23.7M';
+                card.description = 'Enables the rapid, secure, reliable, cost-effective development, delivery, maintenance, support, and optimization of digital experiences for members across all online channels.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Member_Digital_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'MV (Debra Deck, Angela Alanis, Maria Cantu, Bob Whittle) & Digital Tech (Kenan Bubela)'));
+                card.owners.add(owner('Delivery Owner', 'Digital Tech (Kenan Bubela)'));
+                card.owners.add(owner('Architect', 'Digital Architecture (Anand Shah, Andy Jamison, Matt Simmons)'));
+                card.level2Capabilities = new List<String>{'Membership Experiences', 'Web', 'Mobile', 'Content Management', 'Experience Infrastructure', 'Personalization'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Communications & Documents';
+                card.cost = '$8.8M';
+                card.description = 'Creates, orchestrates, delivers, archives, and reports member and operational communications across channels.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Communications_and_Documents_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Member Communications (Lindsey O\'Neill, Marissa Peters)'));
+                card.owners.add(owner('Delivery Owner', 'Digital Tech (Kenan Bubela, Robert Lagoudis)'));
+                card.owners.add(owner('Architect', 'Lucy Kou'));
+                card.level2Capabilities = new List<String>{'Channel Delivery', 'Communication Insights', 'Communication Orchestration', 'Communication Preferences'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Marketing';
+                card.cost = '$8.2M';
+                card.description = 'Plans, activates, governs, and measures owned, earned, and paid marketing engagement across audiences and channels.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Marketing_Placemat.html';
+                card.accent = '#379a8e';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Marketing (Chris Curtin, Charity Webb)'));
+                card.owners.add(owner('Delivery Owner', 'Digital Tech (Kenan Bubela, Abe Maldonado)'));
+                card.owners.add(owner('Architect', 'Matt Simmons'));
+                card.level2Capabilities = new List<String>{'Lead Management', 'Advertising', 'Affiliate Marketing', 'Data and Audience', 'Campaign Management', 'Marketing Analytics', 'Resource Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Public Affairs';
+                card.cost = '$457.0K';
+                card.description = 'Guides corporate communications, public relations, reputation, issues management, and community-impact programs.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Public_Affairs_Placemat.html';
+                card.accent = '#6b4c9a';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'CPA (Lindsey O\'Neill, Jenna Saucedo-Herrera, Sanette Chao)'));
+                card.owners.add(owner('Delivery Owner', 'Digital Tech (Kenan Bubela, Abe Maldonado)'));
+                card.owners.add(owner('Architect', 'Pavan Peddireddi'));
+                card.level2Capabilities = new List<String>{'Reputation, issues, and crisis management', 'Corporate Communications', 'Corporate Impact', 'Public Relations'};
+                layer.cards.add(card);
+            }
+            response.layers.add(layer);
+        }
+        {
+            PortfolioLayer layer = new PortfolioLayer();
+            layer.label = 'Business';
+            layer.tagline = 'Core lines-of-business capability domains.';
+            layer.accent = '#1f7a67';
+            layer.cards = new List<PortfolioCard>();
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Banking';
+                card.cost = '$54.1M';
+                card.description = 'USAA banking business capabilities and their mapped application portfolio, spanning lending, deposits, payments, risk, compliance, member access, operations, and analytics.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Banking_Platform_Placemat.html';
+                card.accent = '#1f7a67';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Michael Moran / Delegate'));
+                card.owners.add(owner('Delivery Owner', 'Pankaj Kumar / Delegate'));
+                card.owners.add(owner('Architect', 'Shane London'));
+                card.level2Capabilities = new List<String>{'Credit Card', 'Deposits', 'Home Loans', 'Consumer Loans', 'Underwriting', 'Tax', 'Bank Data & Analytics', 'Risk and Controls', 'Fraud Management', 'AML', 'Operational Messaging', 'Loyalty', 'Automation', 'Marketing', 'Account Access', 'Eligibility', 'Claims - Disputes', 'Collections - Recovery', 'Credit Reporting'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'P&C';
+                card.cost = '$4.8M';
+                card.description = 'USAA\'s Property & Casualty business capability model and mapped application portfolio, spanning claims, policy administration, underwriting, rating and pricing, billing, distributions, financials, alliance/agency partnerships, and the platform and data capabilities that support them.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/PnC_Platform_Placemat.html';
+                card.accent = '#7a1f3d';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Randy Termeer'));
+                card.owners.add(owner('Delivery Owner', 'Suhas Yerra'));
+                card.owners.add(owner('Architect', 'Mike Wilkins'));
+                card.level2Capabilities = new List<String>{'USAA Insurance Agency', 'Product Management', 'Policy Administration', 'Underwriting', 'Rating and Pricing', 'Claims', 'Billing', 'Distributions', 'Financials', 'Data and Analytics', 'Connected Ecosystem', 'Business Operations', 'Platform and Engineering', 'Documents and Communications', 'IAM', 'Marketing', 'Experience Ecosystem', 'Regulatory Compliance and Reporting', 'Fraud'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Chief of Staff Support';
+                card.cost = '$1.9M';
+                card.description = 'Chief of Staff Support encompasses the shared corporate services that support the enterprise\'s people, workplace, and technology operations, organized into Corporate Real Estate Management, Corporate Support Services, EMG Facilitation Services (Chief of Staff), Employee Facilitation Services, and Technology Business Management domains.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Corporate_Function_Management_Placemat.html';
+                card.accent = '#47618f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Matt Shifrin'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Vernon Emshoff'));
+                card.level2Capabilities = new List<String>{'Corporate Real Estate Management', 'Corporate Support Services', 'EMG Facilitation Services', 'Employee Facilitation Services'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Third-Party Lifecycle Management';
+                card.cost = '$4.0M';
+                card.description = 'The Third-Party Lifecycle Management platform provides the technology capabilities that support USAA\'s sourcing, procurement, and third-party risk management operations.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/External_Sourcing_Third-Party_Management_Placemat.html';
+                card.accent = '#8a6a2f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Michael Staton'));
+                card.owners.add(owner('Delivery Owner', 'JP Harlan'));
+                card.owners.add(owner('Architect', 'Brian Hajek'));
+                card.level2Capabilities = new List<String>{'Source-to-Pay', 'Third-Party Risk Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Finance';
+                card.cost = '$40.0M';
+                card.description = 'The Finance Platform provides the technology capabilities that support USAA\'s enterprise financial management, financial accounting, tax, and treasury operations, organized into Financial Management, Financial Accounting, Tax, and Treasury domains. This is a first-pass business-capability taxonomy sourced from an intake with no current or target technology mapped yet, so every capability is shown as a gap pending technology assignment.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Finance_Platform_Placemat.html';
+                card.accent = '#1e8a5f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Akin Ayemobola'));
+                card.owners.add(owner('Delivery Owner', 'JP Harlan'));
+                card.owners.add(owner('Architect', 'Brian Hajek'));
+                card.level2Capabilities = new List<String>{'Financial Management', 'Financial Accounting', 'Tax', 'Treasury'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Innovation';
+                card.cost = '$521.2K';
+                card.description = 'Innovation is key to accelerating technology transformation and creating new business models. This aligns with the USAA Strategic Imperative to advance modernization, automation and end-to-end digitization. Innovation Domain encompasses the enterprise capabilities that foster innovation across the company, organized into External Innovation (member and trial focused) and Internal Innovation (employee and corporate development focused) domains.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Innovation_Placemat.html';
+                card.accent = '#cf8a1f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Arvy Rajasekaran, Mark McSpadden'));
+                card.owners.add(owner('Delivery Owner', 'Brad Billman'));
+                card.owners.add(owner('Architect', 'Vernon Emshoff'));
+                card.level2Capabilities = new List<String>{'Internal Innovation', 'Member Focused Innovation'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Legal Services';
+                card.cost = '$4.2M';
+                card.description = 'The General Counsel or Chief Legal Office (CLO) Domain consists of the technology to facilitate USAA achieving its goals, consistent with prevailing laws and regulations; where appropriate, effect changes in those laws and regulations; and protect the association from all legal, regulatory, and political threats. Technology pillars include Matter and Case Management, Legal Hold, eDiscovery and Legal Spend Management. Other functions in the Legal department include Intellectual Property management, Corporate Entity management, Labor and Employment legal support, Government and Industry Relations, and Regulatory Relations.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Legal_Services_Placemat.html';
+                card.accent = '#4f6b3b';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Sachin Kapoor'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Diana Anzaldua'));
+                card.level2Capabilities = new List<String>{'Government and Industry Relations', 'Corporate Legal Services', 'Corporate Investigations'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Payments';
+                card.cost = '$26.7M';
+                card.description = 'The Payments Platform provides the technology capabilities that support USAA’s inbound (C2B), outbound (B2C), and corporate payment processing along with shared payments services.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Payment_Platform_Placemat.html';
+                card.accent = '#2f5e8f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Jim Hickman, Jay Das'));
+                card.owners.add(owner('Delivery Owner', 'Rama Rayapu, JP Harlan'));
+                card.owners.add(owner('Architect', 'Shane London, Brian Hajek'));
+                card.level2Capabilities = new List<String>{'Payments Shared Services', 'Bill Payments', 'Check Deposits', 'Check Processing', 'Disbursements', 'Funds Transfers', 'Payment Gateways', 'Wire Transfers', 'Zelle P2P Payments', 'Supplier Payments', 'Payments Infrastructure'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Investments';
+                card.cost = '$1.6M';
+                card.description = 'Enables members to open, fund, and manage retail investment, financial planning, and education/disability savings relationships across our Pershing (custody/clearing), MoneyGuide (planning), and Ascensus (529/ABLE) integrations.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Investments_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Brent Beardsley'));
+                card.owners.add(owner('Delivery Owner', 'Sree Rella'));
+                card.owners.add(owner('Architect', 'Patrick O\'Neal'));
+                card.level2Capabilities = new List<String>{'Retail Investments', 'Compliance & Supervision', 'Asset Movement', 'Anti-money laundering', 'Fraud', 'Advisory Growth CRM & Enablement', 'Financial Planning', 'College Savings & ABLE', 'Data and Analytics'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Life Company';
+                card.cost = '$12.0M';
+                card.description = 'The Life Company Portfolio encompasses the processes and technology to support advice, acquisition, servicing, and administration related capabilities in support of the Life Company product lines and services. Life product lines include Life Insurance, Annuities, and Health Insurance.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Life_Company_Placemat.html';
+                card.accent = '#5c3b8e';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Rob Arena / Delegate'));
+                card.owners.add(owner('Delivery Owner', 'Sree Rella'));
+                card.owners.add(owner('Architect', 'Jeff Kiertscher'));
+                card.level2Capabilities = new List<String>{'Life Insurance', 'Health Insurance', 'Annuities', 'Actuary', 'Claims', 'Pricing and Reinsurance Administration', 'Underwriting and Fulfillment', 'Risk and Controls', 'Sales and Service'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Strategic Portfolio and Execution Management';
+                card.cost = '$10.4M';
+                card.description = 'The capability to evaluate strategic opportunities, prioritize investments, allocate resources, and oversee the execution of initiatives that deliver business outcomes, organizational transformation, and sustained value realization.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Strategic_Portfolio_and_Execution_Management_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Alper Yilmaz'));
+                card.owners.add(owner('Delivery Owner', 'Scott Carrol'));
+                card.owners.add(owner('Architect', 'Jonathan Stewart'));
+                card.level2Capabilities = new List<String>{'Strategic Planning and Prioritization', 'Investment and Portfolio Management', 'Resource and Governance Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Anti-money Laundering';
+                card.cost = '';
+                card.description = 'Capabilities that support the detection, investigation, prevention, and reporting of money laundering, terrorist financing, sanctions violations, and other financial crimes through customer risk management, transaction monitoring, financial crime investigations, regulatory reporting, and ongoing compliance oversight.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Anti-money_Laundering_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = 'Not yet assigned';
+                card.owners = new List<OwnershipEntry>();
+                card.level2Capabilities = new List<String>{'Know Your Customer', 'Screening and Sanctions Compliance', 'Transaction Monitoring and Detection', 'Investigations and Case Management', 'Regulatory Reporting'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Audit';
+                card.cost = '$545.0K';
+                card.description = 'The Audit Services Platform seeks to ensure that we have a sufficient and effective arsenal of tools to obtain maximum scores on all audits both internal and external, organized into Audit Documentation Services (reporting) and Audit Facilitation Services (execution) capabilities.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Audit_Placemat.html';
+                card.accent = '#a8452f';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Ben Bacon'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Diana Anzaldua'));
+                card.level2Capabilities = new List<String>{'Audit Documentation Services', 'Audit Facilitation Services'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Human Resources';
+                card.cost = '$9.2M';
+                card.description = 'The Human Resources Management encompasses all technologies that support the acquisition, development, management and benefits of USAA\'s most precious resource - our employees, organized into Compensation & Benefits and Workforce Management domains (plus IT Workforce, not yet migrated).';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Human_Resources_Placemat.html';
+                card.accent = '#a13f74';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Gary Willis'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Jacob Bolton'));
+                card.level2Capabilities = new List<String>{'Compensation & Benefits', 'Workforce Management', 'IT Workforce'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Association Protective Services';
+                card.cost = '$5.7M';
+                card.description = 'The Physical Security Domain is comprised of Association Protective Services and Business Continuation (BC). APS is dedicated to the protection of personnel and physical assets for all USAA locations, while BC ensures USAA is prepared to respond to unforeseen impact to business processes.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Association_Protective_Services_Placemat.html';
+                card.accent = '#8a6414';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Paul Kasuda'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Vernon Emshoff'));
+                card.level2Capabilities = new List<String>{'Incident Management & Monitoring', 'Video Surveillance', 'Access Control'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Association Risk Management';
+                card.cost = '$2.1M';
+                card.description = 'The Risk Management includes a broad set of applications to support 1st, 2nd and 3rd Line of Defense functions for Enterprise Risk and Compliance, organized into Compliance Management (Integrated GRC, Compliance, and Control Monitoring Automation Environment) and Risk Management (Risk, Conduct Risk, and Technology Risk). The overall goal is to facilitate the enterprise\'s ability to be compliant and manage risk.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Association_Risk_Management_Placemat.html';
+                card.accent = '#7a3b3b';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Andrew Clark'));
+                card.owners.add(owner('Delivery Owner', 'Joe Hays'));
+                card.owners.add(owner('Architect', 'Sundar Kothandaraman'));
+                card.level2Capabilities = new List<String>{'Compliance Management', 'Risk Management', 'Conduct Risk', 'Technology Risk'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Technology Management';
+                card.cost = '$321.1K';
+                card.description = 'The Technology Business Management domain serves as the foundation for managing and optimizing USAA\'s technology landscape, unifying tools and practices that support strategic planning, architecture, project portfolio management, collaborative work planning and execution, and IT financial management/decision support.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Technology_Management_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Arvy Rajasekaran'));
+                card.owners.add(owner('Delivery Owner', 'Russ Engelhardt'));
+                card.owners.add(owner('Architect', 'Jonathan Stewart'));
+                card.level2Capabilities = new List<String>{'Technology Architecture Management', 'Reporting and Analytics'};
+                layer.cards.add(card);
+            }
+            response.layers.add(layer);
+        }
+        {
+            PortfolioLayer layer = new PortfolioLayer();
+            layer.label = 'Enablement';
+            layer.tagline = 'Shared platforms and foundational technology that power the business.';
+            layer.accent = '#2554a6';
+            layer.cards = new List<PortfolioCard>();
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'AI Platform';
+                card.cost = '';
+                card.description = 'USAA’s AI Platform capability model: the end-to-end capabilities that enable USAA to build, run, secure, and govern AI/ML models, generative-AI foundation models, and autonomous agents, spanning machine learning operations, foundation models, connectivity and access, knowledge and context, agent enablement, security and guardrails, observability, and governance.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/AI_Platform_Placemat.html';
+                card.accent = '#4f46e5';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Nok Huss'));
+                card.owners.add(owner('Architect', 'Nhi Tran'));
+                card.level2Capabilities = new List<String>{'Machine Learning Operations', 'Foundation Models', 'Connectivity and Access', 'Knowledge and Context', 'Agent Enablement', 'AI Security & Guardrails', 'AI Observability and Operations', 'AI Governance'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Customer Data';
+                card.cost = '$11.4M';
+                card.description = 'Manages information and data produced and consumed for the purpose of providing customer services across USAA\'s line of business areas, and through communications and marketing.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Customer_Data_Activation_Placemat.html';
+                card.accent = '#863091';
+                card.ownerMessage = 'Not yet assigned';
+                card.owners = new List<OwnershipEntry>();
+                card.level2Capabilities = new List<String>{'Customer Profile', 'Customer Products', 'Customer Interactions', 'Customer Assessments', 'Customer Insights', 'Customer Data Access Services'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Intelligent Business Automation';
+                card.cost = '$4.8M';
+                card.description = 'Need to compare with Automation & Decisioning Intelligent Business Automation platform forms the bridge between business operations and the systems that manage the services, data and infrastructure. The platform enables simplification and automation of business processes by integrating with the underlying systems to achieve business goals.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Intelligent_Business_Automation_Placemat.html';
+                card.accent = '#8f2d4c';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Joseph Monk'));
+                card.owners.add(owner('Delivery Owner', 'Michelle Carter'));
+                card.owners.add(owner('Architect', 'Bharat Prasad'));
+                card.level2Capabilities = new List<String>{'Business Process Orchestration', 'Process Intelligence', 'Robotic Process Automation (RPA)', 'Process Monitoring', 'Business Rules'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Mainframe Enablement';
+                card.cost = '';
+                card.description = 'Software components providing the foundation for development, integration, and execution of z/OS production applications — enabling Z business capabilities and data to participate in USAA’s API ecosystem.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Mainframe_Platform_Placemat.html';
+                card.accent = '#3b6b8e';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Brian Craft'));
+                card.owners.add(owner('Architect', 'Larry Shaw'));
+                card.level2Capabilities = new List<String>{'Host Platform Runtimes', 'Common Enablement', 'Data Services Management', 'Enterprise Business Applications', 'Z Integration Enablement', 'Zdevops'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Observability';
+                card.cost = '';
+                card.description = 'Capabilities that provide visibility into application and system health — logging and error management used to detect, diagnose, and resolve issues across the application portfolio.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Observability_Platform_Placemat.html';
+                card.accent = '#1b6ea8';
+                card.ownerMessage = 'Not yet assigned';
+                card.owners = new List<OwnershipEntry>();
+                card.level2Capabilities = new List<String>{'Systems Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'PaaS Development';
+                card.cost = '$39.4K';
+                card.description = 'Salesforce is a Platform as a Service cloud offering used across the enterprise. This platform contains all the orgs, applications, and underlying infrastructure needed to support Salesforce and its usage across the enterprise, organized into Salesforce General Services and Salesforce Development Services domains.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/PaaS_Development_Placemat.html';
+                card.accent = '#1f8a9e';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Joseph Monk'));
+                card.owners.add(owner('Delivery Owner', 'Kenton Reed'));
+                card.owners.add(owner('Architect', 'Vernon Emshoff'));
+                card.level2Capabilities = new List<String>{'Salesforce General Services', 'Salesforce Development Services'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Public Cloud';
+                card.cost = '$10.3K';
+                card.description = 'USAA\'s Public Cloud Platform capability model: the end-to-end capabilities needed to build, secure, and operate USAA workloads on a public cloud (AWS) foundation, spanning cloud data, cloud governance, cloud operations, cloud application infrastructure, and cloud security. This is a net-new build-out; current and target technology selections across every capability are tagged Work in Progress pending decisions.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Public_Cloud_Placemat.html';
+                card.accent = '#c2661a';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Matt Neal'));
+                card.owners.add(owner('Architect', 'Tim Chalmers'));
+                card.level2Capabilities = new List<String>{'Cloud Data', 'Cloud Governance', 'Cloud Operations', 'Cloud App Infrastructure', 'Cloud Security'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Technology Operations';
+                card.cost = '$5.2M';
+                card.description = 'Core infrastructure and operations capabilities spanning end-user connectivity, technology monitoring and observability, cloud operations, private cloud connectivity, distributed and mainframe computing, external network connectivity, and enterprise storage management.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Technology_Operations_Placemat.html';
+                card.accent = '#3d5a80';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Chris Wilkinson'));
+                card.owners.add(owner('Architect', 'Tim Chalmers'));
+                card.level2Capabilities = new List<String>{'End-User Connectivity', 'Technology Monitoring and Observability', 'Cloud Operations', 'Private Cloud Connectivity', 'Distributed Computing', 'Mainframe Computing', 'External Network Connectivity', 'Enterprise Storage Management', 'Workload Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Security Enablement';
+                card.cost = '$116.4M';
+                card.description = 'The Security Platform provides the enterprise capabilities that protect USAA\'s members, workforce, and technology estate, spanning identity and access management (member, workforce, and workload/machine), cloud, network, and infrastructure security, data protection, exposure management, governance, risk, and compliance, resiliency and business continuity, and security operations.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Security_Enablement_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Architect', 'Joe Denton'));
+                card.level2Capabilities = new List<String>{'Cloud Security', 'Data Protection', 'Exposure Management', 'Governance, Risk, & Compliance', 'Infrastructure Security', 'Member Identity & Access Management', 'Network Security', 'Resiliency & Busines Continuity', 'Security Operations', 'Workforce Identity & Access Management', 'Workload & Machine Identity & Access Management', 'Member Identity and Access Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Digital Workplace';
+                card.cost = '';
+                card.description = '';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Digital_Workplace_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Rob Johnson'));
+                card.owners.add(owner('Architect', 'Anne Freitas'));
+                card.level2Capabilities = new List<String>{'Accessibility and Inclusive Technology', 'Workplace Collaboration', 'Service Management', 'End-User Compute', 'Mobility'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Fraud Management';
+                card.cost = '';
+                card.description = 'Fraud Management focuses on technologies for preventing, detecting, and recovering from financial fraud.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Fraud_Management_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Architect', 'Victoria Lutterloh'));
+                card.level2Capabilities = new List<String>{'Fraud Prevention', 'Fraud Detection (Reactive)', 'Fraud Rule Management', 'Fraud Investigation', 'Fraud Remediation', 'Fraud Analytical Reporting', 'Fraud Data Management', 'Member Fraud Communication Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Application Runtimes';
+                card.cost = '';
+                card.description = 'Hosting and execution environments for application workloads — containers, application servers, serverless runtimes, and batch/workload scheduling — plus the configuration and resiliency capabilities that keep them running reliably.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Application_Runtimes_Placemat.html';
+                card.accent = '#6b4e8e';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Matt Neal'));
+                card.owners.add(owner('Architect', 'Casey Cruise'));
+                card.level2Capabilities = new List<String>{'Application Servers and Frameworks', 'Batch Enablement and Workload Automation', 'Container Management', 'Languages', 'HTTP and Proxy Servers'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Data Infrastructure';
+                card.cost = '$3.6M';
+                card.description = 'The enterprise capability set that enables USAA to acquire, move, process, govern, store, and share data across the organization in support of operational, analytical, and AI/ML use cases.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Data_Infrastructure_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Joe Monk'));
+                card.owners.add(owner('Delivery Owner', 'Mark Thompson'));
+                card.owners.add(owner('Architect', 'Nathan Fillinger'));
+                card.level2Capabilities = new List<String>{'Data in Motion', 'Data at Rest', 'Data Management', 'Data Governance & Quality', 'Business Intelligence & Visualization'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Private Cloud';
+                card.cost = '$10.1K';
+                card.description = 'USAA\'s Private Cloud Platform capability model: the end-to-end capabilities needed to build, secure, and operate USAA workloads on USAA\'s private cloud (Talon/OpenShift) foundation, spanning cloud data, cloud governance, cloud operations, cloud application infrastructure, and cloud security. Sourced from USAA\'s Talon private cloud platform assessment; most capabilities are established and in production, with current and target technology reflecting what is deployed today.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Private_Cloud_Placemat.html';
+                card.accent = '#455a75';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Matt Neal'));
+                card.owners.add(owner('Architect', 'Tim Chalmers'));
+                card.level2Capabilities = new List<String>{'Private Cloud Data', 'Private Cloud Governance', 'Private Cloud Operations', 'Private Cloud App Infrastructure', 'Private Cloud Security'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Quality Engineering';
+                card.cost = '';
+                card.description = 'Systems and infrastructure supporting software testing throughout the full development lifecycle — accessibility, security, performance, systems, integration, mobile, and unit testing, plus test data and quality management.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Quality_Engineering_Placemat.html';
+                card.accent = '#b1502b';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Joe Monk'));
+                card.owners.add(owner('Delivery Owner', 'Chad Cox'));
+                card.owners.add(owner('Architect', 'Tim Chalmers'));
+                card.level2Capabilities = new List<String>{'Accessibility Testing', 'Application Security Testing', 'Code Quality & Unit Testing', 'Integration Testing', 'Mobile Testing', 'Quality Management', 'Systems & Performance Testing', 'Test Data Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Software Delivery';
+                card.cost = '';
+                card.description = 'Tools used during development and the process of getting changes to runtime environments, including production — developer workstations, source control, build automation, and deploy automation, plus USAA’s FOSS program.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Software_Delivery_Placemat.html';
+                card.accent = '#1f7a67';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Joe Monk'));
+                card.owners.add(owner('Delivery Owner', 'Chad Cox'));
+                card.owners.add(owner('Architect', 'Doug Hall'));
+                card.level2Capabilities = new List<String>{'Local Development Tools', 'Open Source Tooling', 'Source Code Management', 'Continuous Integration and Continuous Delivery', 'Artifact and Dependency Management', 'Project Scaffolding and Provisioning', 'GenAI Development Tools', 'Productivity Tooling'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Document Management';
+                card.cost = '$14.7M';
+                card.description = 'Manages the capture, lifecycle, access, governance, and retention of business documents and their data.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Document_Management_Placemat.html';
+                card.accent = '#7a3f9d';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'CPA/OCE, Lindsey O\'Neill, Marissa Peters'));
+                card.owners.add(owner('Delivery Owner', 'Kenan Bubela, Robert Lagoudis'));
+                card.owners.add(owner('Architect', 'Lucy kou'));
+                card.level2Capabilities = new List<String>{'Document intake and capture', 'Document operations and billing reporting', 'Document repositories and access', 'Document admin tools and utilities', 'Document transformation', 'Documentum workflow - to be retired', 'Document presentation', 'Document process tracking', 'Electronic signature and notary', 'OCR and Extraction', 'Document Processing', 'Document Insight - to be introduced', 'Retention Management'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Classic Enablement';
+                card.cost = '';
+                card.description = '';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Classic_Enablement_Placemat.html';
+                card.accent = '#7a3f9d';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma'));
+                card.owners.add(owner('Delivery Owner', 'Matt Neal'));
+                card.owners.add(owner('Architect', 'Casey Cruise'));
+                card.level2Capabilities = new List<String>{'Application Infrastructure', 'Application Servers & Frameworks', 'Configuration Enablement', 'Classic Resiliency Enablement'};
+                layer.cards.add(card);
+            }
+            {
+                PortfolioCard card = new PortfolioCard();
+                card.title = 'Enterprise Connectivity';
+                card.cost = '';
+                card.description = 'API gateways, service mesh, and event-driven/data integration enabling synchronous and asynchronous communication across USAA’s application landscape.';
+                card.href = 'https://data-architecture-aca9a0.prodpages.usaa.com/Enterprise_Connectivity_Placemat.html';
+                card.accent = '#2554a6';
+                card.ownerMessage = '';
+                card.owners = new List<OwnershipEntry>();
+                card.owners.add(owner('Owner', 'Richard Ma, Joe Monk'));
+                card.owners.add(owner('Delivery Owner', 'Matt Neal, Chad Cox'));
+                card.owners.add(owner('Architect', 'Jesus Mireles'));
+                card.level2Capabilities = new List<String>{'API Management', 'Data Connectivity', 'Eventing, Messaging & Streaming'};
+                layer.cards.add(card);
+            }
+            response.layers.add(layer);
+        }
+        return response;
+    }
+
+    private static OwnershipEntry owner(String role, String name) {
+        OwnershipEntry entry = new OwnershipEntry();
+        entry.role = role;
+        entry.name = name;
+        return entry;
+    }
+
+    public class PortfolioResponse {
+        @AuraEnabled public String eyebrow { get; set; }
+        @AuraEnabled public String title { get; set; }
+        @AuraEnabled public String subtitle { get; set; }
+        @AuraEnabled public String spendLabel { get; set; }
+        @AuraEnabled public String spendValue { get; set; }
+        @AuraEnabled public List<PortfolioLayer> layers { get; set; }
+    }
+
+    public class PortfolioLayer {
+        @AuraEnabled public String label { get; set; }
+        @AuraEnabled public String tagline { get; set; }
+        @AuraEnabled public String accent { get; set; }
+        @AuraEnabled public List<PortfolioCard> cards { get; set; }
+    }
+
+    public class PortfolioCard {
+        @AuraEnabled public String title { get; set; }
+        @AuraEnabled public String cost { get; set; }
+        @AuraEnabled public String description { get; set; }
+        @AuraEnabled public String href { get; set; }
+        @AuraEnabled public String accent { get; set; }
+        @AuraEnabled public String ownerMessage { get; set; }
+        @AuraEnabled public List<OwnershipEntry> owners { get; set; }
+        @AuraEnabled public List<String> level2Capabilities { get; set; }
+    }
+
+    public class OwnershipEntry {
+        @AuraEnabled public String role { get; set; }
+        @AuraEnabled public String name { get; set; }
     }
 }
