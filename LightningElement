@@ -1,223 +1,401 @@
-<template>
-    <div class="portfolio">
-        <template if:true={isLoading}>
-            <div class="loading-state">
-                <lightning-spinner alternative-text="Loading enterprise capability portfolio" size="medium"></lightning-spinner>
-            </div>
-        </template>
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getPortfolio from '@salesforce/apex/TPMUSAAEnterprisePortfolioController.getPortfolio';
+import portfolioData from '@salesforce/resourceUrl/usaaEnterprisePortfolioData';
 
-        <template if:true={loadError}>
-            <div class="error-state" role="alert">{loadError}</div>
-        </template>
+export default class TpmUsaaEnterprisePortfolio extends NavigationMixin(LightningElement) {
+    portfolio;
+    layers = [];
+    isLoading = true;
+    loadError;
 
-        <template if:true={isReady}>
-            <header class="hero">
-                <div class="hero-row">
-                    <div class="hero-main">
-                        <span class="usaa-badge">USAA</span>
-                        <div class="hero-eyebrow">{portfolio.eyebrow}</div>
-                        <div class="hero-title">{portfolio.title}</div>
-                        <div class="hero-gold-rule"></div>
-                        <div class="hero-sub">{portfolio.subtitle}</div>
-                    </div>
+    searchTerm = '';
+    searchIndex = [];
+    appSearchIndex = [];
+    searchLoading = true;
+    searchLoadAttempted = false;
+    capabilityResults = [];
+    applicationResults = [];
+    showSearchResults = false;
 
-                    <div class="hero-search-wrap">
-                        <div class="hero-search-field">
-                            <svg class="hero-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7"></circle>
-                                <path d="M21 21l-4.3-4.3"></path>
-                            </svg>
-                            <input
-                                class="hero-search"
-                                type="search"
-                                value={searchTerm}
-                                placeholder="Search capabilities, apps &amp; technologies…"
-                                autocomplete="off"
-                                spellcheck="false"
-                                oninput={handleSearchInput}
-                                onfocus={handleSearchFocus}
-                                onblur={handleSearchBlur}
-                            />
+    expandAll = false;
+    listView = false;
 
-                            <template if:true={showSearchResults}>
-                                <div class="search-results open" role="listbox">
-                                    <template if:true={searchLoading}>
-                                        <div class="search-empty">Loading search index…</div>
-                                    </template>
+    connectedCallback() {
+        this.initialize();
+        this.loadSearchIndexes();
+    }
 
-                                    <template if:false={searchLoading}>
-                                        <template if:true={hasSearchMatches}>
-                                            <template if:true={hasCapabilityResults}>
-                                                <div class="search-group-label">Capabilities</div>
-                                                <template for:each={capabilityResults} for:item="result">
-                                                    <a
-                                                        key={result.key}
-                                                        class="search-result"
-                                                        style={result.style}
-                                                        href={result.href}
-                                                        onmousedown={handleSearchMouseDown}
-                                                    >
-                                                        <span class="sr-name">{result.name}</span>
-                                                        <span class="sr-meta">
-                                                            <b>{result.platform}</b>
-                                                            <span> › {result.domain}</span>
-                                                        </span>
-                                                    </a>
-                                                </template>
-                                            </template>
+    async initialize() {
+        this.isLoading = true;
+        this.loadError = undefined;
 
-                                            <template if:true={hasApplicationResults}>
-                                                <div class="search-group-label">Applications &amp; Technologies</div>
-                                                <template for:each={applicationResults} for:item="result">
-                                                    <a
-                                                        key={result.key}
-                                                        class="search-result"
-                                                        style={result.style}
-                                                        href={result.href}
-                                                        onmousedown={handleSearchMouseDown}
-                                                    >
-                                                        <span class="sr-name">{result.name}</span>
-                                                        <span class="sr-meta">
-                                                            <b>{result.platform}</b>
-                                                            <span> › {result.technology}{result.vendorDisplay}</span>
-                                                        </span>
-                                                    </a>
-                                                </template>
-                                            </template>
-                                        </template>
+        try {
+            const response = await getPortfolio();
+            this.portfolio = response;
+            this.layers = this.decorateLayers(response?.layers || []);
+        } catch (error) {
+            this.loadError =
+                error?.body?.message ||
+                error?.message ||
+                'Unable to load the enterprise capability portfolio.';
+        } finally {
+            this.isLoading = false;
+        }
+    }
 
-                                        <template if:false={hasSearchMatches}>
-                                            <div class="search-empty">{searchEmptyMessage}</div>
-                                        </template>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
+    async loadSearchIndexes() {
+        if (this.searchLoadAttempted) {
+            return;
+        }
 
-                        <div class="hero-cost-box">
-                            <div class="hero-cost-label">{portfolio.spendLabel}</div>
-                            <div class="hero-cost-value">{portfolio.spendValue}</div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        this.searchLoadAttempted = true;
+        this.searchLoading = true;
 
-            <div class={sectionsClass}>
-                <div class="toolbar-row">
-                    <button type="button" class="expand-all-btn list-view-btn" onclick={toggleListView}>
-                        {listViewLabel}
-                    </button>
+        try {
+            const [capabilityResponse, applicationResponse] = await Promise.all([
+                fetch(`${portfolioData}/searchIndex.json`),
+                fetch(`${portfolioData}/appSearchIndex.json`)
+            ]);
 
-                    <button
-                        type="button"
-                        class={expandAllButtonClass}
-                        aria-pressed={expandAllAria}
-                        onclick={toggleExpandAll}
-                    >
-                        <span>{expandAllLabel}</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                </div>
+            if (!capabilityResponse.ok || !applicationResponse.ok) {
+                throw new Error('Search index resource could not be loaded.');
+            }
 
-                <template for:each={layers} for:item="layer" for:index="layerIndex">
-                    <section key={layer.key} class="layer" style={layer.style}>
-                        <div class="layer-head">
-                            <span class="layer-label">{layer.label}</span>
-                            <span class="layer-tagline">{layer.tagline}</span>
-                        </div>
+            const [capabilityData, applicationData] = await Promise.all([
+                capabilityResponse.json(),
+                applicationResponse.json()
+            ]);
 
-                        <div class="card-grid">
-                            <template for:each={layer.cards} for:item="card" for:index="cardIndex">
-                                <div
-                                    key={card.key}
-                                    class="p-card"
-                                    style={card.style}
-                                    tabindex="0"
-                                    role="link"
-                                    data-layer-index={layerIndex}
-                                    data-card-index={cardIndex}
-                                    data-href={card.href}
-                                    onclick={handleCardClick}
-                                    onkeydown={handleCardKeydown}
-                                >
-                                    <div class="p-card-title-row">
-                                        <div class="p-card-title">{card.title}</div>
-                                        <template if:true={card.hasCost}>
-                                            <div class="p-card-cost">{card.cost}</div>
-                                        </template>
-                                    </div>
+            this.searchIndex = Array.isArray(capabilityData) ? capabilityData : [];
+            this.appSearchIndex = Array.isArray(applicationData) ? applicationData : [];
+        } catch (error) {
+            this.searchIndex = [];
+            this.appSearchIndex = [];
+        } finally {
+            this.searchLoading = false;
+            if (this.searchTerm.trim()) {
+                this.runSearch(this.searchTerm);
+            }
+        }
+    }
 
-                                    <div class="p-card-desc">{card.description}</div>
+    decorateLayers(sourceLayers) {
+        return sourceLayers.map((layer, layerIndex) => ({
+            ...layer,
+            key: `layer-${layerIndex}-${layer.label}`,
+            style: `--accent:${layer.accent}`,
+            cards: (layer.cards || []).map((card, cardIndex) =>
+                this.decorateCard(card, layerIndex, cardIndex, false)
+            )
+        }));
+    }
 
-                                    <template if:true={card.isExpanded}>
-                                        <div class="p-card-levels">
-                                            <div class="p-card-expand-grid">
-                                                <div class="p-card-owners">
-                                                    <div class="p-card-levels-label">Ownership</div>
+    decorateCard(card, layerIndex, cardIndex, isExpanded) {
+        const owners = (card.owners || []).map((owner, ownerIndex) => ({
+            ...owner,
+            key: `owner-${layerIndex}-${cardIndex}-${ownerIndex}`
+        }));
 
-                                                    <template if:true={card.hasOwners}>
-                                                        <dl class="p-card-owner-list">
-                                                            <template for:each={card.owners} for:item="owner">
-                                                                <div key={owner.key}>
-                                                                    <dt>{owner.role}</dt>
-                                                                    <dd>{owner.name}</dd>
-                                                                </div>
-                                                            </template>
-                                                        </dl>
-                                                    </template>
+        const capabilityItems = (card.level2Capabilities || []).map((label, capabilityIndex) => ({
+            label,
+            key: `cap-${layerIndex}-${cardIndex}-${capabilityIndex}`
+        }));
 
-                                                    <template if:false={card.hasOwners}>
-                                                        <p class="p-card-owner-empty">{card.ownerMessage}</p>
-                                                    </template>
-                                                </div>
+        return {
+            ...card,
+            key: `card-${layerIndex}-${cardIndex}-${card.title}`,
+            style: `--accent:${card.accent}`,
+            owners,
+            capabilityItems,
+            isExpanded,
+            hasCost: Boolean(card.cost),
+            hasOwners: owners.length > 0,
+            ownerMessage: card.ownerMessage || 'Not yet assigned',
+            expandLabel: isExpanded ? 'Hide' : 'Level 2s',
+            ariaExpanded: isExpanded ? 'true' : 'false',
+            expandButtonClass: isExpanded ? 'p-card-expand is-open' : 'p-card-expand'
+        };
+    }
 
-                                                <div class="p-card-levels-col">
-                                                    <div class="p-card-levels-label">Level 2 Capabilities</div>
-                                                    <ul>
-                                                        <template for:each={card.capabilityItems} for:item="capability">
-                                                            <li key={capability.key}>{capability.label}</li>
-                                                        </template>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
+    get isReady() {
+        return !this.isLoading && !this.loadError && this.portfolio;
+    }
 
-                                    <div class="p-card-footer">
-                                        <a
-                                            class="p-card-cta"
-                                            href={card.href}
-                                            onclick={handlePlatformLinkClick}
-                                        >
-                                            Open Platform →
-                                        </a>
+    get sectionsClass() {
+        return this.listView ? 'sections list-view' : 'sections';
+    }
 
-                                        <button
-                                            type="button"
-                                            class={card.expandButtonClass}
-                                            aria-expanded={card.ariaExpanded}
-                                            data-layer-index={layerIndex}
-                                            data-card-index={cardIndex}
-                                            onclick={toggleCard}
-                                        >
-                                            <span>{card.expandLabel}</span>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                                aria-hidden="true">
-                                                <polyline points="6 9 12 15 18 9"></polyline>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </section>
-                </template>
-            </div>
-        </template>
-    </div>
-</template>
+    get listViewLabel() {
+        return this.listView ? 'Grid View' : 'List View';
+    }
+
+    get expandAllLabel() {
+        return this.expandAll ? 'Collapse All Level 2s' : 'Expand All Level 2s';
+    }
+
+    get expandAllAria() {
+        return this.expandAll ? 'true' : 'false';
+    }
+
+    get expandAllButtonClass() {
+        return this.expandAll ? 'expand-all-btn is-all-open' : 'expand-all-btn';
+    }
+
+    get hasCapabilityResults() {
+        return this.capabilityResults.length > 0;
+    }
+
+    get hasApplicationResults() {
+        return this.applicationResults.length > 0;
+    }
+
+    get hasSearchMatches() {
+        return this.hasCapabilityResults || this.hasApplicationResults;
+    }
+
+    get searchEmptyMessage() {
+        if (!this.searchTerm.trim()) {
+            return '';
+        }
+        return `No capabilities or applications match “${this.searchTerm.trim()}”`;
+    }
+
+    handleSearchInput(event) {
+        this.searchTerm = event.target.value;
+        this.runSearch(this.searchTerm);
+    }
+
+    handleSearchFocus() {
+        if (!this.searchLoadAttempted) {
+            this.loadSearchIndexes();
+        }
+        if (this.searchTerm.trim()) {
+            this.showSearchResults = true;
+            this.runSearch(this.searchTerm);
+        }
+    }
+
+    handleSearchBlur() {
+        window.setTimeout(() => {
+            this.showSearchResults = false;
+        }, 150);
+    }
+
+    handleSearchMouseDown() {
+        this.showSearchResults = false;
+    }
+
+    runSearch(rawValue) {
+        const raw = rawValue || '';
+        const query = raw.trim().toLowerCase();
+
+        if (!query) {
+            this.capabilityResults = [];
+            this.applicationResults = [];
+            this.showSearchResults = false;
+            return;
+        }
+
+        this.showSearchResults = true;
+
+        if (this.searchLoading) {
+            return;
+        }
+
+        this.capabilityResults = this.searchIndex
+            .map((item, index) => ({
+                item,
+                index,
+                score: this.scoreCapability(query, item)
+            }))
+            .filter((entry) => entry.score >= 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map((entry) => this.toCapabilityResult(entry.item, entry.index));
+
+        this.applicationResults = this.appSearchIndex
+            .map((item, index) => ({
+                item,
+                index,
+                score: this.scoreApplication(query, item)
+            }))
+            .filter((entry) => entry.score >= 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map((entry) => this.toApplicationResult(entry.item, entry.index));
+    }
+
+    scoreText(query, text) {
+        const value = (text || '').toLowerCase();
+        if (!value) {
+            return -1;
+        }
+        if (value === query) {
+            return 100;
+        }
+        if (value.indexOf(query) === 0) {
+            return 80;
+        }
+        if (value.split(/\s+/).some((word) => word.indexOf(query) === 0)) {
+            return 60;
+        }
+        if (value.indexOf(query) !== -1) {
+            return 40;
+        }
+        return -1;
+    }
+
+    scoreCapability(query, item) {
+        const title = (item.t || '').toLowerCase();
+        if (title === query) {
+            return 100;
+        }
+        if (title.indexOf(query) === 0) {
+            return 80;
+        }
+        if (title.split(/\s+/).some((word) => word.indexOf(query) === 0)) {
+            return 60;
+        }
+        if (title.indexOf(query) !== -1) {
+            return 40;
+        }
+
+        const domain = (item.dn || '').toLowerCase();
+        const platform = (item.pl || '').toLowerCase();
+        if (domain.indexOf(query) !== -1 || platform.indexOf(query) !== -1) {
+            return 15;
+        }
+        return -1;
+    }
+
+    scoreApplication(query, item) {
+        const appScore = this.scoreText(query, item.app);
+        if (appScore >= 0) {
+            return appScore;
+        }
+
+        const vendorScore = this.scoreText(query, item.vendor);
+        if (vendorScore >= 0) {
+            return vendorScore - 5;
+        }
+
+        const technology = (item.t || '').toLowerCase();
+        const platform = (item.pl || '').toLowerCase();
+        if (technology.indexOf(query) !== -1 || platform.indexOf(query) !== -1) {
+            return 10;
+        }
+        return -1;
+    }
+
+    toCapabilityResult(item, index) {
+        return {
+            key: `cap-search-${index}-${item.p}-${item.d}-${item.n}`,
+            name: item.t,
+            platform: item.pl,
+            domain: item.dn,
+            href: `${item.html}#cap=${encodeURIComponent(`${item.d}::${item.n}`)}`,
+            style: `--accent:${item.accent || '#2554a6'}`
+        };
+    }
+
+    toApplicationResult(item, index) {
+        return {
+            key: `app-search-${index}-${item.p}-${item.d}-${item.n}-${item.app}`,
+            name: item.app,
+            platform: item.pl,
+            technology: item.t,
+            vendorDisplay: item.vendor ? ` · ${item.vendor}` : '',
+            href: `${item.html}#cap=${encodeURIComponent(`${item.d}::${item.n}`)}`,
+            style: `--accent:${item.accent || '#2554a6'}`
+        };
+    }
+
+    toggleListView() {
+        this.listView = !this.listView;
+    }
+
+    toggleExpandAll() {
+        this.expandAll = !this.expandAll;
+        const open = this.expandAll;
+
+        this.layers = this.layers.map((layer, layerIndex) => ({
+            ...layer,
+            cards: layer.cards.map((card, cardIndex) =>
+                this.decorateCard(card, layerIndex, cardIndex, open)
+            )
+        }));
+    }
+
+    toggleCard(event) {
+        event.stopPropagation();
+
+        const layerIndex = Number(event.currentTarget.dataset.layerIndex);
+        const cardIndex = Number(event.currentTarget.dataset.cardIndex);
+
+        this.layers = this.layers.map((layer, currentLayerIndex) => {
+            if (currentLayerIndex !== layerIndex) {
+                return layer;
+            }
+
+            return {
+                ...layer,
+                cards: layer.cards.map((card, currentCardIndex) => {
+                    if (currentCardIndex !== cardIndex) {
+                        return card;
+                    }
+                    return this.decorateCard(
+                        card,
+                        layerIndex,
+                        cardIndex,
+                        !card.isExpanded
+                    );
+                })
+            };
+        });
+
+        this.expandAll = this.layers.every((layer) =>
+            layer.cards.every((card) => card.isExpanded)
+        );
+    }
+
+    handlePlatformLinkClick(event) {
+        event.stopPropagation();
+    }
+
+    handleCardClick(event) {
+        if (
+            event.target.closest('button') ||
+            event.target.closest('a') ||
+            event.target.closest('.p-card-levels')
+        ) {
+            return;
+        }
+
+        this.navigateToUrl(event.currentTarget.dataset.href);
+    }
+
+    handleCardKeydown(event) {
+        if (event.target !== event.currentTarget) {
+            return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.navigateToUrl(event.currentTarget.dataset.href);
+        }
+    }
+
+    navigateToUrl(url) {
+        if (!url) {
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url
+            }
+        });
+    }
+}
