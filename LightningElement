@@ -1,401 +1,652 @@
-import { LightningElement } from 'lwc';
-import { NavigationMixin } from 'lightning/navigation';
-import getPortfolio from '@salesforce/apex/TPMUSAAEnterprisePortfolioController.getPortfolio';
-import portfolioData from '@salesforce/resourceUrl/usaaEnterprisePortfolioData';
+:host {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    --navy: #0d1b33;
+    --navy-deep: #07101f;
+    --gold: #c6a15b;
+    --gold-lt: #eddcb3;
+    --text: #111826;
+    --muted: #66707e;
+    --muted-soft: #99a3b0;
+    --line: #e4e7ee;
+    --card: #ffffff;
+}
 
-export default class TpmUsaaEnterprisePortfolio extends NavigationMixin(LightningElement) {
-    portfolio;
-    layers = [];
-    isLoading = true;
-    loadError;
+* {
+    box-sizing: border-box;
+}
 
-    searchTerm = '';
-    searchIndex = [];
-    appSearchIndex = [];
-    searchLoading = true;
-    searchLoadAttempted = false;
-    capabilityResults = [];
-    applicationResults = [];
-    showSearchResults = false;
+.portfolio {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    background:
+        radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.05) 1px, transparent 0) 0 0 / 22px 22px,
+        linear-gradient(180deg, #eef1f7 0%, #e3e8f1 100%);
+}
 
-    expandAll = false;
-    listView = false;
+a {
+    color: inherit;
+}
 
-    connectedCallback() {
-        this.initialize();
-        this.loadSearchIndexes();
+.hero {
+    color: #fff;
+    position: relative;
+    background:
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 46px),
+        radial-gradient(1100px 420px at 12% -20%, rgba(120, 160, 255, 0.16), transparent 60%),
+        linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 62%, #12274a 100%);
+    box-shadow: 0 10px 34px rgba(5, 10, 25, 0.45);
+    border-bottom: 1px solid rgba(198, 161, 91, 0.35);
+    padding: 16px 34px 18px;
+}
+
+.hero-row {
+    display: block;
+}
+
+.hero-main {
+    padding-right: 300px;
+}
+
+.usaa-badge {
+    background: linear-gradient(145deg, #ffffff, #dfe6f2);
+    color: var(--navy-deep);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1.8px;
+    padding: 5px 11px;
+    border-radius: 4px;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.hero-eyebrow {
+    font-size: 9px;
+    letter-spacing: 2.8px;
+    text-transform: uppercase;
+    color: var(--gold-lt);
+    margin: 8px 0 3px;
+    font-weight: 700;
+}
+
+.hero-title {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    background: linear-gradient(90deg, #ffffff 0%, #dce8ff 55%, #ffffff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero-gold-rule {
+    width: 44px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 8px 0;
+    border-radius: 2px;
+}
+
+.hero-sub {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.55);
+    max-width: 760px;
+    line-height: 1.4;
+}
+
+.hero-search-wrap {
+    position: absolute;
+    top: 16px;
+    right: 34px;
+    width: 280px;
+}
+
+.hero-search-field {
+    position: relative;
+}
+
+.hero-search {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9px;
+    padding: 9px 13px 9px 34px;
+    font-size: 12.5px;
+    color: #fff;
+    outline: none;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.hero-search::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.hero-search:focus {
+    background: rgba(255, 255, 255, 0.13);
+    border-color: var(--gold);
+}
+
+.hero-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 13px;
+    color: rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+}
+
+.hero-cost-box {
+    margin-top: 14px;
+    text-align: right;
+}
+
+.hero-cost-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.hero-cost-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1.25;
+}
+
+.search-results {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    box-shadow: 0 12px 30px -10px rgba(5, 10, 25, 0.5);
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.search-results.open {
+    display: block;
+}
+
+.search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 13px;
+    text-decoration: none;
+    border-left: 3px solid var(--accent);
+    border-bottom: 1px solid var(--line);
+}
+
+.search-result:last-child {
+    border-bottom: none;
+}
+
+.search-result:hover,
+.search-result:focus {
+    background: #f4f6fb;
+    outline: none;
+}
+
+.sr-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.sr-meta {
+    font-size: 10px;
+    color: var(--muted-soft);
+}
+
+.sr-meta b {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.search-empty {
+    padding: 14px 13px;
+    font-size: 12px;
+    color: var(--muted-soft);
+}
+
+.search-group-label {
+    padding: 7px 13px 5px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted-soft);
+    background: #fafbfd;
+    border-bottom: 1px solid var(--line);
+}
+
+.sections {
+    max-width: none;
+    margin: 0;
+    padding: 18px clamp(20px, 3vw, 64px) 30px;
+}
+
+.toolbar-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.expand-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 18px -12px rgba(15, 23, 42, 0.25);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+}
+
+.expand-all-btn:hover {
+    background: #f4f6fb;
+}
+
+.expand-all-btn svg {
+    width: 11px;
+    height: 11px;
+    flex: none;
+    transition: transform 0.18s ease;
+}
+
+.expand-all-btn.is-all-open svg {
+    transform: rotate(180deg);
+}
+
+.list-view-btn {
+    text-decoration: none;
+}
+
+.layer {
+    margin-bottom: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 14px clamp(16px, 2.4vw, 26px) 18px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 34px -22px rgba(15, 23, 42, 0.2);
+}
+
+.layer::before {
+    content: "";
+    display: block;
+    height: 3px;
+    width: 40px;
+    border-radius: 3px;
+    background: var(--accent);
+    margin-bottom: 10px;
+}
+
+.layer-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.layer-label {
+    font-size: 11.5px;
+    font-weight: 900;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.layer-tagline {
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 12px;
+}
+
+.list-view .card-grid {
+    grid-template-columns: 1fr;
+}
+
+.p-card {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 22px -16px rgba(15, 23, 42, 0.25);
+    padding: 14px 16px 12px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    position: relative;
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+}
+
+.p-card:hover,
+.p-card:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08), 0 16px 28px -14px rgba(15, 23, 42, 0.32);
+    outline: none;
+}
+
+.p-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.p-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent);
+}
+
+.p-card-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.p-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.2px;
+}
+
+.p-card-cost {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--accent);
+    white-space: nowrap;
+    flex: none;
+}
+
+.p-card-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.45;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.p-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.p-card-cta {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.p-card-cta:hover,
+.p-card-cta:focus {
+    text-decoration: underline;
+}
+
+.p-card-expand {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.p-card-expand:hover {
+    text-decoration: underline;
+}
+
+.p-card-expand svg {
+    width: 9px;
+    height: 9px;
+    flex: none;
+    transition: transform 0.18s ease;
+}
+
+.p-card-expand.is-open svg {
+    transform: rotate(180deg);
+}
+
+.p-card-levels {
+    margin: 0 0 10px;
+    padding: 10px 12px 11px;
+    border-radius: 10px;
+    background: #f5f7fb;
+    border: 1px solid var(--line);
+    cursor: default;
+}
+
+.p-card-levels-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--muted-soft);
+    margin-bottom: 7px;
+}
+
+.p-card-levels ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 0;
+    padding: 0;
+}
+
+.p-card-levels li {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    padding-left: 14px;
+    position: relative;
+}
+
+.p-card-levels li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.p-card-expand-grid {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) 2fr;
+    gap: 16px;
+}
+
+.p-card-owner-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.p-card-owner-list > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.p-card-owner-list dt {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted-soft);
+}
+
+.p-card-owner-list dd {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+}
+
+.p-card-owner-empty {
+    margin: 0;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--muted);
+}
+
+.loading-state {
+    min-height: 320px;
+    position: relative;
+    background: linear-gradient(180deg, #eef1f7 0%, #e3e8f1 100%);
+}
+
+.error-state {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #fff1f0;
+    color: #8e030f;
+    border: 1px solid #ea001e;
+}
+
+@media (max-width: 900px) {
+    .hero {
+        padding: 16px 20px 18px;
     }
 
-    async initialize() {
-        this.isLoading = true;
-        this.loadError = undefined;
-
-        try {
-            const response = await getPortfolio();
-            this.portfolio = response;
-            this.layers = this.decorateLayers(response?.layers || []);
-        } catch (error) {
-            this.loadError =
-                error?.body?.message ||
-                error?.message ||
-                'Unable to load the enterprise capability portfolio.';
-        } finally {
-            this.isLoading = false;
-        }
+    .hero-main {
+        padding-right: 0;
     }
 
-    async loadSearchIndexes() {
-        if (this.searchLoadAttempted) {
-            return;
-        }
-
-        this.searchLoadAttempted = true;
-        this.searchLoading = true;
-
-        try {
-            const [capabilityResponse, applicationResponse] = await Promise.all([
-                fetch(`${portfolioData}/searchIndex.json`),
-                fetch(`${portfolioData}/appSearchIndex.json`)
-            ]);
-
-            if (!capabilityResponse.ok || !applicationResponse.ok) {
-                throw new Error('Search index resource could not be loaded.');
-            }
-
-            const [capabilityData, applicationData] = await Promise.all([
-                capabilityResponse.json(),
-                applicationResponse.json()
-            ]);
-
-            this.searchIndex = Array.isArray(capabilityData) ? capabilityData : [];
-            this.appSearchIndex = Array.isArray(applicationData) ? applicationData : [];
-        } catch (error) {
-            this.searchIndex = [];
-            this.appSearchIndex = [];
-        } finally {
-            this.searchLoading = false;
-            if (this.searchTerm.trim()) {
-                this.runSearch(this.searchTerm);
-            }
-        }
+    .hero-search-wrap {
+        position: static;
+        width: 100%;
+        margin-top: 14px;
     }
 
-    decorateLayers(sourceLayers) {
-        return sourceLayers.map((layer, layerIndex) => ({
-            ...layer,
-            key: `layer-${layerIndex}-${layer.label}`,
-            style: `--accent:${layer.accent}`,
-            cards: (layer.cards || []).map((card, cardIndex) =>
-                this.decorateCard(card, layerIndex, cardIndex, false)
-            )
-        }));
+    .hero-cost-box {
+        text-align: left;
+        margin-top: 10px;
     }
 
-    decorateCard(card, layerIndex, cardIndex, isExpanded) {
-        const owners = (card.owners || []).map((owner, ownerIndex) => ({
-            ...owner,
-            key: `owner-${layerIndex}-${cardIndex}-${ownerIndex}`
-        }));
-
-        const capabilityItems = (card.level2Capabilities || []).map((label, capabilityIndex) => ({
-            label,
-            key: `cap-${layerIndex}-${cardIndex}-${capabilityIndex}`
-        }));
-
-        return {
-            ...card,
-            key: `card-${layerIndex}-${cardIndex}-${card.title}`,
-            style: `--accent:${card.accent}`,
-            owners,
-            capabilityItems,
-            isExpanded,
-            hasCost: Boolean(card.cost),
-            hasOwners: owners.length > 0,
-            ownerMessage: card.ownerMessage || 'Not yet assigned',
-            expandLabel: isExpanded ? 'Hide' : 'Level 2s',
-            ariaExpanded: isExpanded ? 'true' : 'false',
-            expandButtonClass: isExpanded ? 'p-card-expand is-open' : 'p-card-expand'
-        };
+    .hero-sub {
+        max-width: none;
     }
 
-    get isReady() {
-        return !this.isLoading && !this.loadError && this.portfolio;
+    .sections {
+        padding: 16px 16px 24px;
     }
 
-    get sectionsClass() {
-        return this.listView ? 'sections list-view' : 'sections';
+    .card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .hero-title {
+        font-size: 19px;
     }
 
-    get listViewLabel() {
-        return this.listView ? 'Grid View' : 'List View';
+    .hero-cost-value {
+        font-size: 24px;
     }
 
-    get expandAllLabel() {
-        return this.expandAll ? 'Collapse All Level 2s' : 'Expand All Level 2s';
+    .toolbar-row {
+        justify-content: stretch;
+        flex-wrap: wrap;
     }
 
-    get expandAllAria() {
-        return this.expandAll ? 'true' : 'false';
+    .expand-all-btn {
+        flex: 1 1 auto;
+        justify-content: center;
     }
 
-    get expandAllButtonClass() {
-        return this.expandAll ? 'expand-all-btn is-all-open' : 'expand-all-btn';
+    .card-grid {
+        grid-template-columns: 1fr;
     }
 
-    get hasCapabilityResults() {
-        return this.capabilityResults.length > 0;
+    .p-card-expand-grid {
+        grid-template-columns: 1fr;
     }
 
-    get hasApplicationResults() {
-        return this.applicationResults.length > 0;
+    .layer {
+        padding: 14px 12px 16px;
     }
 
-    get hasSearchMatches() {
-        return this.hasCapabilityResults || this.hasApplicationResults;
+    .p-card-title-row {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 420px) {
+    .hero {
+        padding: 14px;
     }
 
-    get searchEmptyMessage() {
-        if (!this.searchTerm.trim()) {
-            return '';
-        }
-        return `No capabilities or applications match “${this.searchTerm.trim()}”`;
+    .sections {
+        padding: 12px 10px 20px;
     }
 
-    handleSearchInput(event) {
-        this.searchTerm = event.target.value;
-        this.runSearch(this.searchTerm);
+    .p-card {
+        padding: 13px 13px 11px;
     }
 
-    handleSearchFocus() {
-        if (!this.searchLoadAttempted) {
-            this.loadSearchIndexes();
-        }
-        if (this.searchTerm.trim()) {
-            this.showSearchResults = true;
-            this.runSearch(this.searchTerm);
-        }
-    }
-
-    handleSearchBlur() {
-        window.setTimeout(() => {
-            this.showSearchResults = false;
-        }, 150);
-    }
-
-    handleSearchMouseDown() {
-        this.showSearchResults = false;
-    }
-
-    runSearch(rawValue) {
-        const raw = rawValue || '';
-        const query = raw.trim().toLowerCase();
-
-        if (!query) {
-            this.capabilityResults = [];
-            this.applicationResults = [];
-            this.showSearchResults = false;
-            return;
-        }
-
-        this.showSearchResults = true;
-
-        if (this.searchLoading) {
-            return;
-        }
-
-        this.capabilityResults = this.searchIndex
-            .map((item, index) => ({
-                item,
-                index,
-                score: this.scoreCapability(query, item)
-            }))
-            .filter((entry) => entry.score >= 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 6)
-            .map((entry) => this.toCapabilityResult(entry.item, entry.index));
-
-        this.applicationResults = this.appSearchIndex
-            .map((item, index) => ({
-                item,
-                index,
-                score: this.scoreApplication(query, item)
-            }))
-            .filter((entry) => entry.score >= 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 6)
-            .map((entry) => this.toApplicationResult(entry.item, entry.index));
-    }
-
-    scoreText(query, text) {
-        const value = (text || '').toLowerCase();
-        if (!value) {
-            return -1;
-        }
-        if (value === query) {
-            return 100;
-        }
-        if (value.indexOf(query) === 0) {
-            return 80;
-        }
-        if (value.split(/\s+/).some((word) => word.indexOf(query) === 0)) {
-            return 60;
-        }
-        if (value.indexOf(query) !== -1) {
-            return 40;
-        }
-        return -1;
-    }
-
-    scoreCapability(query, item) {
-        const title = (item.t || '').toLowerCase();
-        if (title === query) {
-            return 100;
-        }
-        if (title.indexOf(query) === 0) {
-            return 80;
-        }
-        if (title.split(/\s+/).some((word) => word.indexOf(query) === 0)) {
-            return 60;
-        }
-        if (title.indexOf(query) !== -1) {
-            return 40;
-        }
-
-        const domain = (item.dn || '').toLowerCase();
-        const platform = (item.pl || '').toLowerCase();
-        if (domain.indexOf(query) !== -1 || platform.indexOf(query) !== -1) {
-            return 15;
-        }
-        return -1;
-    }
-
-    scoreApplication(query, item) {
-        const appScore = this.scoreText(query, item.app);
-        if (appScore >= 0) {
-            return appScore;
-        }
-
-        const vendorScore = this.scoreText(query, item.vendor);
-        if (vendorScore >= 0) {
-            return vendorScore - 5;
-        }
-
-        const technology = (item.t || '').toLowerCase();
-        const platform = (item.pl || '').toLowerCase();
-        if (technology.indexOf(query) !== -1 || platform.indexOf(query) !== -1) {
-            return 10;
-        }
-        return -1;
-    }
-
-    toCapabilityResult(item, index) {
-        return {
-            key: `cap-search-${index}-${item.p}-${item.d}-${item.n}`,
-            name: item.t,
-            platform: item.pl,
-            domain: item.dn,
-            href: `${item.html}#cap=${encodeURIComponent(`${item.d}::${item.n}`)}`,
-            style: `--accent:${item.accent || '#2554a6'}`
-        };
-    }
-
-    toApplicationResult(item, index) {
-        return {
-            key: `app-search-${index}-${item.p}-${item.d}-${item.n}-${item.app}`,
-            name: item.app,
-            platform: item.pl,
-            technology: item.t,
-            vendorDisplay: item.vendor ? ` · ${item.vendor}` : '',
-            href: `${item.html}#cap=${encodeURIComponent(`${item.d}::${item.n}`)}`,
-            style: `--accent:${item.accent || '#2554a6'}`
-        };
-    }
-
-    toggleListView() {
-        this.listView = !this.listView;
-    }
-
-    toggleExpandAll() {
-        this.expandAll = !this.expandAll;
-        const open = this.expandAll;
-
-        this.layers = this.layers.map((layer, layerIndex) => ({
-            ...layer,
-            cards: layer.cards.map((card, cardIndex) =>
-                this.decorateCard(card, layerIndex, cardIndex, open)
-            )
-        }));
-    }
-
-    toggleCard(event) {
-        event.stopPropagation();
-
-        const layerIndex = Number(event.currentTarget.dataset.layerIndex);
-        const cardIndex = Number(event.currentTarget.dataset.cardIndex);
-
-        this.layers = this.layers.map((layer, currentLayerIndex) => {
-            if (currentLayerIndex !== layerIndex) {
-                return layer;
-            }
-
-            return {
-                ...layer,
-                cards: layer.cards.map((card, currentCardIndex) => {
-                    if (currentCardIndex !== cardIndex) {
-                        return card;
-                    }
-                    return this.decorateCard(
-                        card,
-                        layerIndex,
-                        cardIndex,
-                        !card.isExpanded
-                    );
-                })
-            };
-        });
-
-        this.expandAll = this.layers.every((layer) =>
-            layer.cards.every((card) => card.isExpanded)
-        );
-    }
-
-    handlePlatformLinkClick(event) {
-        event.stopPropagation();
-    }
-
-    handleCardClick(event) {
-        if (
-            event.target.closest('button') ||
-            event.target.closest('a') ||
-            event.target.closest('.p-card-levels')
-        ) {
-            return;
-        }
-
-        this.navigateToUrl(event.currentTarget.dataset.href);
-    }
-
-    handleCardKeydown(event) {
-        if (event.target !== event.currentTarget) {
-            return;
-        }
-
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            this.navigateToUrl(event.currentTarget.dataset.href);
-        }
-    }
-
-    navigateToUrl(url) {
-        if (!url) {
-            return;
-        }
-
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url
-            }
-        });
+    .p-card-footer {
+        align-items: flex-start;
     }
 }
