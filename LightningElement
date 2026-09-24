@@ -1,12 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
-    <isExposed>true</isExposed>
-    <masterLabel>USAA Enterprise Capability Portfolio</masterLabel>
-    <description>Native LWC implementation of the USAA Enterprise Capability Portfolio.</description>
-    <targets>
-        <target>lightning__AppPage</target>
-        <target>lightning__HomePage</target>
-        <target>lightning__Tab</target>
-    </targets>
-</LightningComponentBundle>
+The solution will use LWC as the presentation layer for the portfolio UI, search, navigation, filters, and expand/collapse functionality. Apex will act as the service layer to retrieve Salesforce data, apply business rules, and return structured data to the LWC. Static Resources will store reusable assets such as images, icons, and larger static configuration or search data. Custom Metadata or Salesforce objects can be used as the long-term source of truth for platform, capability, application, ownership, and configuration data. Aura will only be used where an existing Aura component or legacy Salesforce page requires a wrapper.
+
+This keeps the UI, business logic, configuration, and data layers separate, making the application easier to maintain, scalable, secure, and ready for future enhancements.
