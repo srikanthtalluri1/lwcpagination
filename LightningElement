@@ -1,557 +1,3 @@
-<template>
-    <div class="architecture-hub">
-
-        <!-- LEFT NAVIGATION -->
-        <aside class="sidebar">
-
-            <div class="brand-section">
-                <div class="brand-title">
-                    Architecture<span>Hub</span>
-                </div>
-
-                <div class="brand-subtitle">
-                    CTO Enterprise Architecture
-                </div>
-            </div>
-
-            <nav class="navigation">
-
-                <!-- ENTERPRISE DASHBOARD -->
-                <div class="nav-section">
-                    <template for:each={homeNavigation} for:item="item">
-                        <button
-                            key={item.key}
-                            class={item.className}
-                            data-key={item.key}
-                            onclick={handleNavigation}
-                        >
-                            <lightning-icon
-                                icon-name={item.icon}
-                                size="x-small"
-                                class="nav-icon"
-                                alternative-text={item.label}
-                            >
-                            </lightning-icon>
-
-                            <span class="nav-text">
-                                {item.label}
-                            </span>
-                        </button>
-                    </template>
-                </div>
-
-                <!-- ASSESS -->
-                <div class="nav-group-label">
-                    Assess
-                </div>
-
-                <div class="nav-section">
-                    <template for:each={assessNavigation} for:item="item">
-                        <button
-                            key={item.key}
-                            class={item.className}
-                            data-key={item.key}
-                            onclick={handleNavigation}
-                        >
-                            <lightning-icon
-                                icon-name={item.icon}
-                                size="x-small"
-                                class="nav-icon"
-                                alternative-text={item.label}
-                            >
-                            </lightning-icon>
-
-                            <span class="nav-text">
-                                {item.label}
-                            </span>
-
-                            <template lwc:if={item.badge}>
-                                <span class="nav-badge">
-                                    {item.badge}
-                                </span>
-                            </template>
-                        </button>
-                    </template>
-                </div>
-
-                <!-- PRACTICE -->
-                <div class="nav-group-label">
-                    Practice
-                </div>
-
-                <div class="nav-section">
-                    <template for:each={practiceNavigation} for:item="item">
-                        <button
-                            key={item.key}
-                            class={item.className}
-                            data-key={item.key}
-                            onclick={handleNavigation}
-                        >
-                            <lightning-icon
-                                icon-name={item.icon}
-                                size="x-small"
-                                class="nav-icon"
-                                alternative-text={item.label}
-                            >
-                            </lightning-icon>
-
-                            <span class="nav-text">
-                                {item.label}
-                            </span>
-
-                            <template lwc:if={item.badge}>
-                                <span class="nav-badge">
-                                    {item.badge}
-                                </span>
-                            </template>
-                        </button>
-                    </template>
-                </div>
-
-            </nav>
-
-            <div class="sidebar-footer">
-                Architecture Hub
-            </div>
-
-        </aside>
-
-
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-
-            <!-- ENTERPRISE DASHBOARD -->
-            <template lwc:if={isEnterpriseDashboard}>
-
-                <!-- PAGE HEADER -->
-                <div class="page-header">
-                    <div class="eyebrow">
-                        Enterprise Architecture
-                    </div>
-
-                    <div class="header-row">
-
-                        <div>
-                            <h1>
-                                Technology Architecture Practice
-                            </h1>
-
-                            <p class="page-description">
-                                Enterprise view of application portfolio health,
-                                architecture governance and technology direction.
-                            </p>
-                        </div>
-
-                        <div class="cycle-container">
-
-                            <span class="cycle-label">
-                                Assessment Cycle
-                            </span>
-
-                            <span class="cycle-value">
-                                {dashboardData.cycle}
-                            </span>
-
-                        </div>
-
-                    </div>
-                </div>
-
-
-                <!-- INFORMATION BANNER -->
-                <div class="info-banner">
-
-                    <lightning-icon
-                        icon-name="utility:info"
-                        size="x-small"
-                        alternative-text="Information"
-                    >
-                    </lightning-icon>
-
-                    <div>
-                        <strong>
-                            Prototype Dashboard
-                        </strong>
-
-                        <span>
-                            Dummy data is currently being used. The component
-                            is structured so Apex data can replace it later.
-                        </span>
-                    </div>
-
-                </div>
-
-
-                <!-- KPI CARDS -->
-                <section class="kpi-grid">
-
-                    <template
-                        for:each={dashboardData.kpis}
-                        for:item="kpi"
-                    >
-
-                        <article
-                            key={kpi.key}
-                            class={kpi.className}
-                        >
-
-                            <div class="kpi-label">
-                                {kpi.label}
-                            </div>
-
-                            <div class="kpi-value">
-                                {kpi.value}
-                            </div>
-
-                            <div class="kpi-description">
-                                {kpi.description}
-                            </div>
-
-                            <template lwc:if={kpi.change}>
-                                <div class={kpi.changeClass}>
-                                    {kpi.change}
-                                </div>
-                            </template>
-
-                        </article>
-
-                    </template>
-
-                </section>
-
-
-                <!-- SECOND ROW -->
-                <section class="dashboard-grid">
-
-                    <!-- PORTFOLIO HEALTH -->
-                    <article class="dashboard-card health-card">
-
-                        <div class="card-header">
-                            <div>
-                                <div class="card-eyebrow">
-                                    Assess
-                                </div>
-
-                                <h2>
-                                    Portfolio Health
-                                </h2>
-                            </div>
-
-                            <span class="card-link">
-                                Enterprise
-                            </span>
-                        </div>
-
-                        <div class="overall-score">
-
-                            <div>
-                                <span class="score">
-                                    {dashboardData.overallScore}
-                                </span>
-
-                                <span class="score-max">
-                                    / 5
-                                </span>
-                            </div>
-
-                            <div class="score-description">
-                                Enterprise overall health
-                            </div>
-
-                        </div>
-
-
-                        <!-- HEALTH DISTRIBUTION -->
-                        <div class="health-summary">
-
-                            <template
-                                for:each={dashboardData.healthSummary}
-                                for:item="health"
-                            >
-
-                                <div
-                                    key={health.key}
-                                    class="health-row"
-                                >
-
-                                    <div class="health-left">
-
-                                        <span class={health.dotClass}>
-                                        </span>
-
-                                        <span>
-                                            {health.label}
-                                        </span>
-
-                                    </div>
-
-                                    <div class="health-count">
-                                        {health.count}
-                                    </div>
-
-                                </div>
-
-                            </template>
-
-                        </div>
-
-
-                        <!-- DISTRIBUTION BAR -->
-                        <div class="health-bar">
-
-                            <div
-                                class="health-bar-red"
-                                style={dashboardData.redStyle}
-                            >
-                            </div>
-
-                            <div
-                                class="health-bar-yellow"
-                                style={dashboardData.yellowStyle}
-                            >
-                            </div>
-
-                            <div
-                                class="health-bar-green"
-                                style={dashboardData.greenStyle}
-                            >
-                            </div>
-
-                        </div>
-
-                    </article>
-
-
-                    <!-- ARCHITECTURE PRACTICE -->
-                    <article class="dashboard-card">
-
-                        <div class="card-header">
-
-                            <div>
-                                <div class="card-eyebrow">
-                                    Practice
-                                </div>
-
-                                <h2>
-                                    Architecture Governance
-                                </h2>
-                            </div>
-
-                        </div>
-
-                        <div class="practice-stat-grid">
-
-                            <template
-                                for:each={dashboardData.practiceStats}
-                                for:item="stat"
-                            >
-
-                                <div
-                                    key={stat.key}
-                                    class="practice-stat"
-                                >
-
-                                    <div class="practice-value">
-                                        {stat.value}
-                                    </div>
-
-                                    <div class="practice-label">
-                                        {stat.label}
-                                    </div>
-
-                                    <div class="practice-description">
-                                        {stat.description}
-                                    </div>
-
-                                </div>
-
-                            </template>
-
-                        </div>
-
-                    </article>
-
-                </section>
-
-
-                <!-- ENTERPRISE HEALTH DIMENSIONS -->
-                <section class="dashboard-card dimension-card">
-
-                    <div class="card-header">
-
-                        <div>
-                            <div class="card-eyebrow">
-                                Enterprise Assessment
-                            </div>
-
-                            <h2>
-                                Health Dimensions
-                            </h2>
-                        </div>
-
-                        <span class="card-link">
-                            Mean score · 1–5
-                        </span>
-
-                    </div>
-
-
-                    <div class="dimension-grid">
-
-                        <template
-                            for:each={dashboardData.dimensions}
-                            for:item="dimension"
-                        >
-
-                            <div
-                                key={dimension.key}
-                                class="dimension-item"
-                            >
-
-                                <div class="dimension-header">
-
-                                    <span>
-                                        {dimension.label}
-                                    </span>
-
-                                    <strong>
-                                        {dimension.value}
-                                    </strong>
-
-                                </div>
-
-                                <div class="progress-track">
-
-                                    <div
-                                        class={dimension.progressClass}
-                                        style={dimension.style}
-                                    >
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </template>
-
-                    </div>
-
-                </section>
-
-
-                <!-- DATA SOURCE / FUTURE ARCHITECTURE -->
-                <section class="dashboard-card data-card">
-
-                    <div class="card-header">
-
-                        <div>
-                            <div class="card-eyebrow">
-                                Data Architecture
-                            </div>
-
-                            <h2>
-                                Dashboard Data Source
-                            </h2>
-                        </div>
-
-                        <span class="status-pill">
-                            Prototype
-                        </span>
-
-                    </div>
-
-                    <div class="data-flow">
-
-                        <div class="data-node">
-                            <span class="data-node-label">
-                                TODAY
-                            </span>
-
-                            <strong>
-                                JavaScript Dummy Data
-                            </strong>
-                        </div>
-
-                        <div class="data-arrow">
-                            →
-                        </div>
-
-                        <div class="data-node">
-                            <span class="data-node-label">
-                                FUTURE
-                            </span>
-
-                            <strong>
-                                Apex Controller
-                            </strong>
-                        </div>
-
-                        <div class="data-arrow">
-                            →
-                        </div>
-
-                        <div class="data-node">
-                            <span class="data-node-label">
-                                SALESFORCE
-                            </span>
-
-                            <strong>
-                                Objects & Records
-                            </strong>
-                        </div>
-
-                    </div>
-
-                </section>
-
-            </template>
-
-
-            <!-- PLACEHOLDER FOR OTHER NAV ITEMS -->
-            <template lwc:else>
-
-                <div class="placeholder">
-
-                    <div class="placeholder-icon">
-                        <lightning-icon
-                            icon-name="utility:builder"
-                            size="large"
-                            alternative-text="Coming Soon"
-                        >
-                        </lightning-icon>
-                    </div>
-
-                    <div class="eyebrow">
-                        Architecture Hub
-                    </div>
-
-                    <h1>
-                        {selectedPageLabel}
-                    </h1>
-
-                    <p>
-                        This navigation option is ready. The page content
-                        will be implemented in the next phase.
-                    </p>
-
-                    <button
-                        class="back-button"
-                        onclick={handleDashboardClick}
-                    >
-                        Back to Enterprise Dashboard
-                    </button>
-
-                </div>
-
-            </template>
-
-        </main>
-
-    </div>
-</template>
-
-
-
 import { LightningElement } from 'lwc';
 
 // FUTURE:
@@ -562,88 +8,88 @@ import { LightningElement } from 'lwc';
 export default class ArchitectureHub extends LightningElement {
 
     selectedPage = 'dashboard';
-
     dashboardData = {};
 
     navigationItems = [
+
+        // HOME
         {
             key: 'dashboard',
             label: 'Enterprise Dashboard',
-            icon: 'utility:home',
+            iconText: '◆',
             group: 'home'
         },
+
+        // ASSESS
         {
             key: 'portfolioHealth',
             label: 'Portfolio Health',
-            icon: 'utility:chart',
+            iconText: '▤',
             group: 'assess',
             badge: '15'
         },
         {
             key: 'taxonomyBrowser',
             label: 'Taxonomy Browser',
-            icon: 'utility:table',
+            iconText: '⊞',
             group: 'assess'
         },
         {
             key: 'applicationExplorer',
             label: 'Application Explorer',
-            icon: 'utility:search',
+            iconText: '⌗',
             group: 'assess',
-            badge: '3.4K'
+            badge: '3.46K'
         },
         {
             key: 'riskCompliance',
             label: 'Risk & Compliance',
-            icon: 'utility:warning',
+            iconText: '⚠',
             group: 'assess'
         },
+
+        // PRACTICE
         {
             key: 'technologyDecisions',
             label: 'Technology Decisions',
-            icon: 'utility:settings',
+            iconText: '●',
             group: 'practice',
             badge: '468'
         },
         {
             key: 'standardsCatalog',
             label: 'Standards Catalog',
-            icon: 'utility:knowledge_base',
+            iconText: '≡',
             group: 'practice',
             badge: '520'
         },
         {
             key: 'waiversExceptions',
             label: 'Waivers & Exceptions',
-            icon: 'utility:error',
+            iconText: '⊘',
             group: 'practice',
             badge: '167'
         }
     ];
 
-
     connectedCallback() {
         this.loadDashboard();
     }
 
-
     /**
-     * Main data loading method.
-     *
      * TODAY:
-     * Uses dummy JS data.
+     * Uses dummy JavaScript data.
      *
      * FUTURE:
-     * This is the only place we need to change
-     * when connecting the component to Apex.
+     * Replace the implementation here with an Apex call.
+     * The HTML structure does not need to change.
      */
     loadDashboard() {
         this.dashboardData = this.loadDummyDashboardData();
     }
 
-
-    /**
-     * Future implementation example:
+    /*
+     * FUTURE EXAMPLE:
      *
      * async loadDashboard() {
      *     try {
@@ -654,7 +100,6 @@ export default class ArchitectureHub extends LightningElement {
      *     }
      * }
      */
-
 
     loadDummyDashboardData() {
 
@@ -669,7 +114,6 @@ export default class ArchitectureHub extends LightningElement {
         const greenPercent = (green / total) * 100;
 
         return {
-
             cycle: 'Q2 2026',
 
             overallScore: '4.11',
@@ -801,45 +245,30 @@ export default class ArchitectureHub extends LightningElement {
         };
     }
 
-
     handleNavigation(event) {
-
-        const selectedKey = event.currentTarget.dataset.key;
-
-        this.selectedPage = selectedKey;
+        this.selectedPage = event.currentTarget.dataset.key;
     }
-
 
     handleDashboardClick() {
         this.selectedPage = 'dashboard';
     }
 
-
     get isEnterpriseDashboard() {
         return this.selectedPage === 'dashboard';
     }
 
-
     get selectedPageLabel() {
-
-        const selectedItem =
-            this.navigationItems.find(
-                item => item.key === this.selectedPage
-            );
+        const selectedItem = this.navigationItems.find(
+            item => item.key === this.selectedPage
+        );
 
         return selectedItem
             ? selectedItem.label
             : 'Enterprise Dashboard';
     }
 
-
-    /**
-     * Add selected CSS dynamically.
-     */
     get navigationWithClasses() {
-
         return this.navigationItems.map(item => {
-
             return {
                 ...item,
                 className:
@@ -847,29 +276,22 @@ export default class ArchitectureHub extends LightningElement {
                         ? 'nav-item nav-item-active'
                         : 'nav-item'
             };
-
         });
     }
 
-
     get homeNavigation() {
-
         return this.navigationWithClasses.filter(
             item => item.group === 'home'
         );
     }
 
-
     get assessNavigation() {
-
         return this.navigationWithClasses.filter(
             item => item.group === 'assess'
         );
     }
 
-
     get practiceNavigation() {
-
         return this.navigationWithClasses.filter(
             item => item.group === 'practice'
         );
@@ -878,35 +300,441 @@ export default class ArchitectureHub extends LightningElement {
 
 
 
+
+<template>
+    <div class="architecture-hub">
+
+        <!-- LEFT NAVIGATION -->
+        <aside class="sidebar">
+
+            <div class="brand">
+                <div class="brand-mark">
+                    Architecture<span>Hub</span>
+                </div>
+                <div class="brand-sub">
+                    CTO ENTERPRISE ARCHITECTURE
+                </div>
+            </div>
+
+            <nav class="nav">
+
+                <!-- ENTERPRISE DASHBOARD -->
+                <div class="nav-group">
+                    <template for:each={homeNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                            type="button"
+                        >
+                            <span class="nav-ico">{item.iconText}</span>
+                            <span class="nav-item-label">{item.label}</span>
+
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">{item.badge}</span>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- ASSESS -->
+                <div class="nav-label">ASSESS</div>
+
+                <div class="nav-group">
+                    <template for:each={assessNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                            type="button"
+                        >
+                            <span class="nav-ico">{item.iconText}</span>
+                            <span class="nav-item-label">{item.label}</span>
+
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">{item.badge}</span>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- PRACTICE -->
+                <div class="nav-label">PRACTICE</div>
+
+                <div class="nav-group">
+                    <template for:each={practiceNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                            type="button"
+                        >
+                            <span class="nav-ico">{item.iconText}</span>
+                            <span class="nav-item-label">{item.label}</span>
+
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">{item.badge}</span>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-foot">
+                Prototype v0.1
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- ENTERPRISE DASHBOARD -->
+            <template lwc:if={isEnterpriseDashboard}>
+
+                <div class="page-header">
+                    <div class="eyebrow">
+                        Enterprise Architecture
+                    </div>
+
+                    <div class="header-row">
+                        <div>
+                            <h1>Technology Architecture Practice</h1>
+
+                            <p class="page-description">
+                                Enterprise view of application portfolio health,
+                                architecture governance and technology direction.
+                            </p>
+                        </div>
+
+                        <div class="cycle-container">
+                            <span class="cycle-label">
+                                Assessment Cycle
+                            </span>
+
+                            <span class="cycle-value">
+                                {dashboardData.cycle}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INFORMATION BANNER -->
+                <div class="info-banner">
+                    <lightning-icon
+                        icon-name="utility:info"
+                        size="x-small"
+                        alternative-text="Information"
+                    >
+                    </lightning-icon>
+
+                    <div>
+                        <strong>Prototype Dashboard</strong>
+                        <span>
+                            Dummy data is currently being used. The component
+                            is structured so Apex data can replace it later.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- KPI CARDS -->
+                <section class="kpi-grid">
+                    <template for:each={dashboardData.kpis} for:item="kpi">
+                        <article
+                            key={kpi.key}
+                            class={kpi.className}
+                        >
+                            <div class="kpi-label">
+                                {kpi.label}
+                            </div>
+
+                            <div class="kpi-value">
+                                {kpi.value}
+                            </div>
+
+                            <div class="kpi-description">
+                                {kpi.description}
+                            </div>
+
+                            <template lwc:if={kpi.change}>
+                                <div class={kpi.changeClass}>
+                                    {kpi.change}
+                                </div>
+                            </template>
+                        </article>
+                    </template>
+                </section>
+
+                <!-- SECOND ROW -->
+                <section class="dashboard-grid">
+
+                    <!-- PORTFOLIO HEALTH -->
+                    <article class="dashboard-card health-card">
+
+                        <div class="card-header">
+                            <div>
+                                <div class="card-eyebrow">
+                                    Assess
+                                </div>
+                                <h2>Portfolio Health</h2>
+                            </div>
+
+                            <span class="card-link">
+                                Enterprise
+                            </span>
+                        </div>
+
+                        <div class="overall-score">
+                            <div>
+                                <span class="score">
+                                    {dashboardData.overallScore}
+                                </span>
+
+                                <span class="score-max">
+                                    / 5
+                                </span>
+                            </div>
+
+                            <div class="score-description">
+                                Enterprise overall health
+                            </div>
+                        </div>
+
+                        <div class="health-summary">
+                            <template
+                                for:each={dashboardData.healthSummary}
+                                for:item="health"
+                            >
+                                <div
+                                    key={health.key}
+                                    class="health-row"
+                                >
+                                    <div class="health-left">
+                                        <span class={health.dotClass}></span>
+                                        <span>{health.label}</span>
+                                    </div>
+
+                                    <div class="health-count">
+                                        {health.count}
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="health-bar">
+                            <div
+                                class="health-bar-red"
+                                style={dashboardData.redStyle}
+                            ></div>
+
+                            <div
+                                class="health-bar-yellow"
+                                style={dashboardData.yellowStyle}
+                            ></div>
+
+                            <div
+                                class="health-bar-green"
+                                style={dashboardData.greenStyle}
+                            ></div>
+                        </div>
+                    </article>
+
+                    <!-- ARCHITECTURE PRACTICE -->
+                    <article class="dashboard-card">
+
+                        <div class="card-header">
+                            <div>
+                                <div class="card-eyebrow">
+                                    Practice
+                                </div>
+
+                                <h2>Architecture Governance</h2>
+                            </div>
+                        </div>
+
+                        <div class="practice-stat-grid">
+                            <template
+                                for:each={dashboardData.practiceStats}
+                                for:item="stat"
+                            >
+                                <div
+                                    key={stat.key}
+                                    class="practice-stat"
+                                >
+                                    <div class="practice-value">
+                                        {stat.value}
+                                    </div>
+
+                                    <div class="practice-label">
+                                        {stat.label}
+                                    </div>
+
+                                    <div class="practice-description">
+                                        {stat.description}
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- ENTERPRISE HEALTH DIMENSIONS -->
+                <section class="dashboard-card dimension-card">
+
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">
+                                Enterprise Assessment
+                            </div>
+
+                            <h2>Health Dimensions</h2>
+                        </div>
+
+                        <span class="card-link">
+                            Mean score · 1–5
+                        </span>
+                    </div>
+
+                    <div class="dimension-grid">
+                        <template
+                            for:each={dashboardData.dimensions}
+                            for:item="dimension"
+                        >
+                            <div
+                                key={dimension.key}
+                                class="dimension-item"
+                            >
+                                <div class="dimension-header">
+                                    <span>{dimension.label}</span>
+                                    <strong>{dimension.value}</strong>
+                                </div>
+
+                                <div class="progress-track">
+                                    <div
+                                        class={dimension.progressClass}
+                                        style={dimension.style}
+                                    ></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+
+                <!-- FUTURE DATA SOURCE -->
+                <section class="dashboard-card data-card">
+
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">
+                                Data Architecture
+                            </div>
+
+                            <h2>Dashboard Data Source</h2>
+                        </div>
+
+                        <span class="status-pill">
+                            Prototype
+                        </span>
+                    </div>
+
+                    <div class="data-flow">
+
+                        <div class="data-node">
+                            <span class="data-node-label">TODAY</span>
+                            <strong>JavaScript Dummy Data</strong>
+                        </div>
+
+                        <div class="data-arrow">→</div>
+
+                        <div class="data-node">
+                            <span class="data-node-label">FUTURE</span>
+                            <strong>Apex Controller</strong>
+                        </div>
+
+                        <div class="data-arrow">→</div>
+
+                        <div class="data-node">
+                            <span class="data-node-label">SALESFORCE</span>
+                            <strong>Objects &amp; Records</strong>
+                        </div>
+                    </div>
+                </section>
+
+            </template>
+
+            <!-- PLACEHOLDER FOR OTHER NAV ITEMS -->
+            <template lwc:else>
+                <div class="placeholder">
+
+                    <div class="placeholder-icon">
+                        <lightning-icon
+                            icon-name="utility:builder"
+                            size="large"
+                            alternative-text="Coming Soon"
+                        >
+                        </lightning-icon>
+                    </div>
+
+                    <div class="eyebrow">
+                        Architecture Hub
+                    </div>
+
+                    <h1>{selectedPageLabel}</h1>
+
+                    <p>
+                        This navigation option is ready. The page content
+                        will be implemented in the next phase.
+                    </p>
+
+                    <button
+                        class="back-button"
+                        onclick={handleDashboardClick}
+                        type="button"
+                    >
+                        Back to Enterprise Dashboard
+                    </button>
+                </div>
+            </template>
+
+        </main>
+    </div>
+</template>
+
+
+
+
 :host {
     display: block;
 
-    --hub-navy: #032d60;
+    --hub-navy: #003065;
     --hub-navy-light: #0b4d87;
-    --hub-blue: #0176d3;
-    --hub-gold: #d6b85a;
+    --hub-blue: #0c5f8c;
+    --hub-gold: #d0be7a;
 
-    --hub-background: #f4f6f9;
+    --hub-background: #f5f5f0;
     --hub-card: #ffffff;
 
-    --hub-border: #d8dde6;
+    --hub-border: #d6d4cc;
 
-    --hub-text: #181818;
-    --hub-muted: #5f6b7a;
+    --hub-text: #3c3c3f;
+    --hub-muted: #566270;
 
-    --hub-red: #ba0517;
-    --hub-yellow: #b85d00;
-    --hub-green: #2e844a;
+    --hub-red: #960000;
+    --hub-yellow: #8c7f4f;
+    --hub-green: #6a815e;
 }
 
 
-/* ===============================
+/* =========================================================
    MAIN LAYOUT
-   =============================== */
+   ========================================================= */
 
 .architecture-hub {
     display: grid;
-    grid-template-columns: 255px minmax(0, 1fr);
+    grid-template-columns: 252px minmax(0, 1fr);
     min-height: 760px;
 
     background: var(--hub-background);
@@ -918,203 +746,257 @@ export default class ArchitectureHub extends LightningElement {
 }
 
 
-/* ===============================
+/* =========================================================
    LEFT SIDEBAR
-   =============================== */
+   ========================================================= */
 
 .sidebar {
-    background: linear-gradient(
-        180deg,
-        #032d60 0%,
-        #063b72 100%
-    );
+    width: 252px;
+    min-width: 252px;
 
-    color: white;
+    background: #003065;
+    color: #ffffff;
 
     display: flex;
     flex-direction: column;
 
     min-height: 760px;
+
+    overflow: hidden;
 }
 
 
-.brand-section {
-    padding: 22px 20px 18px;
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.brand {
+    padding: 18px 20px 14px;
 
     border-bottom:
-        1px solid rgba(255, 255, 255, 0.15);
+        1px solid rgba(255, 255, 255, 0.12);
 }
 
 
-.brand-title {
-    font-family: Georgia, serif;
+.brand-mark {
+    font-family: Georgia, 'Times New Roman', serif;
 
-    font-size: 21px;
+    color: #ffffff;
+
+    font-size: 19px;
     font-weight: 700;
 
-    letter-spacing: -0.3px;
+    letter-spacing: -0.01em;
+
+    line-height: 1.2;
 }
 
 
-.brand-title span {
-    color: var(--hub-gold);
+.brand-mark span {
+    color: #d0be7a;
 }
 
 
-.brand-subtitle {
-    margin-top: 4px;
+.brand-sub {
+    color:
+        rgba(255, 255, 255, 0.55);
 
-    font-size: 10px;
+    font-size: 10.5px;
+
+    letter-spacing: 0.09em;
 
     text-transform: uppercase;
-    letter-spacing: 1.5px;
 
-    color: rgba(255, 255, 255, 0.55);
+    margin-top: 3px;
 }
 
 
-/* ===============================
-   NAVIGATION
-   =============================== */
+/* =========================================================
+   NAV
+   ========================================================= */
 
-.navigation {
+.nav {
+    padding: 10px 0 24px;
+
     flex: 1;
-
-    padding-top: 12px;
 }
 
 
-.nav-group-label {
-    padding:
-        16px
-        20px
-        6px;
+.nav-group {
+    margin-bottom: 2px;
+}
 
-    font-size: 10px;
 
-    font-weight: 700;
+.nav-label {
+    color:
+        rgba(255, 255, 255, 0.40);
 
-    letter-spacing: 1.6px;
+    font-size: 9.5px;
+
+    letter-spacing: 0.14em;
 
     text-transform: uppercase;
 
-    color: rgba(255, 255, 255, 0.42);
-}
+    padding:
+        14px
+        20px
+        5px;
 
-
-.nav-section {
-    width: 100%;
+    font-weight: 600;
 }
 
 
 .nav-item {
     width: 100%;
 
-    border: 0;
+    display: flex;
+    align-items: center;
 
+    gap: 9px;
+
+    padding:
+        7px
+        20px;
+
+    border: 0;
     border-left:
         3px solid transparent;
+
+    border-radius: 0;
 
     background: transparent;
 
     color:
-        rgba(255, 255, 255, 0.85);
+        rgba(255, 255, 255, 0.80);
 
-    display: flex;
-    align-items: center;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    gap: 10px;
-
-    padding:
-        10px
-        16px;
-
-    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.5;
 
     text-align: left;
 
-    font-size: 13px;
+    cursor: pointer;
+
+    appearance: none;
+    -webkit-appearance: none;
 
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease;
+        background 0.12s ease,
+        color 0.12s ease,
+        border-color 0.12s ease;
+
+    box-shadow: none;
 }
 
 
 .nav-item:hover {
     background:
-        rgba(255, 255, 255, 0.08);
+        rgba(255, 255, 255, 0.07);
 
-    color: white;
+    color: #ffffff;
+}
+
+
+.nav-item:focus {
+    outline: none;
+    box-shadow: none;
 }
 
 
 .nav-item-active {
     background:
-        rgba(214, 184, 90, 0.14);
+        rgba(208, 190, 122, 0.13);
 
-    border-left-color:
-        var(--hub-gold);
+    color: #ffffff;
 
-    color: white;
+    border-left-color: #d0be7a;
 
     font-weight: 600;
 }
 
 
-.nav-icon {
-    --slds-c-icon-color-foreground-default:
-        rgba(255, 255, 255, 0.82);
+.nav-ico {
+    width: 15px;
+    min-width: 15px;
 
-    flex-shrink: 0;
+    text-align: center;
+
+    color:
+        rgba(255, 255, 255, 0.72);
+
+    font-size: 12px;
+
+    line-height: 1;
+
+    opacity: 0.80;
 }
 
 
-.nav-text {
+.nav-item-active .nav-ico {
+    color: #d0be7a;
+    opacity: 1;
+}
+
+
+.nav-item-label {
     flex: 1;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
 }
 
 
 .nav-badge {
+    margin-left: auto;
+
     background:
-        rgba(255, 255, 255, 0.15);
+        rgba(255, 255, 255, 0.14);
 
-    color: white;
+    color:
+        rgba(255, 255, 255, 0.75);
 
-    font-size: 10px;
+    font-size: 9.5px;
 
-    min-width: 28px;
+    padding:
+        1px
+        6px;
 
-    padding: 2px 7px;
+    border-radius: 9px;
 
-    text-align: center;
+    font-weight: 600;
 
-    border-radius: 12px;
+    line-height: 1.5;
 }
 
 
-.sidebar-footer {
+.sidebar-foot {
     padding:
         12px
         20px;
 
     border-top:
-        1px solid rgba(255, 255, 255, 0.12);
-
-    font-size: 10px;
+        1px solid rgba(255, 255, 255, 0.10);
 
     color:
-        rgba(255, 255, 255, 0.45);
+        rgba(255, 255, 255, 0.40);
+
+    font-size: 10.5px;
 }
 
 
-/* ===============================
+/* =========================================================
    MAIN CONTENT
-   =============================== */
+   ========================================================= */
 
 .main-content {
-    padding: 28px;
-
+    padding: 26px 30px 60px;
     min-width: 0;
 }
 
@@ -1126,13 +1008,13 @@ export default class ArchitectureHub extends LightningElement {
 
 .eyebrow,
 .card-eyebrow {
-    color: #8a6d1d;
+    color: #8c7f4f;
 
     font-size: 10px;
 
     font-weight: 700;
 
-    letter-spacing: 1.4px;
+    letter-spacing: 0.15em;
 
     text-transform: uppercase;
 
@@ -1154,11 +1036,11 @@ export default class ArchitectureHub extends LightningElement {
 h1 {
     color: var(--hub-navy);
 
-    font-family: Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
 
-    font-size: 30px;
+    font-size: 31px;
 
-    font-weight: 700;
+    font-weight: 600;
 
     line-height: 1.2;
 
@@ -1169,11 +1051,11 @@ h1 {
 h2 {
     color: var(--hub-navy);
 
-    font-family: Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
 
     font-size: 17px;
 
-    font-weight: 700;
+    font-weight: 600;
 
     margin: 0;
 }
@@ -1195,9 +1077,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    ASSESSMENT CYCLE
-   =============================== */
+   ========================================================= */
 
 .cycle-container {
     background: white;
@@ -1243,9 +1125,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    INFO
-   =============================== */
+   ========================================================= */
 
 .info-banner {
     display: flex;
@@ -1260,14 +1142,14 @@ h2 {
 
     margin-bottom: 18px;
 
-    background: #eef4ff;
+    background: rgba(208, 190, 122, 0.13);
 
     border-left:
-        4px solid var(--hub-blue);
+        3px solid var(--hub-gold);
 
-    border-radius: 4px;
+    border-radius: 0 5px 5px 0;
 
-    color: var(--hub-muted);
+    color: var(--hub-text);
 
     font-size: 12px;
 }
@@ -1280,9 +1162,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    KPI CARDS
-   =============================== */
+   ========================================================= */
 
 .kpi-grid {
     display: grid;
@@ -1304,12 +1186,11 @@ h2 {
     border:
         1px solid var(--hub-border);
 
-    border-radius: 7px;
+    border-radius: 8px;
 
     padding:
-        16px
-        16px
-        14px;
+        15px
+        17px;
 
     overflow: hidden;
 }
@@ -1324,7 +1205,7 @@ h2 {
     left: 0;
     bottom: 0;
 
-    width: 4px;
+    width: 3px;
 }
 
 
@@ -1353,27 +1234,27 @@ h2 {
 
     color: var(--hub-muted);
 
-    font-weight: 700;
+    font-weight: 600;
 
     text-transform: uppercase;
 
-    letter-spacing: 0.8px;
+    letter-spacing: 0.11em;
 }
 
 
 .kpi-value {
     color: var(--hub-navy);
 
-    font-family: Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
 
-    font-size: 29px;
+    font-size: 32px;
 
     font-weight: 700;
 
     margin:
         5px
         0
-        1px;
+        3px;
 }
 
 
@@ -1404,9 +1285,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    DASHBOARD CARDS
-   =============================== */
+   ========================================================= */
 
 .dashboard-grid {
     display: grid;
@@ -1429,9 +1310,9 @@ h2 {
 
     border-radius: 8px;
 
-    padding: 18px;
+    padding: 18px 20px;
 
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 
@@ -1454,15 +1335,15 @@ h2 {
 
 
 .card-link {
-    color: var(--hub-muted);
+    color: #a5afba;
 
     font-size: 11px;
 }
 
 
-/* ===============================
+/* =========================================================
    HEALTH CARD
-   =============================== */
+   ========================================================= */
 
 .overall-score {
     display: flex;
@@ -1478,7 +1359,7 @@ h2 {
 .score {
     color: var(--hub-green);
 
-    font-family: Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
 
     font-size: 38px;
 
@@ -1519,7 +1400,7 @@ h2 {
 
     align-items: center;
 
-    background: #f8f9fb;
+    background: #f5f5f0;
 
     border-radius: 5px;
 
@@ -1582,7 +1463,7 @@ h2 {
 
     margin-top: 15px;
 
-    background: #e5e5e5;
+    background: #e8e7e1;
 }
 
 
@@ -1601,9 +1482,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    PRACTICE
-   =============================== */
+   ========================================================= */
 
 .practice-stat-grid {
     display: grid;
@@ -1617,9 +1498,9 @@ h2 {
 
 .practice-stat {
     border:
-        1px solid #e4e7eb;
+        1px solid #e8e7e1;
 
-    background: #fafbfc;
+    background: #f5f5f0;
 
     border-radius: 6px;
 
@@ -1630,7 +1511,7 @@ h2 {
 .practice-value {
     color: var(--hub-navy);
 
-    font-family: Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
 
     font-size: 27px;
 
@@ -1658,9 +1539,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    DIMENSIONS
-   =============================== */
+   ========================================================= */
 
 .dimension-grid {
     display: grid;
@@ -1693,7 +1574,7 @@ h2 {
 
 
 .progress-track {
-    background: #e8eaed;
+    background: #e8e7e1;
 
     height: 8px;
 
@@ -1715,14 +1596,14 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    DATA FLOW
-   =============================== */
+   ========================================================= */
 
 .status-pill {
-    background: #fff4cc;
+    background: rgba(208, 190, 122, 0.18);
 
-    color: #7a5d00;
+    color: #8c7f4f;
 
     border-radius: 14px;
 
@@ -1748,7 +1629,7 @@ h2 {
 .data-node {
     flex: 1;
 
-    background: #f8f9fb;
+    background: #f5f5f0;
 
     border:
         1px solid var(--hub-border);
@@ -1790,9 +1671,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    PLACEHOLDER
-   =============================== */
+   ========================================================= */
 
 .placeholder {
     background: white;
@@ -1854,9 +1735,9 @@ h2 {
 }
 
 
-/* ===============================
+/* =========================================================
    RESPONSIVE
-   =============================== */
+   ========================================================= */
 
 @media only screen and (max-width: 1200px) {
 
@@ -1875,10 +1756,12 @@ h2 {
     }
 
     .sidebar {
+        width: 100%;
+        min-width: 0;
         min-height: auto;
     }
 
-    .navigation {
+    .nav {
         padding-bottom: 12px;
     }
 
