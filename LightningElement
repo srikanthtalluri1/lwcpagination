@@ -1,3 +1,1933 @@
-The solution will use LWC as the presentation layer for the portfolio UI, search, navigation, filters, and expand/collapse functionality. Apex will act as the service layer to retrieve Salesforce data, apply business rules, and return structured data to the LWC. Static Resources will store reusable assets such as images, icons, and larger static configuration or search data. Custom Metadata or Salesforce objects can be used as the long-term source of truth for platform, capability, application, ownership, and configuration data. Aura will only be used where an existing Aura component or legacy Salesforce page requires a wrapper.
+<template>
+    <div class="architecture-hub">
 
-This keeps the UI, business logic, configuration, and data layers separate, making the application easier to maintain, scalable, secure, and ready for future enhancements.
+        <!-- LEFT NAVIGATION -->
+        <aside class="sidebar">
+
+            <div class="brand-section">
+                <div class="brand-title">
+                    Architecture<span>Hub</span>
+                </div>
+
+                <div class="brand-subtitle">
+                    CTO Enterprise Architecture
+                </div>
+            </div>
+
+            <nav class="navigation">
+
+                <!-- ENTERPRISE DASHBOARD -->
+                <div class="nav-section">
+                    <template for:each={homeNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                        >
+                            <lightning-icon
+                                icon-name={item.icon}
+                                size="x-small"
+                                class="nav-icon"
+                                alternative-text={item.label}
+                            >
+                            </lightning-icon>
+
+                            <span class="nav-text">
+                                {item.label}
+                            </span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- ASSESS -->
+                <div class="nav-group-label">
+                    Assess
+                </div>
+
+                <div class="nav-section">
+                    <template for:each={assessNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                        >
+                            <lightning-icon
+                                icon-name={item.icon}
+                                size="x-small"
+                                class="nav-icon"
+                                alternative-text={item.label}
+                            >
+                            </lightning-icon>
+
+                            <span class="nav-text">
+                                {item.label}
+                            </span>
+
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">
+                                    {item.badge}
+                                </span>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- PRACTICE -->
+                <div class="nav-group-label">
+                    Practice
+                </div>
+
+                <div class="nav-section">
+                    <template for:each={practiceNavigation} for:item="item">
+                        <button
+                            key={item.key}
+                            class={item.className}
+                            data-key={item.key}
+                            onclick={handleNavigation}
+                        >
+                            <lightning-icon
+                                icon-name={item.icon}
+                                size="x-small"
+                                class="nav-icon"
+                                alternative-text={item.label}
+                            >
+                            </lightning-icon>
+
+                            <span class="nav-text">
+                                {item.label}
+                            </span>
+
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">
+                                    {item.badge}
+                                </span>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                Architecture Hub
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- ENTERPRISE DASHBOARD -->
+            <template lwc:if={isEnterpriseDashboard}>
+
+                <!-- PAGE HEADER -->
+                <div class="page-header">
+                    <div class="eyebrow">
+                        Enterprise Architecture
+                    </div>
+
+                    <div class="header-row">
+
+                        <div>
+                            <h1>
+                                Technology Architecture Practice
+                            </h1>
+
+                            <p class="page-description">
+                                Enterprise view of application portfolio health,
+                                architecture governance and technology direction.
+                            </p>
+                        </div>
+
+                        <div class="cycle-container">
+
+                            <span class="cycle-label">
+                                Assessment Cycle
+                            </span>
+
+                            <span class="cycle-value">
+                                {dashboardData.cycle}
+                            </span>
+
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- INFORMATION BANNER -->
+                <div class="info-banner">
+
+                    <lightning-icon
+                        icon-name="utility:info"
+                        size="x-small"
+                        alternative-text="Information"
+                    >
+                    </lightning-icon>
+
+                    <div>
+                        <strong>
+                            Prototype Dashboard
+                        </strong>
+
+                        <span>
+                            Dummy data is currently being used. The component
+                            is structured so Apex data can replace it later.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- KPI CARDS -->
+                <section class="kpi-grid">
+
+                    <template
+                        for:each={dashboardData.kpis}
+                        for:item="kpi"
+                    >
+
+                        <article
+                            key={kpi.key}
+                            class={kpi.className}
+                        >
+
+                            <div class="kpi-label">
+                                {kpi.label}
+                            </div>
+
+                            <div class="kpi-value">
+                                {kpi.value}
+                            </div>
+
+                            <div class="kpi-description">
+                                {kpi.description}
+                            </div>
+
+                            <template lwc:if={kpi.change}>
+                                <div class={kpi.changeClass}>
+                                    {kpi.change}
+                                </div>
+                            </template>
+
+                        </article>
+
+                    </template>
+
+                </section>
+
+
+                <!-- SECOND ROW -->
+                <section class="dashboard-grid">
+
+                    <!-- PORTFOLIO HEALTH -->
+                    <article class="dashboard-card health-card">
+
+                        <div class="card-header">
+                            <div>
+                                <div class="card-eyebrow">
+                                    Assess
+                                </div>
+
+                                <h2>
+                                    Portfolio Health
+                                </h2>
+                            </div>
+
+                            <span class="card-link">
+                                Enterprise
+                            </span>
+                        </div>
+
+                        <div class="overall-score">
+
+                            <div>
+                                <span class="score">
+                                    {dashboardData.overallScore}
+                                </span>
+
+                                <span class="score-max">
+                                    / 5
+                                </span>
+                            </div>
+
+                            <div class="score-description">
+                                Enterprise overall health
+                            </div>
+
+                        </div>
+
+
+                        <!-- HEALTH DISTRIBUTION -->
+                        <div class="health-summary">
+
+                            <template
+                                for:each={dashboardData.healthSummary}
+                                for:item="health"
+                            >
+
+                                <div
+                                    key={health.key}
+                                    class="health-row"
+                                >
+
+                                    <div class="health-left">
+
+                                        <span class={health.dotClass}>
+                                        </span>
+
+                                        <span>
+                                            {health.label}
+                                        </span>
+
+                                    </div>
+
+                                    <div class="health-count">
+                                        {health.count}
+                                    </div>
+
+                                </div>
+
+                            </template>
+
+                        </div>
+
+
+                        <!-- DISTRIBUTION BAR -->
+                        <div class="health-bar">
+
+                            <div
+                                class="health-bar-red"
+                                style={dashboardData.redStyle}
+                            >
+                            </div>
+
+                            <div
+                                class="health-bar-yellow"
+                                style={dashboardData.yellowStyle}
+                            >
+                            </div>
+
+                            <div
+                                class="health-bar-green"
+                                style={dashboardData.greenStyle}
+                            >
+                            </div>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- ARCHITECTURE PRACTICE -->
+                    <article class="dashboard-card">
+
+                        <div class="card-header">
+
+                            <div>
+                                <div class="card-eyebrow">
+                                    Practice
+                                </div>
+
+                                <h2>
+                                    Architecture Governance
+                                </h2>
+                            </div>
+
+                        </div>
+
+                        <div class="practice-stat-grid">
+
+                            <template
+                                for:each={dashboardData.practiceStats}
+                                for:item="stat"
+                            >
+
+                                <div
+                                    key={stat.key}
+                                    class="practice-stat"
+                                >
+
+                                    <div class="practice-value">
+                                        {stat.value}
+                                    </div>
+
+                                    <div class="practice-label">
+                                        {stat.label}
+                                    </div>
+
+                                    <div class="practice-description">
+                                        {stat.description}
+                                    </div>
+
+                                </div>
+
+                            </template>
+
+                        </div>
+
+                    </article>
+
+                </section>
+
+
+                <!-- ENTERPRISE HEALTH DIMENSIONS -->
+                <section class="dashboard-card dimension-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <div class="card-eyebrow">
+                                Enterprise Assessment
+                            </div>
+
+                            <h2>
+                                Health Dimensions
+                            </h2>
+                        </div>
+
+                        <span class="card-link">
+                            Mean score · 1–5
+                        </span>
+
+                    </div>
+
+
+                    <div class="dimension-grid">
+
+                        <template
+                            for:each={dashboardData.dimensions}
+                            for:item="dimension"
+                        >
+
+                            <div
+                                key={dimension.key}
+                                class="dimension-item"
+                            >
+
+                                <div class="dimension-header">
+
+                                    <span>
+                                        {dimension.label}
+                                    </span>
+
+                                    <strong>
+                                        {dimension.value}
+                                    </strong>
+
+                                </div>
+
+                                <div class="progress-track">
+
+                                    <div
+                                        class={dimension.progressClass}
+                                        style={dimension.style}
+                                    >
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </template>
+
+                    </div>
+
+                </section>
+
+
+                <!-- DATA SOURCE / FUTURE ARCHITECTURE -->
+                <section class="dashboard-card data-card">
+
+                    <div class="card-header">
+
+                        <div>
+                            <div class="card-eyebrow">
+                                Data Architecture
+                            </div>
+
+                            <h2>
+                                Dashboard Data Source
+                            </h2>
+                        </div>
+
+                        <span class="status-pill">
+                            Prototype
+                        </span>
+
+                    </div>
+
+                    <div class="data-flow">
+
+                        <div class="data-node">
+                            <span class="data-node-label">
+                                TODAY
+                            </span>
+
+                            <strong>
+                                JavaScript Dummy Data
+                            </strong>
+                        </div>
+
+                        <div class="data-arrow">
+                            →
+                        </div>
+
+                        <div class="data-node">
+                            <span class="data-node-label">
+                                FUTURE
+                            </span>
+
+                            <strong>
+                                Apex Controller
+                            </strong>
+                        </div>
+
+                        <div class="data-arrow">
+                            →
+                        </div>
+
+                        <div class="data-node">
+                            <span class="data-node-label">
+                                SALESFORCE
+                            </span>
+
+                            <strong>
+                                Objects & Records
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </template>
+
+
+            <!-- PLACEHOLDER FOR OTHER NAV ITEMS -->
+            <template lwc:else>
+
+                <div class="placeholder">
+
+                    <div class="placeholder-icon">
+                        <lightning-icon
+                            icon-name="utility:builder"
+                            size="large"
+                            alternative-text="Coming Soon"
+                        >
+                        </lightning-icon>
+                    </div>
+
+                    <div class="eyebrow">
+                        Architecture Hub
+                    </div>
+
+                    <h1>
+                        {selectedPageLabel}
+                    </h1>
+
+                    <p>
+                        This navigation option is ready. The page content
+                        will be implemented in the next phase.
+                    </p>
+
+                    <button
+                        class="back-button"
+                        onclick={handleDashboardClick}
+                    >
+                        Back to Enterprise Dashboard
+                    </button>
+
+                </div>
+
+            </template>
+
+        </main>
+
+    </div>
+</template>
+
+
+
+import { LightningElement } from 'lwc';
+
+// FUTURE:
+//
+// import getEnterpriseDashboard
+//     from '@salesforce/apex/ArchitectureHubController.getEnterpriseDashboard';
+
+export default class ArchitectureHub extends LightningElement {
+
+    selectedPage = 'dashboard';
+
+    dashboardData = {};
+
+    navigationItems = [
+        {
+            key: 'dashboard',
+            label: 'Enterprise Dashboard',
+            icon: 'utility:home',
+            group: 'home'
+        },
+        {
+            key: 'portfolioHealth',
+            label: 'Portfolio Health',
+            icon: 'utility:chart',
+            group: 'assess',
+            badge: '15'
+        },
+        {
+            key: 'taxonomyBrowser',
+            label: 'Taxonomy Browser',
+            icon: 'utility:table',
+            group: 'assess'
+        },
+        {
+            key: 'applicationExplorer',
+            label: 'Application Explorer',
+            icon: 'utility:search',
+            group: 'assess',
+            badge: '3.4K'
+        },
+        {
+            key: 'riskCompliance',
+            label: 'Risk & Compliance',
+            icon: 'utility:warning',
+            group: 'assess'
+        },
+        {
+            key: 'technologyDecisions',
+            label: 'Technology Decisions',
+            icon: 'utility:settings',
+            group: 'practice',
+            badge: '468'
+        },
+        {
+            key: 'standardsCatalog',
+            label: 'Standards Catalog',
+            icon: 'utility:knowledge_base',
+            group: 'practice',
+            badge: '520'
+        },
+        {
+            key: 'waiversExceptions',
+            label: 'Waivers & Exceptions',
+            icon: 'utility:error',
+            group: 'practice',
+            badge: '167'
+        }
+    ];
+
+
+    connectedCallback() {
+        this.loadDashboard();
+    }
+
+
+    /**
+     * Main data loading method.
+     *
+     * TODAY:
+     * Uses dummy JS data.
+     *
+     * FUTURE:
+     * This is the only place we need to change
+     * when connecting the component to Apex.
+     */
+    loadDashboard() {
+        this.dashboardData = this.loadDummyDashboardData();
+    }
+
+
+    /**
+     * Future implementation example:
+     *
+     * async loadDashboard() {
+     *     try {
+     *         const result = await getEnterpriseDashboard();
+     *         this.dashboardData = this.prepareDashboardData(result);
+     *     } catch (error) {
+     *         console.error('Architecture Dashboard Error', error);
+     *     }
+     * }
+     */
+
+
+    loadDummyDashboardData() {
+
+        const red = 87;
+        const yellow = 419;
+        const green = 2959;
+
+        const total = red + yellow + green;
+
+        const redPercent = (red / total) * 100;
+        const yellowPercent = (yellow / total) * 100;
+        const greenPercent = (green / total) * 100;
+
+        return {
+
+            cycle: 'Q2 2026',
+
+            overallScore: '4.11',
+
+            kpis: [
+                {
+                    key: 'applications',
+                    label: 'Assessed Applications',
+                    value: '3,465',
+                    description: 'Applications currently in scope',
+                    className: 'kpi-card kpi-blue',
+                    change: '+78 vs prior cycle',
+                    changeClass: 'change-positive'
+                },
+                {
+                    key: 'red',
+                    label: 'Red — Unhealthy',
+                    value: '87',
+                    description: 'Overall health below 2.5',
+                    className: 'kpi-card kpi-red',
+                    change: '+29 vs prior cycle',
+                    changeClass: 'change-negative'
+                },
+                {
+                    key: 'yellow',
+                    label: 'Yellow — At Risk',
+                    value: '419',
+                    description: 'Health score from 2.5 to 3.5',
+                    className: 'kpi-card kpi-yellow',
+                    change: '+22 vs prior cycle',
+                    changeClass: 'change-negative'
+                },
+                {
+                    key: 'green',
+                    label: 'Green — Healthy',
+                    value: '2,959',
+                    description: 'Health score 3.5 and above',
+                    className: 'kpi-card kpi-green',
+                    change: '+27 vs prior cycle',
+                    changeClass: 'change-positive'
+                },
+                {
+                    key: 'overall',
+                    label: 'Enterprise Overall',
+                    value: '4.11',
+                    description: 'Enterprise mean rating',
+                    className: 'kpi-card kpi-blue',
+                    change: '-0.03 vs prior cycle',
+                    changeClass: 'change-negative'
+                }
+            ],
+
+            healthSummary: [
+                {
+                    key: 'red',
+                    label: 'Unhealthy',
+                    count: '87',
+                    dotClass: 'health-dot red-dot'
+                },
+                {
+                    key: 'yellow',
+                    label: 'At Risk',
+                    count: '419',
+                    dotClass: 'health-dot yellow-dot'
+                },
+                {
+                    key: 'green',
+                    label: 'Healthy',
+                    count: '2,959',
+                    dotClass: 'health-dot green-dot'
+                }
+            ],
+
+            redStyle: `width:${redPercent}%`,
+            yellowStyle: `width:${yellowPercent}%`,
+            greenStyle: `width:${greenPercent}%`,
+
+            practiceStats: [
+                {
+                    key: 'waivers',
+                    label: 'Approved Waivers',
+                    value: '167',
+                    description: 'Current exception register'
+                },
+                {
+                    key: 'decisions',
+                    label: 'Technology Decisions',
+                    value: '468',
+                    description: 'Architecture decision records'
+                },
+                {
+                    key: 'standards',
+                    label: 'Standards',
+                    value: '520',
+                    description: 'Architecture standards'
+                }
+            ],
+
+            dimensions: [
+                {
+                    key: 'technology',
+                    label: 'Technology Health',
+                    value: '3.99',
+                    progressClass: 'progress-value progress-green',
+                    style: 'width:79.8%'
+                },
+                {
+                    key: 'resource',
+                    label: 'Resource Health',
+                    value: '4.05',
+                    progressClass: 'progress-value progress-green',
+                    style: 'width:81%'
+                },
+                {
+                    key: 'business',
+                    label: 'Business Value',
+                    value: '4.13',
+                    progressClass: 'progress-value progress-green',
+                    style: 'width:82.6%'
+                },
+                {
+                    key: 'compliance',
+                    label: 'Compliance Health',
+                    value: '4.28',
+                    progressClass: 'progress-value progress-green',
+                    style: 'width:85.6%'
+                }
+            ]
+        };
+    }
+
+
+    handleNavigation(event) {
+
+        const selectedKey = event.currentTarget.dataset.key;
+
+        this.selectedPage = selectedKey;
+    }
+
+
+    handleDashboardClick() {
+        this.selectedPage = 'dashboard';
+    }
+
+
+    get isEnterpriseDashboard() {
+        return this.selectedPage === 'dashboard';
+    }
+
+
+    get selectedPageLabel() {
+
+        const selectedItem =
+            this.navigationItems.find(
+                item => item.key === this.selectedPage
+            );
+
+        return selectedItem
+            ? selectedItem.label
+            : 'Enterprise Dashboard';
+    }
+
+
+    /**
+     * Add selected CSS dynamically.
+     */
+    get navigationWithClasses() {
+
+        return this.navigationItems.map(item => {
+
+            return {
+                ...item,
+                className:
+                    item.key === this.selectedPage
+                        ? 'nav-item nav-item-active'
+                        : 'nav-item'
+            };
+
+        });
+    }
+
+
+    get homeNavigation() {
+
+        return this.navigationWithClasses.filter(
+            item => item.group === 'home'
+        );
+    }
+
+
+    get assessNavigation() {
+
+        return this.navigationWithClasses.filter(
+            item => item.group === 'assess'
+        );
+    }
+
+
+    get practiceNavigation() {
+
+        return this.navigationWithClasses.filter(
+            item => item.group === 'practice'
+        );
+    }
+}
+
+
+
+:host {
+    display: block;
+
+    --hub-navy: #032d60;
+    --hub-navy-light: #0b4d87;
+    --hub-blue: #0176d3;
+    --hub-gold: #d6b85a;
+
+    --hub-background: #f4f6f9;
+    --hub-card: #ffffff;
+
+    --hub-border: #d8dde6;
+
+    --hub-text: #181818;
+    --hub-muted: #5f6b7a;
+
+    --hub-red: #ba0517;
+    --hub-yellow: #b85d00;
+    --hub-green: #2e844a;
+}
+
+
+/* ===============================
+   MAIN LAYOUT
+   =============================== */
+
+.architecture-hub {
+    display: grid;
+    grid-template-columns: 255px minmax(0, 1fr);
+    min-height: 760px;
+
+    background: var(--hub-background);
+
+    border: 1px solid var(--hub-border);
+    border-radius: 8px;
+
+    overflow: hidden;
+}
+
+
+/* ===============================
+   LEFT SIDEBAR
+   =============================== */
+
+.sidebar {
+    background: linear-gradient(
+        180deg,
+        #032d60 0%,
+        #063b72 100%
+    );
+
+    color: white;
+
+    display: flex;
+    flex-direction: column;
+
+    min-height: 760px;
+}
+
+
+.brand-section {
+    padding: 22px 20px 18px;
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.15);
+}
+
+
+.brand-title {
+    font-family: Georgia, serif;
+
+    font-size: 21px;
+    font-weight: 700;
+
+    letter-spacing: -0.3px;
+}
+
+
+.brand-title span {
+    color: var(--hub-gold);
+}
+
+
+.brand-subtitle {
+    margin-top: 4px;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+
+    color: rgba(255, 255, 255, 0.55);
+}
+
+
+/* ===============================
+   NAVIGATION
+   =============================== */
+
+.navigation {
+    flex: 1;
+
+    padding-top: 12px;
+}
+
+
+.nav-group-label {
+    padding:
+        16px
+        20px
+        6px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.6px;
+
+    text-transform: uppercase;
+
+    color: rgba(255, 255, 255, 0.42);
+}
+
+
+.nav-section {
+    width: 100%;
+}
+
+
+.nav-item {
+    width: 100%;
+
+    border: 0;
+
+    border-left:
+        3px solid transparent;
+
+    background: transparent;
+
+    color:
+        rgba(255, 255, 255, 0.85);
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding:
+        10px
+        16px;
+
+    cursor: pointer;
+
+    text-align: left;
+
+    font-size: 13px;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+
+.nav-item:hover {
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    color: white;
+}
+
+
+.nav-item-active {
+    background:
+        rgba(214, 184, 90, 0.14);
+
+    border-left-color:
+        var(--hub-gold);
+
+    color: white;
+
+    font-weight: 600;
+}
+
+
+.nav-icon {
+    --slds-c-icon-color-foreground-default:
+        rgba(255, 255, 255, 0.82);
+
+    flex-shrink: 0;
+}
+
+
+.nav-text {
+    flex: 1;
+}
+
+
+.nav-badge {
+    background:
+        rgba(255, 255, 255, 0.15);
+
+    color: white;
+
+    font-size: 10px;
+
+    min-width: 28px;
+
+    padding: 2px 7px;
+
+    text-align: center;
+
+    border-radius: 12px;
+}
+
+
+.sidebar-footer {
+    padding:
+        12px
+        20px;
+
+    border-top:
+        1px solid rgba(255, 255, 255, 0.12);
+
+    font-size: 10px;
+
+    color:
+        rgba(255, 255, 255, 0.45);
+}
+
+
+/* ===============================
+   MAIN CONTENT
+   =============================== */
+
+.main-content {
+    padding: 28px;
+
+    min-width: 0;
+}
+
+
+.page-header {
+    margin-bottom: 20px;
+}
+
+
+.eyebrow,
+.card-eyebrow {
+    color: #8a6d1d;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.4px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 6px;
+}
+
+
+.header-row {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 20px;
+}
+
+
+h1 {
+    color: var(--hub-navy);
+
+    font-family: Georgia, serif;
+
+    font-size: 30px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    margin: 0;
+}
+
+
+h2 {
+    color: var(--hub-navy);
+
+    font-family: Georgia, serif;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+    margin: 0;
+}
+
+
+.page-description {
+    max-width: 760px;
+
+    margin:
+        8px
+        0
+        0;
+
+    font-size: 14px;
+
+    line-height: 1.55;
+
+    color: var(--hub-muted);
+}
+
+
+/* ===============================
+   ASSESSMENT CYCLE
+   =============================== */
+
+.cycle-container {
+    background: white;
+
+    border:
+        1px solid var(--hub-border);
+
+    border-radius: 6px;
+
+    padding:
+        9px
+        14px;
+
+    text-align: right;
+
+    min-width: 125px;
+}
+
+
+.cycle-label {
+    display: block;
+
+    color: var(--hub-muted);
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+}
+
+
+.cycle-value {
+    display: block;
+
+    color: var(--hub-navy);
+
+    font-weight: 700;
+
+    margin-top: 2px;
+}
+
+
+/* ===============================
+   INFO
+   =============================== */
+
+.info-banner {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding:
+        11px
+        14px;
+
+    margin-bottom: 18px;
+
+    background: #eef4ff;
+
+    border-left:
+        4px solid var(--hub-blue);
+
+    border-radius: 4px;
+
+    color: var(--hub-muted);
+
+    font-size: 12px;
+}
+
+
+.info-banner strong {
+    color: var(--hub-navy);
+
+    margin-right: 5px;
+}
+
+
+/* ===============================
+   KPI CARDS
+   =============================== */
+
+.kpi-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(140px, 1fr));
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+}
+
+
+.kpi-card {
+    position: relative;
+
+    background: white;
+
+    border:
+        1px solid var(--hub-border);
+
+    border-radius: 7px;
+
+    padding:
+        16px
+        16px
+        14px;
+
+    overflow: hidden;
+}
+
+
+.kpi-card::before {
+    content: '';
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: 4px;
+}
+
+
+.kpi-blue::before {
+    background: var(--hub-blue);
+}
+
+
+.kpi-red::before {
+    background: var(--hub-red);
+}
+
+
+.kpi-yellow::before {
+    background: var(--hub-yellow);
+}
+
+
+.kpi-green::before {
+    background: var(--hub-green);
+}
+
+
+.kpi-label {
+    font-size: 10px;
+
+    color: var(--hub-muted);
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.8px;
+}
+
+
+.kpi-value {
+    color: var(--hub-navy);
+
+    font-family: Georgia, serif;
+
+    font-size: 29px;
+
+    font-weight: 700;
+
+    margin:
+        5px
+        0
+        1px;
+}
+
+
+.kpi-description {
+    color: var(--hub-muted);
+
+    font-size: 11px;
+}
+
+
+.change-positive,
+.change-negative {
+    margin-top: 7px;
+
+    font-size: 10px;
+
+    font-weight: 600;
+}
+
+
+.change-positive {
+    color: var(--hub-green);
+}
+
+
+.change-negative {
+    color: var(--hub-red);
+}
+
+
+/* ===============================
+   DASHBOARD CARDS
+   =============================== */
+
+.dashboard-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+
+    gap: 16px;
+
+    margin-bottom: 16px;
+}
+
+
+.dashboard-card {
+    background: var(--hub-card);
+
+    border:
+        1px solid var(--hub-border);
+
+    border-radius: 8px;
+
+    padding: 18px;
+
+    margin-bottom: 16px;
+}
+
+
+.dashboard-grid .dashboard-card {
+    margin-bottom: 0;
+}
+
+
+.card-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    margin-bottom: 16px;
+}
+
+
+.card-link {
+    color: var(--hub-muted);
+
+    font-size: 11px;
+}
+
+
+/* ===============================
+   HEALTH CARD
+   =============================== */
+
+.overall-score {
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    margin-bottom: 18px;
+}
+
+
+.score {
+    color: var(--hub-green);
+
+    font-family: Georgia, serif;
+
+    font-size: 38px;
+
+    font-weight: 700;
+}
+
+
+.score-max {
+    color: var(--hub-muted);
+
+    font-size: 14px;
+}
+
+
+.score-description {
+    color: var(--hub-muted);
+
+    font-size: 11px;
+
+    padding-bottom: 5px;
+}
+
+
+.health-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 8px;
+}
+
+
+.health-row {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    background: #f8f9fb;
+
+    border-radius: 5px;
+
+    padding:
+        9px
+        10px;
+
+    font-size: 12px;
+}
+
+
+.health-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.health-count {
+    font-weight: 700;
+
+    color: var(--hub-navy);
+}
+
+
+.health-dot {
+    width: 8px;
+
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+
+.red-dot {
+    background: var(--hub-red);
+}
+
+
+.yellow-dot {
+    background: var(--hub-yellow);
+}
+
+
+.green-dot {
+    background: var(--hub-green);
+}
+
+
+.health-bar {
+    display: flex;
+
+    height: 9px;
+
+    overflow: hidden;
+
+    border-radius: 10px;
+
+    margin-top: 15px;
+
+    background: #e5e5e5;
+}
+
+
+.health-bar-red {
+    background: var(--hub-red);
+}
+
+
+.health-bar-yellow {
+    background: var(--hub-yellow);
+}
+
+
+.health-bar-green {
+    background: var(--hub-green);
+}
+
+
+/* ===============================
+   PRACTICE
+   =============================== */
+
+.practice-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 12px;
+}
+
+
+.practice-stat {
+    border:
+        1px solid #e4e7eb;
+
+    background: #fafbfc;
+
+    border-radius: 6px;
+
+    padding: 15px;
+}
+
+
+.practice-value {
+    color: var(--hub-navy);
+
+    font-family: Georgia, serif;
+
+    font-size: 27px;
+
+    font-weight: 700;
+}
+
+
+.practice-label {
+    color: var(--hub-text);
+
+    font-weight: 700;
+
+    font-size: 12px;
+
+    margin-top: 3px;
+}
+
+
+.practice-description {
+    color: var(--hub-muted);
+
+    font-size: 10px;
+
+    margin-top: 4px;
+}
+
+
+/* ===============================
+   DIMENSIONS
+   =============================== */
+
+.dimension-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        18px
+        28px;
+}
+
+
+.dimension-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-bottom: 7px;
+
+    font-size: 12px;
+
+    color: var(--hub-muted);
+}
+
+
+.dimension-header strong {
+    color: var(--hub-navy);
+}
+
+
+.progress-track {
+    background: #e8eaed;
+
+    height: 8px;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+
+.progress-value {
+    height: 100%;
+
+    border-radius: 10px;
+}
+
+
+.progress-green {
+    background: var(--hub-green);
+}
+
+
+/* ===============================
+   DATA FLOW
+   =============================== */
+
+.status-pill {
+    background: #fff4cc;
+
+    color: #7a5d00;
+
+    border-radius: 14px;
+
+    padding:
+        3px
+        9px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+
+.data-flow {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+
+.data-node {
+    flex: 1;
+
+    background: #f8f9fb;
+
+    border:
+        1px solid var(--hub-border);
+
+    border-radius: 6px;
+
+    padding: 14px;
+}
+
+
+.data-node-label {
+    display: block;
+
+    color: var(--hub-muted);
+
+    font-size: 9px;
+
+    letter-spacing: 1px;
+
+    font-weight: 700;
+
+    margin-bottom: 3px;
+}
+
+
+.data-node strong {
+    color: var(--hub-navy);
+
+    font-size: 12px;
+}
+
+
+.data-arrow {
+    color: var(--hub-blue);
+
+    font-size: 20px;
+
+    font-weight: 700;
+}
+
+
+/* ===============================
+   PLACEHOLDER
+   =============================== */
+
+.placeholder {
+    background: white;
+
+    border:
+        1px solid var(--hub-border);
+
+    border-radius: 8px;
+
+    min-height: 450px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    padding: 40px;
+}
+
+
+.placeholder-icon {
+    margin-bottom: 18px;
+}
+
+
+.placeholder p {
+    max-width: 500px;
+
+    color: var(--hub-muted);
+
+    margin:
+        10px
+        0
+        20px;
+}
+
+
+.back-button {
+    border: 0;
+
+    border-radius: 5px;
+
+    background: var(--hub-navy);
+
+    color: white;
+
+    padding:
+        8px
+        16px;
+
+    cursor: pointer;
+
+    font-weight: 600;
+}
+
+
+/* ===============================
+   RESPONSIVE
+   =============================== */
+
+@media only screen and (max-width: 1200px) {
+
+    .kpi-grid {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+}
+
+
+@media only screen and (max-width: 900px) {
+
+    .architecture-hub {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        min-height: auto;
+    }
+
+    .navigation {
+        padding-bottom: 12px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media only screen and (max-width: 600px) {
+
+    .main-content {
+        padding: 18px;
+    }
+
+    .header-row {
+        flex-direction: column;
+    }
+
+    .cycle-container {
+        text-align: left;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .practice-stat-grid,
+    .health-summary,
+    .dimension-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .data-flow {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .data-arrow {
+        transform: rotate(90deg);
+
+        text-align: center;
+    }
+
+}
