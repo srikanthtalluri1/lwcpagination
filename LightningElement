@@ -2,6 +2,10 @@
 public without sharing class TPM_PAAMStackData {
 
   public static String ownershipCondition;
+
+  // Pagination stabilization switch. Existing implementation remains below as fallback.
+  private static Boolean useStablePagination = true;
+  private static final String LAST_PAGE_TOKEN = '__PAAM_LAST_PAGE__';
     
     @SuppressWarnings('PMD.ExcessiveParameterList, PMD.NcssMethodCount')  
     @AuraEnabled(cacheable=true)
@@ -15,6 +19,19 @@ public without sharing class TPM_PAAMStackData {
         String syncView,
          String stackStatus
     ) {
+        // ADD ONLY: use stable unique-row pagination.
+        // Set useStablePagination = false to fall back to the original implementation below.
+        if (useStablePagination) {
+            return getStackLayJunctionStable(
+                pageSize,
+                lastAppName,
+                lastRecordId,
+                ownedBy,
+                searchKey,
+                syncView,
+                stackStatus
+            );
+        }
         Integer safeLimit = pageSize == null
             ? 50
             : Math.min(Math.max(pageSize, 1), 200);
@@ -515,6 +532,524 @@ result.lastRecordId =
     }
 
     
+    /*
+     * ============================================================
+     * STABLE PAGINATION IMPLEMENTATION
+     * ============================================================
+     *
+     * Why this exists:
+     * - The original SOQL paginates raw import relationship records.
+     * - The UI then de-duplicates by App UUID + Stack Layer UUID.
+     * - That can make a 50-record page display fewer than 50 rows and
+     *   can make the total count show only the current page.
+     *
+     * This implementation keeps the existing public method signature,
+     * filters, ownership logic, row shape, and UI conflict behavior,
+     * but performs pagination AFTER the logical rows are de-duplicated.
+     *
+     * No original implementation was removed. The old code remains as
+     * a fallback behind useStablePagination.
+     */
+    private static PaamPageResult getStackLayJunctionStable(
+        Integer pageSize,
+        String lastAppName,
+        Id lastRecordId,
+        String ownedBy,
+        String searchKey,
+        String syncView,
+        String stackStatus
+    ) {
+        Integer safeLimit = pageSize == null
+            ? 50
+            : Math.min(Math.max(pageSize, 1), 200);
+
+        ownershipCondition = buildOwnershipCondition(ownedBy);
+
+        Id currentUserId;
+        if (String.isNotBlank(ownershipCondition)) {
+            currentUserId = getCurrentEmployeeId();
+        }
+
+        String normalizedSearchKey =
+            String.isBlank(searchKey)
+                ? null
+                : searchKey.trim();
+
+        String searchPattern;
+        if (
+            normalizedSearchKey != null &&
+            normalizedSearchKey.length() >= 3
+        ) {
+            searchPattern = '%' + normalizedSearchKey + '%';
+        }
+
+        List<String> baseConditions = new List<String>();
+        baseConditions.add('App__c != null');
+
+        if (String.isNotBlank(searchPattern)) {
+            baseConditions.add(
+                '(' +
+                    'App__r.App_Name__c LIKE :searchPattern ' +
+                    'OR App__r.Operational_Status__c LIKE :searchPattern ' +
+                    'OR Stack_Layer_Config__r.Name LIKE :searchPattern ' +
+                    'OR StackLayerStatus__c LIKE :searchPattern' +
+                ')'
+            );
+        }
+
+        if (String.isNotBlank(ownershipCondition)) {
+            baseConditions.add(ownershipCondition);
+        }
+
+        if (String.isNotBlank(stackStatus)) {
+            baseConditions.add('StackLayerStatus__c = :stackStatus');
+        }
+
+        /*
+         * Query the complete filtered server dataset once.
+         * We need the full filtered set so totals and page boundaries
+         * are based on unique logical UI rows, not raw relationship rows.
+         */
+        String stableQuery =
+            'SELECT ' +
+                'Id, ' +
+                'CreatedDate, ' +
+                'App_UUID__c, ' +
+                'Stack_Layer_UUID__c, ' +
+                'StackLayerStatus__c, ' +
+                'Stack_Layer_Config__c, ' +
+                'Stack_Layer_Config__r.Name, ' +
+                'App__c, ' +
+                'Mapping_Type__c, ' +
+                'App__r.Application_Type__c, ' +
+                'App__r.IT_Architect__c, ' +
+                'App__r.Application_Owner__c, ' +
+                'App__r.IT_Architect__r.Name, ' +
+                'App__r.App_TIME_Recommendation__c, ' +
+                'App__r.Operational_Status__c, ' +
+                'App__r.App_Name__c, ' +
+                'App__r.Category__r.Domain__r.Port__r.Name, ' +
+                'App__r.Category__r.Domain__r.Name, ' +
+                'App__r.Category__r.Name, ' +
+                'App__r.UUID__c, ' +
+                'App__r.Subtype__c, ' +
+                'App__r.Business_Owner__r.Name, ' +
+                'App__r.Application_Owner__r.Name, ' +
+                'App__r.Description__c ' +
+            'FROM TPM_Stack_Layer_Import_Relationship__c';
+
+        if (!baseConditions.isEmpty()) {
+            stableQuery +=
+                ' WHERE ' +
+                String.join(baseConditions, ' AND ');
+        }
+
+        stableQuery +=
+            ' ORDER BY App__r.App_Name__c ASC, Id ASC';
+
+        System.debug('STABLE PAGINATION QUERY :: ' + stableQuery);
+
+        List<TPM_Stack_Layer_Import_Relationship__c> allFilteredRecords =
+            Database.query(stableQuery);
+
+        /*
+         * Classify every logical key first.
+         * If any raw relationship for a logical key is a conflict,
+         * that logical key is treated as a conflict. This keeps the
+         * conflict count stable after de-duplication.
+         */
+        Set<String> allUniqueKeys = new Set<String>();
+        Set<String> conflictUniqueKeys = new Set<String>();
+
+        for (
+            TPM_Stack_Layer_Import_Relationship__c recordItem :
+            allFilteredRecords
+        ) {
+            String compositeKey = stableCompositeKey(recordItem);
+            allUniqueKeys.add(compositeKey);
+
+            if (isStableConflictRecord(recordItem)) {
+                conflictUniqueKeys.add(compositeKey);
+            }
+        }
+
+        Integer fullUniqueTotal = allUniqueKeys.size();
+        Integer fullUniqueConflicts = conflictUniqueKeys.size();
+        Integer fullUniqueSync =
+            Math.max(0, fullUniqueTotal - fullUniqueConflicts);
+
+        /*
+         * Build ONE representative UI row for each unique logical key.
+         *
+         * Conflict keys use a conflict raw record as their representative.
+         * Sync keys use a non-conflict raw record as their representative.
+         * This keeps the server classification aligned with the existing
+         * JavaScript isConflict calculation.
+         */
+        Map<String, PaamRowWrapper> uniqueRowsByKey =
+            new Map<String, PaamRowWrapper>();
+        List<String> orderedKeys = new List<String>();
+
+        for (
+            TPM_Stack_Layer_Import_Relationship__c recordItem :
+            allFilteredRecords
+        ) {
+            String compositeKey = stableCompositeKey(recordItem);
+            Boolean keyIsConflict = conflictUniqueKeys.contains(compositeKey);
+
+            if ('conflicts'.equalsIgnoreCase(syncView) && !keyIsConflict) {
+                continue;
+            }
+
+            if ('sync'.equalsIgnoreCase(syncView) && keyIsConflict) {
+                continue;
+            }
+
+            Boolean rawRecordIsConflict = isStableConflictRecord(recordItem);
+
+            // For a conflict logical key, use a conflict raw record.
+            if (keyIsConflict && !rawRecordIsConflict) {
+                continue;
+            }
+
+            // For a sync logical key, use a non-conflict raw record.
+            if (!keyIsConflict && rawRecordIsConflict) {
+                continue;
+            }
+
+            if (!uniqueRowsByKey.containsKey(compositeKey)) {
+                PaamRowWrapper row =
+                    buildStablePaamRow(recordItem, currentUserId, compositeKey);
+
+                uniqueRowsByKey.put(compositeKey, row);
+                orderedKeys.add(compositeKey);
+            }
+        }
+
+        List<PaamRowWrapper> fullLogicalRows =
+            new List<PaamRowWrapper>();
+
+        for (String key : orderedKeys) {
+            fullLogicalRows.add(uniqueRowsByKey.get(key));
+        }
+
+        Integer filteredUniqueTotal = fullLogicalRows.size();
+
+        /*
+         * Resolve the page start.
+         *
+         * Normal Next navigation passes the last row from the previous page.
+         * Last navigation uses a private sentinel token so the public Apex
+         * method signature does not need to change.
+         */
+        Integer startIndex = 0;
+
+        if (LAST_PAGE_TOKEN.equals(lastAppName)) {
+            if (filteredUniqueTotal > 0) {
+                startIndex =
+                    ((filteredUniqueTotal - 1) / safeLimit) * safeLimit;
+            }
+        }
+        else if (lastRecordId != null) {
+            startIndex = findStableStartIndex(
+                fullLogicalRows,
+                lastAppName,
+                lastRecordId
+            );
+        }
+
+        if (startIndex < 0 || startIndex > filteredUniqueTotal) {
+            startIndex = 0;
+        }
+
+        Integer endIndex = Math.min(
+            startIndex + safeLimit,
+            filteredUniqueTotal
+        );
+
+        List<PaamRowWrapper> pageRows =
+            new List<PaamRowWrapper>();
+
+        for (Integer index = startIndex; index < endIndex; index++) {
+            pageRows.add(fullLogicalRows[index]);
+        }
+
+        PaamPageResult result = new PaamPageResult();
+        result.rows = pageRows;
+        result.hasMore = endIndex < filteredUniqueTotal;
+        result.totalRecords = fullUniqueTotal;
+        result.filteredTotalRecords = filteredUniqueTotal;
+
+        if ('conflicts'.equalsIgnoreCase(syncView)) {
+            result.totalConflicts = fullUniqueConflicts;
+            result.totalSync = 0;
+        }
+        else if ('sync'.equalsIgnoreCase(syncView)) {
+            result.totalConflicts = 0;
+            result.totalSync = fullUniqueSync;
+        }
+        else {
+            result.totalConflicts = fullUniqueConflicts;
+            result.totalSync = fullUniqueSync;
+        }
+
+        /*
+         * Cursor for Next.
+         */
+        if (!pageRows.isEmpty()) {
+            PaamRowWrapper finalRow = pageRows[pageRows.size() - 1];
+            result.lastAppName = finalRow.appName;
+            result.lastRecordId = finalRow.Id;
+        }
+
+        /*
+         * Cursor for Previous.
+         * To load the previous page, the client needs the row immediately
+         * BEFORE that previous page starts.
+         */
+        if (startIndex > 0) {
+            Integer previousPageStart = Math.max(0, startIndex - safeLimit);
+
+            if (previousPageStart > 0) {
+                PaamRowWrapper previousCursorRow =
+                    fullLogicalRows[previousPageStart - 1];
+
+                result.previousLastAppName = previousCursorRow.appName;
+                result.previousLastRecordId = previousCursorRow.Id;
+            }
+        }
+
+        System.debug(
+            'STABLE PAGINATION RESULT => ' +
+            'fullUniqueTotal=' + fullUniqueTotal +
+            ', filteredUniqueTotal=' + filteredUniqueTotal +
+            ', startIndex=' + startIndex +
+            ', endIndex=' + endIndex +
+            ', pageRows=' + pageRows.size() +
+            ', hasMore=' + result.hasMore
+        );
+
+        return result;
+    }
+
+
+    private static String stableCompositeKey(
+        TPM_Stack_Layer_Import_Relationship__c recordItem
+    ) {
+        // Exactly matches the composite-key rule already used by the UI code.
+        return
+            String.valueOf(recordItem.App_UUID__c) +
+            '|' +
+            String.valueOf(recordItem.Stack_Layer_UUID__c);
+    }
+
+
+    private static Boolean isStableConflictRecord(
+        TPM_Stack_Layer_Import_Relationship__c recordItem
+    ) {
+        String mappingType =
+            String.isBlank(recordItem.Mapping_Type__c)
+                ? ''
+                : recordItem.Mapping_Type__c.trim();
+
+        return
+            (
+                'CI'.equalsIgnoreCase(mappingType) ||
+                'PAAM'.equalsIgnoreCase(mappingType)
+            ) &&
+            recordItem.Stack_Layer_Config__c != null;
+    }
+
+
+    private static Integer findStableStartIndex(
+        List<PaamRowWrapper> fullLogicalRows,
+        String lastAppName,
+        Id lastRecordId
+    ) {
+        if (fullLogicalRows == null || fullLogicalRows.isEmpty()) {
+            return 0;
+        }
+
+        /*
+         * Normal case: the exact previous-page cursor still exists.
+         */
+        for (Integer index = 0; index < fullLogicalRows.size(); index++) {
+            if (fullLogicalRows[index].Id == lastRecordId) {
+                return index + 1;
+            }
+        }
+
+        /*
+         * Fallback: Accept Conflict can change Mapping_Type__c and remove
+         * the cursor row from the current Conflict view. In that case,
+         * continue from the first row that sorts AFTER the old cursor.
+         */
+        String safeLastAppName =
+            String.isBlank(lastAppName)
+                ? ''
+                : lastAppName;
+        String safeLastRecordId = String.valueOf(lastRecordId);
+
+        for (Integer index = 0; index < fullLogicalRows.size(); index++) {
+            PaamRowWrapper row = fullLogicalRows[index];
+            String rowAppName =
+                String.isBlank(row.appName)
+                    ? ''
+                    : row.appName;
+
+            Integer appNameComparison =
+                rowAppName.toLowerCase().compareTo(safeLastAppName.toLowerCase());
+
+            if (appNameComparison > 0) {
+                return index;
+            }
+
+            if (
+                appNameComparison == 0 &&
+                String.valueOf(row.Id).compareTo(safeLastRecordId) > 0
+            ) {
+                return index;
+            }
+        }
+
+        return fullLogicalRows.size();
+    }
+
+
+    private static PaamRowWrapper buildStablePaamRow(
+        TPM_Stack_Layer_Import_Relationship__c recordItem,
+        Id currentUserId,
+        String compositeKey
+    ) {
+        PaamRowWrapper row = new PaamRowWrapper();
+
+        row.Id = recordItem.Id;
+        row.createdDate = recordItem.CreatedDate;
+        row.appUuid = recordItem.App_UUID__c;
+        row.stackLayerUuid = recordItem.Stack_Layer_UUID__c;
+        row.compositeKey = compositeKey;
+        row.manualStatus = recordItem.StackLayerStatus__c;
+        row.discoveredStatus = '';
+        row.forceInSync = false;
+
+        String paamValue =
+            recordItem.Stack_Layer_Config__r != null
+                ? recordItem.Stack_Layer_Config__r.Name
+                : '';
+
+        String paamSource =
+            String.isBlank(recordItem.Mapping_Type__c)
+                ? ''
+                : recordItem.Mapping_Type__c.trim();
+
+        if ('CI'.equalsIgnoreCase(paamSource)) {
+            row.paamManual = '';
+            row.paamDiscovered = paamValue;
+        }
+        else if ('PAAM'.equalsIgnoreCase(paamSource)) {
+            row.paamManual = paamValue;
+            row.paamDiscovered = '';
+        }
+        else if ('PAAM and CI'.equalsIgnoreCase(paamSource)) {
+            row.paamManual = paamValue;
+            row.paamDiscovered = paamValue;
+            row.forceInSync = true;
+        }
+        else {
+            row.paamManual = paamValue;
+            row.paamDiscovered = '';
+        }
+
+        if (recordItem.App__r != null) {
+            row.appId = recordItem.App__c;
+            row.appName = recordItem.App__r.App_Name__c;
+            row.operationalStatus = recordItem.App__r.Operational_Status__c;
+            row.UIID = recordItem.App__r.UUID__c;
+            row.description = recordItem.App__r.Description__c;
+            row.appTIME = recordItem.App__r.Subtype__c;
+            row.ApplicationType = recordItem.App__r.Application_Type__c;
+            row.appTIMERec = recordItem.App__r.App_TIME_Recommendation__c;
+
+            if (recordItem.App__r.Category__r != null) {
+                row.category = recordItem.App__r.Category__r.Name;
+
+                if (recordItem.App__r.Category__r.Domain__r != null) {
+                    row.domain = recordItem.App__r.Category__r.Domain__r.Name;
+
+                    if (
+                        recordItem.App__r.Category__r.Domain__r.Port__r != null
+                    ) {
+                        row.portfolio =
+                            recordItem.App__r.Category__r.Domain__r.Port__r.Name;
+                    }
+                }
+            }
+
+            if (String.isNotBlank(recordItem.App__r.Subtype__c)) {
+                row.subtype = TPM_PicklistLabelUtil.getPicklistLabel(
+                    'TPM_App__c',
+                    'Subtype__c',
+                    recordItem.App__r.Subtype__c
+                );
+            }
+
+            row.technicalArchitect = recordItem.App__r.Subtype__c;
+
+            if (recordItem.App__r.Business_Owner__r != null) {
+                row.businessOwner = recordItem.App__r.Business_Owner__r.Name;
+            }
+
+            if (recordItem.App__r.Application_Owner__r != null) {
+                row.ApplicationOwner =
+                    recordItem.App__r.Application_Owner__r.Name;
+            }
+
+            if (recordItem.App__r.IT_Architect__r != null) {
+                row.ITArchitect = recordItem.App__r.IT_Architect__r.Name;
+            }
+
+            row.isApplicationOwner =
+                recordItem.App__r.Application_Owner__c == currentUserId;
+            row.isTechnicalArchitect =
+                recordItem.App__r.IT_Architect__c == currentUserId;
+        }
+
+        row.appName = String.isBlank(row.appName) ? '' : row.appName;
+        row.operationalStatus =
+            String.isBlank(row.operationalStatus) ? '' : row.operationalStatus;
+        row.paamManual =
+            String.isBlank(row.paamManual) ? '' : row.paamManual;
+        row.paamDiscovered =
+            String.isBlank(row.paamDiscovered) ? '' : row.paamDiscovered;
+        row.manualStatus =
+            String.isBlank(row.manualStatus) ? '' : row.manualStatus;
+        row.discoveredStatus =
+            String.isBlank(row.discoveredStatus) ? '' : row.discoveredStatus;
+        row.portfolio = String.isBlank(row.portfolio) ? '' : row.portfolio;
+        row.domain = String.isBlank(row.domain) ? '' : row.domain;
+        row.category = String.isBlank(row.category) ? '' : row.category;
+        row.UIID = String.isBlank(row.UIID) ? '' : row.UIID;
+        row.subtype = String.isBlank(row.subtype) ? '' : row.subtype;
+        row.technicalArchitect =
+            String.isBlank(row.technicalArchitect) ? '' : row.technicalArchitect;
+        row.businessOwner =
+            String.isBlank(row.businessOwner) ? '' : row.businessOwner;
+        row.ApplicationOwner =
+            String.isBlank(row.ApplicationOwner) ? '' : row.ApplicationOwner;
+        row.description =
+            String.isBlank(row.description) ? '' : row.description;
+        row.appTIME = String.isBlank(row.appTIME) ? '' : row.appTIME;
+        row.ITArchitect =
+            String.isBlank(row.ITArchitect) ? '' : row.ITArchitect;
+        row.ApplicationType =
+            String.isBlank(row.ApplicationType) ? '' : row.ApplicationType;
+        row.appTIMERec =
+            String.isBlank(row.appTIMERec) ? '' : row.appTIMERec;
+
+        return row;
+    }
+
+
      @AuraEnabled(cacheable=true)
     public static Integer getUniqueAppCount(String ownedBy) {
 
@@ -676,6 +1211,13 @@ result.lastRecordId =
 
         @AuraEnabled
         public Id lastRecordId;
+
+        // ADD ONLY - cursor used by the LWC Previous button.
+        @AuraEnabled
+        public String previousLastAppName;
+
+        @AuraEnabled
+        public Id previousLastRecordId;
         
         @AuraEnabled
         public Integer totalConflicts;
@@ -822,7 +1364,13 @@ result.lastRecordId =
             appStack.StackLayerId__c = config.Id;
             appStack.App__c = appId;
             appStack.Stack_Name__c = config.StackId__r.Name;
-            insert appStack;
+
+             if(Schema.sObjectType.TPM_App_Stack__c.isCreateable()){
+             if(TPM_App_Stack__c.SObjectType.getDescribe().isCreateable()){
+                 insert appStack; 
+             }
+        }
+           // insert appStack;
         }
         
         TPM_Stack_layer_Junction__c jun = new TPM_Stack_layer_Junction__c();
@@ -833,7 +1381,10 @@ result.lastRecordId =
         }
         
         TPM_AppStackUpdateBatch.updateAppsStackData(new Set<Id>{jun.Stack_Layer_Config__c});
-        
+       
+        if(TPM_Stack_Layer_Import_Relationship__c.SObjectType.getDescribe().isUpdateable()){
+        return false;
+        }
         update new TPM_Stack_Layer_Import_Relationship__c(Id = row.recId, Mapping_Type__c = 'PAAM and CI', Architect_Agreement__c = 'Accept');
         return true;
     }
