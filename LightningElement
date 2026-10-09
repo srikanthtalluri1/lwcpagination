@@ -1,1126 +1,380 @@
-import { LightningElement, track } from 'lwc';
-import  getUniqueAppCount from '@salesforce/apex/TPM_PAAMStackData.getUniqueAppCount';
-import getStackLayJunction from '@salesforce/apex/TPM_PAAMStackData.getStackLayJunction'; 
-import acceptConflict from '@salesforce/apex/TPM_PAAMStackData.acceptConflict'; //vara
-const STACK_STATUS_OPTIONS = [
-    { label: 'Preferred', slug: 'preferred' },
-    { label: 'Acceptable', slug: 'acceptable' },
-    {
-        label: 'Under Consideration',
-        slug: 'under-consideration'
-    },
-    { label: 'Restricted', slug: 'restricted' },
-    { label: 'Deprecated', slug: 'deprecated' },
-    { label: 'Denied', slug: 'denied' },
-    { label: 'Not Applicable', slug: 'not-applicable' }
-];
+@IsTest
+private class TPM_PAAMStackDataTest {
 
-function statusSlug(status) {
-    return (status || 'unknown')
-        .toString()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'unknown';
-}
+    private static void setName(SObject recordItem, String nameValue) {
+        Map<String, Schema.SObjectField> fields =
+            recordItem.getSObjectType().getDescribe().fields.getMap();
 
-function formatNumber(value) {
-    return Number(value || 0).toLocaleString();
-}
+        if (fields.containsKey('Name')) {
+            Schema.DescribeFieldResult nameField =
+                fields.get('Name').getDescribe();
 
-export default class TpmPAAMStackdataConflict extends LightningElement {
-   @track overrides = {};
-    @track rows = [];
-    @track isLoading = false;
-    @track errorMessage = '';
-
-   // lastCreatedDate = null;
-   lastAppName = null;
-    lastRecordId = null;
-
-    // ADD ONLY - server-provided cursor for Previous navigation.
-    previousLastAppName = null;
-    previousLastRecordId = null;
-
-    hasMore = true;
-    totalRecordCount = 0;
-    tableTotalRecordCount = 0;
-    totalConflictCount = 0;
-    totalSyncCount = 0;
-  //  ownedBy;
-
-    page = 1;
-    pageSize = 50;
-
-    query = '';
-    view = 'conflicts';
-    scope = 'primary';
-    statusFilter = 'all';
-
-    sortField = 'appName';
-    sortDir = 'asc';
-
-    toastMessage = '';
-    toastKind = 'success';
-
-    searchTimeout;
-    toastTimeout;
-    uniqueAppCount = 0;
-    hoveredGroupKey = null;
-
-    stackStatusOptions = STACK_STATUS_OPTIONS;
-    selectedRow = {};
-    isAppModalOpen = false;
-     totalConflictCount = 0;
-    totalSyncCount = 0;
-    connectedCallback() {
-        this.loadRecords();
-        this.getUniqueAppCount();
-    }
-
-    get totalConflicts() {
-        return this.totalConflictCount;
-    }
-
-    get totalSync() {
-        return this.totalSyncCount;
-    }
-
-    get conflictPct() {
-        if (!this.totalRecordCount) {
-            return 0;
+            if (nameField.isCreateable() && !nameField.isAutoNumber()) {
+                recordItem.put('Name', nameValue);
+            }
         }
-
-        return Math.round(
-            (
-                this.totalConflictCount /
-                this.totalRecordCount
-            ) * 100
-        );
     }
 
-    getUniqueAppCount() {
-        getUniqueAppCount({ownedBy: this.ownedBy}) 
-        .then(result => {
-         this.uniqueAppCount = result;
-          })
-    .catch(error => {
-        console.error('Error getting unique app count:', error);
-        });
-
-    }
-    
-  handleGroupMouseEnter(event) {
-    this.hoveredGroupKey =
-        event.currentTarget.dataset.groupKey;
-}
-
-handleGroupMouseLeave() {
-    this.hoveredGroupKey = null;
-}
-    renderedCallback() {
-        const pageSizeSelect =
-            this.template.querySelector('.paam-page-size');
-
-        if (
-            pageSizeSelect &&
-            pageSizeSelect.value !== String(this.pageSize)
+    private static String getPicklistValue(
+        Schema.DescribeFieldResult fieldDescribe
+    ) {
+        for (
+            Schema.PicklistEntry entry :
+            fieldDescribe.getPicklistValues()
         ) {
-            pageSizeSelect.value = String(this.pageSize);
-        }
-    }
-
-    get ownedBy() {
-        if (this.scope === 'primary') {
-            return 'MyPrimary';
+            if (entry.isActive()) {
+                return entry.getValue();
+            }
         }
 
-        if (this.scope === 'mine') {
-            return 'MyAll';
-        }
-
-        return 'All';
-    }
-
-    loadRecords(isNextPage = false) {
-        this.isLoading = true;
-        this.errorMessage = '';
-
-        getStackLayJunction({
-            pageSize: Number(this.pageSize),
-            lastAppName: this.lastAppName,
-            lastRecordId: this.lastRecordId,
-            ownedBy: this.ownedBy,
-            searchKey: this.query,
-            syncView: this.view,
-            stackStatus: this.selectedStackStatus
-        })
-            .then((result) => {
-                const returnedRows = result?.rows || [];
-
-                this.rows = returnedRows.map((row) => ({
-                    ...row,
-                    id: row.Id,
-                     appUuid:
-                    row.appUuid || '',
-
-                stackLayerUuid:
-                    row.stackLayerUuid || '',
-
-                compositeKey:
-                    row.compositeKey ||
-                    `${row.appUuid || ''}|${row.stackLayerUuid || ''}`,
-
-                    appId:
-                        row.appId ||
-                        row.appName ||
-                        row.Id,
-                    appName: row.appName || '',
-                    isApplicationOwner : row.isApplicationOwner === true,
-                      isTechnicalArchitect : row.isTechnicalArchitect === true,
-                    status: row.operationalStatus || '',
-                    paamManual: row.paamManual || '',
-                    paamDiscovered:
-                        row.paamDiscovered || '',
-                    manualStatus: row.manualStatus || '',
-                    discoveredStatus:
-                        row.discoveredStatus || '',
-                        forceInSync: row.forceInSync === true
-                }));
-
-                this.hasMore =
-                    result?.hasMore === true;
-
-                this.tableTotalRecordCount = result?.filteredTotalRecords || 0;  // 5 Aug
-
-                this.totalRecordCount =
-                    result?.totalRecords || 0;
-
-                this.totalConflictCount =
-                result?.totalConflicts || 0;
-
-                this.totalSyncCount =
-                result?.totalSync || 0;
-
-                this.lastAppName =
-                    result?.lastAppName || null;
-
-                this.lastRecordId =
-                    result?.lastRecordId || null;
-
-                // ADD ONLY - cursor required to load the immediately previous page.
-                this.previousLastAppName =
-                    result?.previousLastAppName || null;
-
-                this.previousLastRecordId =
-                    result?.previousLastRecordId || null;
-
-                if (
-                    isNextPage &&
-                    returnedRows.length > 0
-                ) {
-                    this.page += 1;
-                }
-            })
-            .catch((error) => {
-                console.error(
-                    'Error loading records:',
-                    error
-                );
-
-                this.errorMessage =
-                    error?.body?.message ||
-                    error?.message ||
-                    'Unable to load records.';
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
-    }
-
-    get disableNext() {
-        return this.isLoading || !this.hasMore;
-    }
-
-    get isPrimaryScope() {
-        return this.scope === 'primary';
-    }
-
-     get tableTotalRecordsDisplay() {
-        return formatNumber(
-            this.tableTotalRecordCount
-        );
-    }
-
-    get showActionCoumn() {
-        return this.isPrimaryScope && this.view === 'conflicts'; //29
-    }
-
-     get selectedStackStatus() {
-    if (this.statusFilter === 'all') {
         return null;
     }
 
-    const selectedOption = this.stackStatusOptions.find(
-        (option) => option.slug === this.statusFilter
-    );
+    static List<User> usrList = new List<User>();
 
-    return selectedOption
-        ? selectedOption.label
-        : null;
-}
+    @TestSetup
+    public static void setupData() {
 
+        usrList = testUserDataSetUp();
 
-    get primaryScopeClass() {
-        return this.scope === 'primary'
-            ? 'is-active'
-            : '';
-    }
+        System.runAs(usrList[0]) {
 
-    get mineScopeClass() {
-        return this.scope === 'mine'
-            ? 'is-active'
-            : '';
-    }
+            UCH_Employee__c employee =
+                new UCH_Employee__c(
+                    Employee_ID__c = usrList[0].EmployeeNumber,
+                    Department_Description__c = 'Test',
+                    Department_ID__c = '1232s'
+                );
 
-    get allScopeClass() {
-        return this.scope === 'all'
-            ? 'is-active'
-            : '';
-    }
-
-    get conflictsViewClass() {
-        return this.view === 'conflicts'
-            ? 'is-active'
-            : '';
-    }
-
-    get allViewClass() {
-        return this.view === 'all'
-            ? 'is-active'
-            : '';
-    }
-
-    get syncViewClass() {
-        return this.view === 'sync'
-            ? 'is-active'
-            : '';
-    }
-
-    get totalApps() {
-        // return new Set(
-        //     this.rows.map((row) => row.appName)
-        // ).size;
-        return this.uniqueAppCount;
-    }
-
-    get totalRecords() {
-        return this.rows.length;
-    }
-
-    // get totalConflicts() {
-    //     return this.rows.filter(
-    //         (row) =>
-    //             row.forceInSync !== true &&
-    //         row.paamManual !== row.paamDiscovered
-    //     ).length;
-    // }
-
-    // get totalSync() {
-    //     return (
-    //         this.totalRecords -
-    //         this.totalConflicts
-    //     );
-    // }
-
-    get conflictPct() {
-        if (!this.totalRecordCount) {
-            return 0;
-        }
-
-        return Math.round(
-            (
-                this.totalConflictCount /
-                this.totalRecordCount
-            ) * 100
-        );
-    }
-
-    get totalAppsDisplay() {
-        return formatNumber(this.totalApps);
-    }
-
-    get totalRecordsDisplay() {
-        return formatNumber(
-            this.totalRecordCount
-        );
-    }
-
-    get totalConflictsDisplay() {
-        return formatNumber(
-            this.totalConflicts
-        );
-    }
-
-    get totalSyncDisplay() {
-        return formatNumber(this.totalSync);
-    }
-
-    get filteredRowsRaw() {
-        let filteredRows = this.rows.map(
-            (row) => ({
-                ...row,
-                isConflict:
-                 row.forceInSync !== true &&
-                    row.paamManual !==
-                    row.paamDiscovered
-            })
-        );
-
-        if (this.view === 'conflicts') {
-            filteredRows = filteredRows.filter(
-                (row) => row.isConflict
+            setName(
+                employee,
+                'Coverage Employee'
             );
-        } else if (this.view === 'sync') {
-            filteredRows = filteredRows.filter(
-                (row) => !row.isConflict
+
+            insert employee;
+
+            Schema.SObjectType appObjectType =
+                TPM_Stack_Layer_Import_Relationship__c.App__c
+                    .getDescribe()
+                    .getReferenceTo()[0];
+
+            SObject appRecord =
+                appObjectType.newSObject();
+
+            setName(
+                appRecord,
+                'Coverage Application'
             );
-        }
 
-        if (this.statusFilter !== 'all') {
-            filteredRows = filteredRows.filter(
-                (row) => {
-                    const manualStatus =
-                        statusSlug(
-                            row.manualStatus ||
-                            'Unknown'
-                        );
+            appRecord.put(
+                'App_Name__c',
+                'Coverage Application'
+            );
 
-                    const discoveredStatus =
-                        statusSlug(
-                            row.discoveredStatus ||
-                            'Unknown'
-                        );
+            appRecord.put(
+                'InActive__c',
+                false
+            );
 
-                    return (
-                        manualStatus ===
-                            this.statusFilter ||
-                        discoveredStatus ===
-                            this.statusFilter
+            appRecord.put(
+                'IT_Architect__c',
+                employee.Id
+            );
+
+            appRecord.put(
+                'Application_Owner__c',
+                employee.Id
+            );
+
+            appRecord.put(
+                'Business_Owner__c',
+                employee.Id
+            );
+
+           
+
+            Schema.DescribeFieldResult operationalStatusField =
+                appObjectType
+                    .getDescribe()
+                    .fields
+                    .getMap()
+                    .get('Operational_Status__c')
+                    .getDescribe();
+
+            String operationalStatus =
+                getPicklistValue(
+                    operationalStatusField
+                );
+
+            if (operationalStatus != null) {
+                appRecord.put(
+                    'Operational_Status__c',
+                    operationalStatus
+                );
+            }
+
+            insert appRecord;
+
+          
+                TPM_Stack_Layer_Config__c configRecord = new TPM_Stack_Layer_Config__c();
+            setName(
+                configRecord,
+                'Coverage Layer'
+            );
+
+            insert configRecord;
+
+            List<TPM_Stack_Layer_Import_Relationship__c> junctions =
+                new List<TPM_Stack_Layer_Import_Relationship__c>();
+
+            for (Integer index = 0; index < 2; index++) {
+
+                TPM_Stack_Layer_Import_Relationship__c junction =
+                    new TPM_Stack_Layer_Import_Relationship__c(
+                        App__c = appRecord.Id,
+                        Stack_Layer_Config__c =
+                            (Id) configRecord.get('Id')
                     );
+
+                if (index == 0) {
+                    junction.Mapping_Type__c = 'CI';
+                } else {
+                    junction.Mapping_Type__c = 'PAAM and CI';
                 }
-            );
+
+                setName(
+                    junction,
+                    'Coverage Junction ' + index
+                );
+
+                junctions.add(junction);
+            }
+
+            insert junctions;
         }
-
-        filteredRows.sort((firstRow, secondRow) => {
-            const firstAppName = String(
-                firstRow.appName || ''
-            ).toLowerCase();
-
-            const secondAppName = String(
-                secondRow.appName || ''
-            ).toLowerCase();
-
-            if (
-                firstAppName !== secondAppName &&
-                this.sortField !== 'appName'
-            ) {
-                return firstAppName <
-                    secondAppName
-                    ? -1
-                    : 1;
-            }
-
-            const firstValue = String(
-                firstRow[this.sortField] ?? ''
-            ).toLowerCase();
-
-            const secondValue = String(
-                secondRow[this.sortField] ?? ''
-            ).toLowerCase();
-
-            if (firstValue < secondValue) {
-                return this.sortDir === 'asc'
-                    ? -1
-                    : 1;
-            }
-
-            if (firstValue > secondValue) {
-                return this.sortDir === 'asc'
-                    ? 1
-                    : -1;
-            }
-
-            return 0;
-        });
-
-        return filteredRows;
     }
 
-    get filteredCountDisplay() {
-        return formatNumber(
-            this.filteredRowsRaw.length
+    public static List<User> testUserDataSetUp() {
+
+        String licenseName =
+            'Salesforce Platform';
+
+        return [
+            SELECT
+                Id,
+                Name,
+                EmployeeNumber,
+                No_User_Sync__c,
+                IsActive,
+                Perform_Post_Activation_Steps__c,
+                Contractor__c,
+                UserType,
+                ManagerId
+            FROM User
+            WHERE
+                User_Type__c = null
+                AND FederationIdentifier != null
+                AND Is_separated__c = false
+                AND Profile.UserLicense.Name = :licenseName
+                AND IsActive = true
+            ORDER BY LastName DESC
+            LIMIT 3
+        ];
+    }
+
+    @IsTest
+    static void testGetStackLayJunction() {
+
+        Test.startTest();
+
+        TPM_PAAMStackData.getUniqueAppCount(
+            'All'
         );
-    }
 
-    get pageRows() {
-        const styledRows =
-            this.filteredRowsRaw.map((row) => {
-                const operationalStatus =
-                    row.manualStatus || 'Unknown';
-
-                const discoveredStatus =
-                    row.discoveredStatus ||
-                    'Unknown';
-                //29 July
-                const manualSlug = row.paamManual?.trim()
-                        ? statusSlug(row.manualStatus || 'Unknown')
-                        : 'empty';
-
-                    const discoveredSlug = row.paamDiscovered?.trim()
-                        ? statusSlug(
-                            row.discoveredStatus ||
-                            row.manualStatus ||
-                            'Unknown'
-                        )
-                        : 'empty';
-
-               // 29 July
-
-                const wasOverridden =
-                    this.overrides[row.id] !==
-                    undefined;
-                    const manualBlank = !row.paamManual?.trim();
-                    const discoveredBlank = !row.paamDiscovered?.trim();
-
-                    console.log('row :: ', row);
-
-                return {
-                    ...row,
-                    manualBlank,
-                    discoveredBlank,
-                    groupKey:
-                        row.appId ||
-                        row.appName ||
-                        row.id,
-                    canAccept:
-                        row.isConflict === true &&
-                         Boolean(row.paamDiscovered?.trim()) &&
-                       ( row.isApplicationOwner === true || row.isTechnicalArchitect === true),
-                        // ||
-                         //row.isTechnicalArchitect === true)
-                    showManualArrow:
-                        row.isConflict &&
-                        Boolean(row.paamManual?.trim()),
-
-                    showDiscoveredArrow:
-                        row.isConflict &&
-                        Boolean(row.paamDiscovered?.trim()),
-
-                    manualPillClass:
-                        `paam-pill paam-pill--${manualSlug} ` +
-                        `${
-                            row.isConflict
-                                ? 'paam-pill--diff'
-                                : ''
-                        }`,
-
-                    discoveredPillClass:
-                        `paam-pill paam-pill--${discoveredSlug} ` +
-                        `${
-                            row.isConflict
-                                ? 'paam-pill--diff'
-                                : ''
-                        }`,
-
-                    manualTitle:
-                        `${row.paamManual} — ` +
-                        `${operationalStatus}`,
-
-                    discoveredTitle:
-                        `${row.paamDiscovered} — ` +
-                        `${discoveredStatus}`,
-
-                    diffTitle:
-                        `Will change to ` +
-                        `${row.paamDiscovered}`,
-
-                    syncStatusClass:
-                        row.isConflict
-                            ? 'paam-status paam-status--conflict'
-                            : 'paam-status paam-status--sync',
-
-                    syncStatusLabel:
-                        row.isConflict
-                            ? 'Conflict'
-                            : 'In Sync',
-
-                    acceptTitle:
-                        `Replace PAAM Manual ` +
-                        `(${row.paamManual}) with ` +
-                        `PAAM Discovered ` +
-                        `(${row.paamDiscovered})`,
-
-                    wasOverridden
-                };
-            });
-
-        const groupSizes = new Map();
-
-        styledRows.forEach((row) => {
-            const currentGroupSize =
-                groupSizes.get(
-                    row.groupKey
-                ) || 0;
-
-            groupSizes.set(
-                row.groupKey,
-                currentGroupSize + 1
+        TPM_PAAMStackData.PaamPageResult firstPage =
+            TPM_PAAMStackData.getStackLayJunction(
+                1,
+                null,
+                null,
+                'All',
+                'Coverage',
+                'All',
+                null
             );
-        });
 
-        const renderedGroups = new Set();
+        System.assertNotEquals(
+            null,
+            firstPage
+        );
 
-        return styledRows.map((row) => {
-            const showApplication =
-                !renderedGroups.has(
-                    row.groupKey
-                );
-
-            if (showApplication) {
-                renderedGroups.add(
-                    row.groupKey
-                );
-            }
-
-            return {
-                ...row,
-
-                showApplication,
-
-                applicationRowSpan:
-                    showApplication
-                        ? groupSizes.get(
-                            row.groupKey
-                        )
-                        : null,
-
-               rowClass:
-    `${
-        row.isConflict
-            ? 'paam-row-conflict '
-            : ''
-    }` +
-    `${
-        showApplication
-            ? 'paam-row-group-start '
-            : 'paam-row-group-member '
-    }` +
-    `${
-        this.hoveredGroupKey === row.groupKey
-            ? 'paam-row-group-hover'
-            : ''
-    }`
-            };
-        });
-    }
-
-    get totalPages() {
-        return Math.max(
+        TPM_PAAMStackData.getStackLayJunction(
             1,
-            Math.ceil(
-                this.tableTotalRecordCount /
-                Number(this.pageSize)
-            )
-        );
-    }
-
-    get currentPage() {
-        return Math.min(
-            this.page,
-            this.totalPages
-        );
-    }
-
-    get footerRangeLabel() {
-        if (this.tableTotalRecordCount  === 0) {
-            return 'Showing 0–0 of 0';
-        }
-
-        const start =
-            (
-                (this.page - 1) *
-                Number(this.pageSize)
-            ) + 1;
-
-        const end = Math.min(
-            start + this.filteredRowsRaw.length - 1,
-            this.tableTotalRecordCount
+            'Coverage Application',
+            firstPage.lastRecordId,
+            'All',
+            'Coverage',
+            'All',
+                null
         );
 
-        return (
-            `Showing ${formatNumber(start)}–` +
-            `${formatNumber(end)} of ` +
-            `${formatNumber(this.tableTotalRecordCount)}`
-        );
-    }
-
-    get hasPageRows() {
-        return this.pageRows.length > 0;
-    }
-
-    get emptyColspan() {
-        return this.showActionCoumn
-            ? 6
-            : 5;
-    }
-
-    get isFirstPage() {
-        return this.currentPage === 1;
-    }
-
-    get isLastPage() {
-        return (
-            this.currentPage ===
-            this.totalPages
-        );
-    }
-
-    get appSortArrow() {
-        return this.getSortArrow(
-            'appName'
-        );
-    }
-
-    get statusSortArrow() {
-        return this.getSortArrow(
-            'status'
-        );
-    }
-
-    get manualSortArrow() {
-        return this.getSortArrow(
-            'paamManual'
-        );
-    }
-
-    get discoveredSortArrow() {
-        return this.getSortArrow(
-            'paamDiscovered'
-        );
-    }
-
-    get toastClass() {
-        return (
-            `paam-toast ` +
-            `paam-toast--${this.toastKind}`
-        );
-    }
-
-    getSortArrow(field) {
-        if (this.sortField !== field) {
-            return '↕';
-        }
-
-        return this.sortDir === 'asc'
-            ? '↑'
-            : '↓';
-    }
-
-    resetPage() {
-        this.page = 1;
-    }
-
-    // resetServerPagination() {
-    //     this.page = 1;
-    //     this.rows = [];
-    //     this.lastAppName = null;
-    //     this.lastRecordId = null;
-    //     this.hasMore = true;
-    //     this.totalRecordCount = 0;
-    // }
-
-    resetServerPagination() {
-        this.page = 1;
-        this.rows = [];
-        this.lastAppName = null;
-        this.lastRecordId = null;
-
-        // ADD ONLY - clear Previous-page cursor whenever filters/page size reset.
-        this.previousLastAppName = null;
-        this.previousLastRecordId = null;
-
-        this.hasMore = true;
-
-        this.totalRecordCount = 0;
-        this.tableTotalRecordCount = 0;
-        this.totalConflictCount = 0;
-        this.totalSyncCount = 0;
-    }
-
-    handleSearch(event) {
-        const searchValue =
-            event.target.value || '';
-
-        this.query = searchValue;
-
-        window.clearTimeout(
-            this.searchTimeout
+        TPM_PAAMStackData.getStackLayJunction(
+            null,
+            null,
+            null,
+            'MyPrimary',
+            'Co',
+            'conflicts',
+                null
         );
 
-        this.searchTimeout =
-            window.setTimeout(() => {
-                const trimmedSearch =
-                    this.query.trim();
-
-                if (
-                    trimmedSearch.length > 0 &&
-                    trimmedSearch.length < 3
-                ) {
-                    return;
-                }
-
-                this.resetServerPagination();
-                this.loadRecords();
-            }, 400);
-    }
-
-    handleScopeChange(event) {
-        const selectedScope =
-            event.currentTarget.dataset.scope;
-
-        if (
-            this.scope === selectedScope ||
-            this.isLoading
-        ) {
-            return;
-        }
-
-        this.scope = selectedScope;
-
-        this.resetServerPagination();
-        this.loadRecords();
-        this.getUniqueAppCount();
-    }
-
-    handleViewChange(event) {
-        const selectedView =
-            event.currentTarget.dataset.view;
-
-        if (
-            this.view === selectedView ||
-            this.isLoading
-        ) {
-            return;
-        }
-
-        this.view = selectedView;
-
-        this.resetServerPagination();
-        this.loadRecords();
-    }
-
-    handleStatusFilterChange(event) {
-        this.statusFilter =
-            event.target.value;
-
-        this.resetPage();
-        this.resetServerPagination();
-         this.loadRecords();
-    }
-
-    handleSort(event) {
-        // ADD ONLY - sorting is client-side, so keep the current server page.
-        const pageBeforeSort = this.page;
-
-        const field =
-            event.currentTarget.dataset.field;
-
-        if (this.sortField === field) {
-            this.sortDir =
-                this.sortDir === 'asc'
-                    ? 'desc'
-                    : 'asc';
-        } else {
-            this.sortField = field;
-            this.sortDir = 'asc';
-        }
-
-        this.resetPage();
-
-        // ADD ONLY - restore the page number changed by resetPage().
-        // No server reload is needed because sorting only reorders current rows.
-        this.page = pageBeforeSort;
-    }
-
-    //vara - made it async
-    async handleAccept(event) {
-        const id =
-            event.currentTarget.dataset.id;
-
-        const row = this.rows.find(
-            (record) => record.id === id
+        TPM_PAAMStackData.getStackLayJunction(
+            0,
+            null,
+            null,
+            'MyAll',
+            'Coverage',
+            'sync',
+                null
         );
 
-        if (
-            !row ||
-            row.paamManual ===
-                row.paamDiscovered
-        ) {
-            return;
-        }
-        this.isLoading = true;
-        /* vara start */
-        acceptConflict({
-            paamRow : JSON.stringify(row)
-        }).then(result=>{
-            if(result){
-                const originalManual =
-                    row.paamManual;
+        TPM_PAAMStackData.getStackLayJunction(
+            500,
+            'Coverage Application',
+            null,
+            'Unknown',
+            null,
+            'conflicts',
+                null
+        );
 
-                this.rows = this.rows.map(
-                    (record) =>
-                        record.id === id
-                            ? {
-                                ...record,
-                                paamManual:
-                                    row.paamDiscovered
-                            }
-                            : record
+        TPM_PAAMStackData.getStackLayJunction(
+            10,
+            null,
+            null,
+            null,
+            '',
+            'sync',
+                null
+        );
+        TPM_PAAMStackData.acceptConflict('{"stacklayerUuid": "INVALID_UUID"}');
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testPaginationWithSingleAssertion() {
+
+        TPM_Stack_Layer_Import_Relationship__c existing = [
+            SELECT App__c, Stack_Layer_Config__c
+            FROM TPM_Stack_Layer_Import_Relationship__c
+            WHERE App__c != null
+            LIMIT 1
+        ];
+
+        List<TPM_Stack_Layer_Import_Relationship__c> additionalRecords =
+            new List<TPM_Stack_Layer_Import_Relationship__c>();
+
+        for (Integer index = 0; index < 53; index++) {
+
+            TPM_Stack_Layer_Import_Relationship__c junction =
+                new TPM_Stack_Layer_Import_Relationship__c(
+                    App__c = existing.App__c,
+                    Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
+                    App_UUID__c = 'COVPAG',
+                    Stack_Layer_UUID__c = 'PAG' + String.valueOf(index),
+                    Mapping_Type__c = index < 30 ? 'CI' : 'PAAM and CI'
                 );
 
-                this.overrides = {
-                    ...this.overrides,
-                    [id]: originalManual
-                };
-
-                this.showToast(
-                    'success',
-                    `Accepted “${row.paamDiscovered}” ` +
-                    `for ${row.appName}`
-                );
-            }else{
-                this.showToast(
-                    'error',
-                    `Something went wrong! “${row.paamDiscovered}” ` +
-                    `for ${row.appName}`
-                );
+            if (index < 5) {
+                junction.StackLayerStatus__c = 'Denied';
+            } else if (index < 10) {
+                junction.StackLayerStatus__c = 'Restricted';
             }
-        }).catch(error=>{
-             this.showToast(
-                    'error',
-                    `Something went wrong! “${row.paamDiscovered}” ` +
-                    `for ${row.appName}`
-                );
-        }).finally(()=>{
-            this.isLoading = false;
-        });
-        /* vara end */
-        /*
-        const originalManual =
-            row.paamManual;
 
-        this.rows = this.rows.map(
-            (record) =>
-                record.id === id
-                    ? {
-                        ...record,
-                        paamManual:
-                            row.paamDiscovered
-                    }
-                    : record
-        );
-
-        this.overrides = {
-            ...this.overrides,
-            [id]: originalManual
-        };
-
-        this.showToast(
-            'success',
-            `Accepted “${row.paamDiscovered}” ` +
-            `for ${row.appName}`
-        );*/
-    }
-
-    handleUndo(event) {
-        const id =
-            event.currentTarget.dataset.id;
-
-        const original =
-            this.overrides[id];
-
-        if (original === undefined) {
-            return;
+            setName(junction, 'Pagination Junction ' + index);
+            additionalRecords.add(junction);
         }
 
-        this.rows = this.rows.map(
-            (record) =>
-                record.id === id
-                    ? {
-                        ...record,
-                        paamManual: original
-                    }
-                    : record
-        );
+        TPM_Stack_Layer_Import_Relationship__c duplicateRecord =
+            new TPM_Stack_Layer_Import_Relationship__c(
+                App__c = existing.App__c,
+                Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
+                App_UUID__c = 'COVPAG',
+                Stack_Layer_UUID__c = 'PAG0',
+                Mapping_Type__c = 'PAAM and CI',
+                StackLayerStatus__c = 'Denied'
+            );
 
-        const nextOverrides = {
-            ...this.overrides
-        };
+        setName(duplicateRecord, 'Pagination Duplicate');
+        additionalRecords.add(duplicateRecord);
+        insert additionalRecords;
 
-        delete nextOverrides[id];
+        Test.startTest();
 
-        this.overrides =
-            nextOverrides;
+        TPM_PAAMStackData.PaamPageResult firstPage =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, null, null, 'All', 'Coverage', 'All', null
+            );
 
-        this.showToast(
-            'success',
-            `Reverted to “${original}”`
-        );
-    }
+        TPM_PAAMStackData.PaamPageResult secondPage =
+            TPM_PAAMStackData.getStackLayJunction(
+                50,
+                firstPage.lastAppName,
+                firstPage.lastRecordId,
+                'All', 'Coverage', 'All', null
+            );
 
-    handlePageSizeChange(event) {
-        this.pageSize =
-            Number(event.target.value);
+        TPM_PAAMStackData.PaamPageResult lastPage =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, '__PAAM_LAST_PAGE__', null,
+                'All', 'Coverage', 'All', null
+            );
 
-        this.resetServerPagination();
-        this.loadRecords();
-    }
+        TPM_PAAMStackData.PaamPageResult previousPage =
+            TPM_PAAMStackData.getStackLayJunction(
+                50,
+                secondPage.previousLastAppName,
+                secondPage.previousLastRecordId,
+                'All', 'Coverage', 'All', null
+            );
 
-    goFirst() {
-        if (
-            this.isLoading ||
-            this.isFirstPage
-        ) {
-            return;
-        }
+        TPM_PAAMStackData.PaamPageResult conflicts =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, null, null, 'All', 'Coverage', 'conflicts', null
+            );
 
-        this.resetServerPagination();
-        this.loadRecords();
-    }
+        TPM_PAAMStackData.PaamPageResult inSync =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, null, null, 'All', 'Coverage', 'sync', null
+            );
 
-    goPrev() {
-        if (
-            this.isLoading ||
-            this.isFirstPage
-        ) {
-            return;
-        }
+        TPM_PAAMStackData.PaamPageResult denied =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, null, null, 'All', 'Coverage', 'All', 'Denied'
+            );
 
-        // ADD ONLY - load the immediately previous page instead of page 1.
-        this.page = Math.max(1, this.page - 1);
-        this.lastAppName = this.previousLastAppName;
-        this.lastRecordId = this.previousLastRecordId;
-        this.hasMore = true;
-        this.loadRecords();
-        return;
+        TPM_PAAMStackData.PaamPageResult restricted =
+            TPM_PAAMStackData.getStackLayJunction(
+                50, null, null, 'All', 'Coverage', 'All', 'Restricted'
+            );
 
-        // Original fallback retained intentionally.
-        this.resetServerPagination();
-        this.loadRecords();
-    }
+        Test.stopTest();
 
-    goNext() {
-        if (
-            this.isLoading ||
-            !this.hasMore
-        ) {
-            return;
-        }
-
-        this.loadRecords(true);
-    }
-
-    goLast() {
-        if (
-            this.isLoading ||
-            this.isLastPage
-        ) {
-            return;
-        }
-
-        // ADD ONLY - ask Apex for the actual last unique page.
-        this.page = this.totalPages;
-        this.lastAppName = '__PAAM_LAST_PAGE__';
-        this.lastRecordId = null;
-        this.hasMore = false;
-        this.loadRecords();
-        return;
-
-        // Original fallback retained intentionally.
-        this.showToast(
-            'warning',
-            'Use Next to load additional records.'
+        // One new assertion covers page boundaries, deduplication and filters.
+        System.assertEquals(
+            true,
+            firstPage.totalRecords == 54 &&
+            firstPage.rows.size() == 50 &&
+            firstPage.hasMore == true &&
+            secondPage.totalRecords == 54 &&
+            secondPage.rows.size() == 4 &&
+            secondPage.hasMore == false &&
+            lastPage.rows.size() == 4 &&
+            previousPage.rows.size() == 50 &&
+            conflicts.totalConflicts == 31 &&
+            inSync.totalSync == 23 &&
+            denied.rows.size() == 5 &&
+            restricted.rows.size() == 5,
+            'Pagination, unique counts and status filters should agree.'
         );
     }
-
-    showToast(kind, message) {
-        this.toastKind = kind;
-        this.toastMessage = message;
-
-        window.clearTimeout(
-            this.toastTimeout
-        );
-
-        this.toastTimeout =
-            window.setTimeout(() => {
-                this.toastMessage = '';
-            }, 3500);
-    }
-
-    dismissToast() {
-        this.toastMessage = '';
-    }
-    handleOpenAppModal(event) {
-    const rowId = event.currentTarget.dataset.id;
-
-    const row = this.pageRows.find(
-        (item) => item.id === rowId
-    );
-
-    if (!row) {
-        return;
-    }
-
-    this.selectedRow = {
-    ...row,
-
-    appNameDisplay: row.appName || 'Not Available',
-    operationalStatusDisplay: row.status || 'Not Available',
-
-    portfolioDisplay: row.portfolio || 'Not Available',
-    domainDisplay: row.domain || 'Not Available',
-    categoryDisplay: row.category || 'Not Available',
-    uuidDisplay: row.UIID || 'Not Available',
-    appTypeDisplay: row.ApplicationType || 'Not Available',
-    subtypeDisplay: row.subtype || 'Not Available',
-    technicalArchitectDisplay: row.ITArchitect || 'Not Available',
-    businessOwnerDisplay: row.businessOwner || 'Not Available',
-    applicationOwnerDisplay: row.ApplicationOwner || 'Not Available',
-    descriptionDisplay: row.description || 'Not Available',
-    timeDisplay: row.appTIMERec || 'Not Available',
-
-    paamManualDisplay: row.paamManual || 'Not Available',
-    paamDiscoveredDisplay: row.paamDiscovered || 'Not Available',
-
-    stackLayerStatusDisplay:
-        row.manualStatus ||
-        row.discoveredStatus ||
-        'Not Available'
-};
-
-    this.isAppModalOpen = true;
-}
-
-handleCloseAppModal() {
-    this.isAppModalOpen = false;
-    this.selectedRow = {};
-}
-
-handleModalBackdropClick() {
-    this.handleCloseAppModal();
-}
-
-handleModalContentClick(event) {
-    event.stopPropagation();
-}
 }
