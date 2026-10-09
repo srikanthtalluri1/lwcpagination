@@ -294,6 +294,86 @@ private class TPM_PAAMStackDataTest {
 
         insert additionalRecords;
 
+        // ADD ONLY: one PAAM-only relationship exercises the legacy
+        // manual-side mapping branch when the optional fixture succeeds.
+        TPM_Stack_Layer_Import_Relationship__c manualFixture =
+            new TPM_Stack_Layer_Import_Relationship__c(
+                App__c = existing.App__c,
+                Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
+                App_UUID__c = 'COVPAG',
+                Stack_Layer_UUID__c = 'MANUAL_EXTRA',
+                Mapping_Type__c = 'PAAM'
+            );
+        setName(manualFixture, 'Manual Coverage Junction');
+        insert manualFixture;
+
+        // ADD ONLY: build an optional complete Category > Domain > Port
+        // test fixture for the original pagination row mapper. Failed
+        // fixture inserts are skipped rather than changing the stable path.
+        Boolean legacyMappingFixtureReady = false;
+        Schema.SObjectType coverageAppType =
+            TPM_Stack_Layer_Import_Relationship__c.App__c
+                .getDescribe().getReferenceTo()[0];
+        Map<String, Schema.SObjectField> coverageAppFields =
+            coverageAppType.getDescribe().fields.getMap();
+        Schema.SObjectField categoryLookup = coverageAppFields.get('Category__c');
+        Schema.SObjectField subtypePicklist = coverageAppFields.get('Subtype__c');
+        String validSubtype = subtypePicklist != null
+            ? getPicklistValue(subtypePicklist.getDescribe()) : null;
+
+        if (categoryLookup != null && validSubtype != null &&
+            categoryLookup.getDescribe().isUpdateable() &&
+            subtypePicklist.getDescribe().isUpdateable()) {
+
+            Schema.SObjectType categoryType =
+                categoryLookup.getDescribe().getReferenceTo()[0];
+            Schema.SObjectField domainLookup =
+                categoryType.getDescribe().fields.getMap().get('Domain__c');
+
+            if (domainLookup != null) {
+                Schema.SObjectType domainType =
+                    domainLookup.getDescribe().getReferenceTo()[0];
+                Schema.SObjectField portLookup =
+                    domainType.getDescribe().fields.getMap().get('Port__c');
+
+                if (portLookup != null) {
+                    Schema.SObjectType portType =
+                        portLookup.getDescribe().getReferenceTo()[0];
+                    SObject portRow = portType.newSObject();
+                    setName(portRow, 'Coverage Port');
+                    Database.SaveResult portSaved = Database.insert(portRow, false);
+
+                    if (portSaved.isSuccess()) {
+                        SObject domainRow = domainType.newSObject();
+                        setName(domainRow, 'Coverage Domain');
+                        domainRow.put('Port__c', portSaved.getId());
+                        Database.SaveResult domainSaved =
+                            Database.insert(domainRow, false);
+
+                        if (domainSaved.isSuccess()) {
+                            SObject categoryRow = categoryType.newSObject();
+                            setName(categoryRow, 'Coverage Category');
+                            categoryRow.put('Domain__c', domainSaved.getId());
+                            Database.SaveResult categorySaved =
+                                Database.insert(categoryRow, false);
+
+                            if (categorySaved.isSuccess()) {
+                                SObject appUpdate =
+                                    coverageAppType.newSObject(existing.App__c);
+                                appUpdate.put('Category__c', categorySaved.getId());
+                                if (subtypePicklist.getDescribe().isUpdateable()) {
+                                    appUpdate.put('Subtype__c', validSubtype);
+                                }
+                                Database.SaveResult updatedApp =
+                                    Database.update(appUpdate, false);
+                                legacyMappingFixtureReady = updatedApp.isSuccess();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Test.startTest();
 
         TPM_PAAMStackData.PaamPageResult firstPage =
@@ -385,6 +465,23 @@ private class TPM_PAAMStackDataTest {
             'NO_MATCH_EXPECTED_987', 'sync', 'Restricted'
         );
 
+        // ADD ONLY: execute the original mapper only when its nullable
+        // nested reference chain has been fully populated in test data.
+        // This covers its real PAAM/CI mappings without production changes.
+        if (legacyMappingFixtureReady) {
+            TPM_PAAMStackData.useStablePagination = false;
+            TPM_PAAMStackData.getStackLayJunction(
+                200, null, null, 'All', 'Coverage', 'All', null
+            );
+            TPM_PAAMStackData.getStackLayJunction(
+                200, null, null, 'All', 'Coverage', 'conflicts', null
+            );
+            TPM_PAAMStackData.getStackLayJunction(
+                200, null, null, 'All', 'Coverage', 'sync', null
+            );
+            TPM_PAAMStackData.useStablePagination = true;
+        }
+
         // Restore the production default for any later code in this test.
         TPM_PAAMStackData.useStablePagination = true;
 
@@ -462,6 +559,72 @@ private class TPM_PAAMStackDataTest {
         mappingRecord.Mapping_Type__c = 'PAAM and CI';
         TPM_PAAMStackData.buildStablePaamRow(
             mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        // ADD ONLY: walk each optional relationship branch in the stable
+        // row mapper. These SObjects are in memory only: no CRUD, triggers,
+        // or writes to StackLayerStatus__c.
+        Schema.SObjectType mapCategoryType =
+            referencedAppType.getDescribe().fields.getMap().get('Category__c')
+                .getDescribe().getReferenceTo()[0];
+        SObject mapCategory = mapCategoryType.newSObject();
+        setName(mapCategory, 'Coverage Category Stub');
+        appStub.putSObject('Category__r', mapCategory);
+        mappingRecord.putSObject('App__r', appStub);
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        Schema.SObjectType mapDomainType =
+            mapCategoryType.getDescribe().fields.getMap().get('Domain__c')
+                .getDescribe().getReferenceTo()[0];
+        SObject mapDomain = mapDomainType.newSObject();
+        setName(mapDomain, 'Coverage Domain Stub');
+        mapCategory.putSObject('Domain__r', mapDomain);
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        Schema.SObjectType mapPortType =
+            mapDomainType.getDescribe().fields.getMap().get('Port__c')
+                .getDescribe().getReferenceTo()[0];
+        SObject mapPort = mapPortType.newSObject();
+        setName(mapPort, 'Coverage Port Stub');
+        mapDomain.putSObject('Port__r', mapPort);
+
+        Schema.SObjectType businessOwnerType =
+            referencedAppType.getDescribe().fields.getMap()
+                .get('Business_Owner__c').getDescribe().getReferenceTo()[0];
+        SObject ownerStub = businessOwnerType.newSObject();
+        setName(ownerStub, 'Coverage Owner Stub');
+        appStub.putSObject('Business_Owner__r', ownerStub);
+        appStub.putSObject('Application_Owner__r', ownerStub);
+        appStub.putSObject('IT_Architect__r', ownerStub);
+
+        // The field is a picklist; the test reads a real active value.
+        if (validSubtype != null && subtypePicklist.getDescribe().isUpdateable()) {
+            appStub.put('Subtype__c', validSubtype);
+        }
+        mappingRecord.putSObject('App__r', appStub);
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, UserInfo.getUserId(), 'COVMAP|TESTMAP'
+        );
+        mappingRecord.Mapping_Type__c = 'CI';
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+        mappingRecord.Mapping_Type__c = 'PAAM';
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        // Additional existing public branches: no record creation necessary.
+        TPM_PAAMStackData.getUniqueAppCount('MyPrimary');
+        TPM_PAAMStackData.getUniqueAppCount('MyAll');
+        TPM_PAAMStackData.getUniqueAppCount('UnrecognizedOwnership');
+        TPM_PAAMStackData.getStackLayJunction(
+            null, '__PAAM_LAST_PAGE__', null,
+            'All', 'NO_MATCH_EXPECTED_987', 'All', null
         );
 
         Test.stopTest();
