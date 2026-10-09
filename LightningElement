@@ -388,6 +388,82 @@ private class TPM_PAAMStackDataTest {
         // Restore the production default for any later code in this test.
         TPM_PAAMStackData.useStablePagination = true;
 
+        // ADD ONLY: cover cursor edge cases without altering org data.
+        List<TPM_PAAMStackData.PaamRowWrapper> cursorRows =
+            new List<TPM_PAAMStackData.PaamRowWrapper>();
+
+        TPM_PAAMStackData.PaamRowWrapper cursorA =
+            new TPM_PAAMStackData.PaamRowWrapper();
+        cursorA.Id = existing.Id;
+        cursorA.appName = 'Coverage Application';
+        cursorRows.add(cursorA);
+
+        TPM_PAAMStackData.PaamRowWrapper cursorB =
+            new TPM_PAAMStackData.PaamRowWrapper();
+        cursorB.Id = UserInfo.getUserId();
+        cursorB.appName = 'Coverage Application Z';
+        cursorRows.add(cursorB);
+
+        TPM_PAAMStackData.findStableStartIndex(
+            cursorRows, cursorA.appName, cursorA.Id
+        );
+        TPM_PAAMStackData.findStableStartIndex(
+            cursorRows, '', UserInfo.getOrganizationId()
+        );
+        TPM_PAAMStackData.findStableStartIndex(
+            cursorRows, 'Coverage Application', UserInfo.getOrganizationId()
+        );
+        TPM_PAAMStackData.findStableStartIndex(
+            cursorRows, 'ZZZ After All Apps', UserInfo.getOrganizationId()
+        );
+        TPM_PAAMStackData.findStableStartIndex(
+            null, 'Coverage Application', UserInfo.getOrganizationId()
+        );
+        TPM_PAAMStackData.findStableStartIndex(
+            new List<TPM_PAAMStackData.PaamRowWrapper>(),
+            'Coverage Application', UserInfo.getOrganizationId()
+        );
+
+        // ADD ONLY: exercise PAAM, unexpected, and in-sync mapping branches
+        // using in-memory records (no writes to read-only status fields).
+        TPM_Stack_Layer_Import_Relationship__c mappingRecord =
+            new TPM_Stack_Layer_Import_Relationship__c(
+                App__c = existing.App__c,
+                Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
+                Mapping_Type__c = 'PAAM',
+                App_UUID__c = 'COVMAP',
+                Stack_Layer_UUID__c = 'TESTMAP'
+            );
+
+        Schema.SObjectType referencedAppType =
+            TPM_Stack_Layer_Import_Relationship__c.App__c
+                .getDescribe().getReferenceTo()[0];
+
+        SObject appStub = referencedAppType.newSObject();
+        appStub.put('App_Name__c', 'Coverage Application');
+        mappingRecord.putSObject('App__r', appStub);
+
+        TPM_Stack_Layer_Config__c configStub = [
+            SELECT Id, Name
+            FROM TPM_Stack_Layer_Config__c
+            LIMIT 1
+        ];
+        mappingRecord.putSObject('Stack_Layer_Config__r', configStub);
+
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        mappingRecord.Mapping_Type__c = 'UNEXPECTED_TEST';
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
+        mappingRecord.Mapping_Type__c = 'PAAM and CI';
+        TPM_PAAMStackData.buildStablePaamRow(
+            mappingRecord, null, 'COVMAP|TESTMAP'
+        );
+
         Test.stopTest();
 
         // One assertion verifies stable total, forward/back navigation,
