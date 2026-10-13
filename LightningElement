@@ -1,535 +1,87 @@
-@IsTest
-private class TPM_PAAMStackDataTest {
+const previousFilterState = JSON.parse(
+    JSON.stringify(this._filteredFieldValues || [])
+);
 
-    private static void setName(SObject recordItem, String nameValue) {
-        Map<String, Schema.SObjectField> fields =
-            recordItem.getSObjectType().getDescribe().fields.getMap();
 
-        if (fields.containsKey('Name')) {
-            Schema.DescribeFieldResult nameField =
-                fields.get('Name').getDescribe();
+restorePreviousCheckboxSelections(previousGroups) {
+    const clean = value =>
+        (value || '')
+            .toString()
+            .replace(/\s*\(\d+\)\s*$/, '')
+            .trim();
 
-            if (nameField.isCreateable() && !nameField.isAutoNumber()) {
-                recordItem.put('Name', nameValue);
-            }
-        }
-    }
+    const previousByField = new Map(
+        (previousGroups || []).map(group => [
+            group.filterFieldApiName || group.filterField,
+            group
+        ])
+    );
 
-    private static String getPicklistValue(
-        Schema.DescribeFieldResult fieldDescribe
-    ) {
-        for (
-            Schema.PicklistEntry entry :
-            fieldDescribe.getPicklistValues()
-        ) {
-            if (entry.isActive()) {
-                return entry.getValue();
-            }
-        }
+    this._filteredFieldValues = (
+        this._filteredFieldValues || []
+    ).map(group => {
 
-        return null;
-    }
-
-    static List<User> usrList = new List<User>();
-
-    @TestSetup
-    public static void setupData() {
-
-        usrList = testUserDataSetUp();
-
-        System.runAs(usrList[0]) {
-
-            UCH_Employee__c employee =
-                new UCH_Employee__c(
-                    Employee_ID__c = usrList[0].EmployeeNumber,
-                    Department_Description__c = 'Test',
-                    Department_ID__c = '1232s'
-                );
-
-            setName(
-                employee,
-                'Coverage Employee'
-            );
-
-            insert employee;
-
-            Schema.SObjectType appObjectType =
-                TPM_Stack_Layer_Import_Relationship__c.App__c
-                    .getDescribe()
-                    .getReferenceTo()[0];
-
-            SObject appRecord =
-                appObjectType.newSObject();
-
-            setName(
-                appRecord,
-                'Coverage Application'
-            );
-
-            appRecord.put(
-                'App_Name__c',
-                'Coverage Application'
-            );
-
-            appRecord.put(
-                'InActive__c',
-                false
-            );
-
-            appRecord.put(
-                'IT_Architect__c',
-                employee.Id
-            );
-
-            appRecord.put(
-                'Application_Owner__c',
-                employee.Id
-            );
-
-            appRecord.put(
-                'Business_Owner__c',
-                employee.Id
-            );
-
-           
-
-            Schema.DescribeFieldResult operationalStatusField =
-                appObjectType
-                    .getDescribe()
-                    .fields
-                    .getMap()
-                    .get('Operational_Status__c')
-                    .getDescribe();
-
-            String operationalStatus =
-                getPicklistValue(
-                    operationalStatusField
-                );
-
-            if (operationalStatus != null) {
-                appRecord.put(
-                    'Operational_Status__c',
-                    operationalStatus
-                );
-            }
-
-            insert appRecord;
-
-          
-                TPM_Stack_Layer_Config__c configRecord = new TPM_Stack_Layer_Config__c();
-            setName(
-                configRecord,
-                'Coverage Layer'
-            );
-
-            insert configRecord;
-
-            List<TPM_Stack_Layer_Import_Relationship__c> junctions =
-                new List<TPM_Stack_Layer_Import_Relationship__c>();
-
-            for (Integer index = 0; index < 2; index++) {
-
-                TPM_Stack_Layer_Import_Relationship__c junction =
-                    new TPM_Stack_Layer_Import_Relationship__c(
-                        App__c = appRecord.Id,
-                        Stack_Layer_Config__c =
-                            (Id) configRecord.get('Id')
-                    );
-
-                if (index == 0) {
-                    junction.Mapping_Type__c = 'CI';
-                } else {
-                    junction.Mapping_Type__c = 'PAAM and CI';
-                }
-
-                setName(
-                    junction,
-                    'Coverage Junction ' + index
-                );
-
-                junctions.add(junction);
-            }
-
-            insert junctions;
-        }
-    }
-
-    public static List<User> testUserDataSetUp() {
-
-        String licenseName =
-            'Salesforce Platform';
-
-        return [
-            SELECT
-                Id,
-                Name,
-                EmployeeNumber,
-                No_User_Sync__c,
-                IsActive,
-                Perform_Post_Activation_Steps__c,
-                Contractor__c,
-                UserType,
-                ManagerId
-            FROM User
-            WHERE
-                User_Type__c = null
-                AND FederationIdentifier != null
-                AND Is_separated__c = false
-                AND Profile.UserLicense.Name = :licenseName
-                AND IsActive = true
-            ORDER BY LastName DESC
-            LIMIT 3
-        ];
-    }
-
-    @IsTest
-    static void testGetStackLayJunction() {
-
-        Test.startTest();
-
-        TPM_PAAMStackData.getUniqueAppCount(
-            'All'
+        const previous = previousByField.get(
+            group.filterFieldApiName || group.filterField
         );
 
-        TPM_PAAMStackData.PaamPageResult firstPage =
-            TPM_PAAMStackData.getStackLayJunction(
-                1,
-                null,
-                null,
-                'All',
-                'Coverage',
-                'All',
-                null
-            );
-
-        System.assertNotEquals(
-            null,
-            firstPage
-        );
-
-        TPM_PAAMStackData.getStackLayJunction(
-            1,
-            'Coverage Application',
-            firstPage.lastRecordId,
-            'All',
-            'Coverage',
-            'All',
-                null
-        );
-
-        TPM_PAAMStackData.getStackLayJunction(
-            null,
-            null,
-            null,
-            'MyPrimary',
-            'Co',
-            'conflicts',
-                null
-        );
-
-        TPM_PAAMStackData.getStackLayJunction(
-            0,
-            null,
-            null,
-            'MyAll',
-            'Coverage',
-            'sync',
-                null
-        );
-
-        TPM_PAAMStackData.getStackLayJunction(
-            500,
-            'Coverage Application',
-            null,
-            'Unknown',
-            null,
-            'conflicts',
-                null
-        );
-
-        TPM_PAAMStackData.getStackLayJunction(
-            10,
-            null,
-            null,
-            null,
-            '',
-            'sync',
-                null
-        );
-        TPM_PAAMStackData.acceptConflict('{"stacklayerUuid": "INVALID_UUID"}');
-        Test.stopTest();
-    }
-
-    @IsTest
-    static void testPaginationWithSingleAssertion() {
-
-        TPM_Stack_Layer_Import_Relationship__c existing = [
-            SELECT App__c, Stack_Layer_Config__c
-            FROM TPM_Stack_Layer_Import_Relationship__c
-            WHERE App__c != null
-            LIMIT 1
-        ];
-
-        List<TPM_Stack_Layer_Import_Relationship__c> additionalRecords =
-            new List<TPM_Stack_Layer_Import_Relationship__c>();
-
-        // Four distinct logical keys exercise multiple pages without
-        // creating dozens of records or relying on exact aggregate counts.
-        for (Integer index = 0; index < 4; index++) {
-
-            TPM_Stack_Layer_Import_Relationship__c junction =
-                new TPM_Stack_Layer_Import_Relationship__c(
-                    App__c = existing.App__c,
-                    Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
-                    App_UUID__c = 'COVPAG',
-                    Stack_Layer_UUID__c = 'PAG' + String.valueOf(index),
-                    Mapping_Type__c = index < 2 ? 'CI' : 'PAAM and CI'
-                );
-
-            // StackLayerStatus__c is read-only; no direct assignment.
-
-            setName(junction, 'Pagination Junction ' + index);
-            additionalRecords.add(junction);
+        if (!previous) {
+            return group;
         }
 
-        insert additionalRecords;
-
-        // PAAM-only relationship exercises stable manual-side mapping.
-        TPM_Stack_Layer_Import_Relationship__c manualFixture =
-            new TPM_Stack_Layer_Import_Relationship__c(
-                App__c = existing.App__c,
-                Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
-                App_UUID__c = 'COVPAG',
-                Stack_Layer_UUID__c = 'MANUAL_EXTRA',
-                Mapping_Type__c = 'PAAM'
-            );
-        setName(manualFixture, 'Manual Coverage Junction');
-        insert manualFixture;
-
-        // Reuse the active Subtype picklist value for the stable row mapper.
-        Schema.SObjectType coverageAppType =
-            TPM_Stack_Layer_Import_Relationship__c.App__c
-                .getDescribe().getReferenceTo()[0];
-        Schema.SObjectField subtypePicklist =
-            coverageAppType.getDescribe().fields.getMap().get('Subtype__c');
-        String validSubtype = subtypePicklist != null
-            ? getPicklistValue(subtypePicklist.getDescribe()) : null;
-
-        Test.startTest();
-
-        TPM_PAAMStackData.PaamPageResult firstPage =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'Coverage', 'All', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult secondPage =
-            TPM_PAAMStackData.getStackLayJunction(
-                2,
-                firstPage.lastAppName,
-                firstPage.lastRecordId,
-                'All', 'Coverage', 'All', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult lastPage =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, '__PAAM_LAST_PAGE__', null,
-                'All', 'Coverage', 'All', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult previousPage =
-            TPM_PAAMStackData.getStackLayJunction(
-                2,
-                secondPage.previousLastAppName,
-                secondPage.previousLastRecordId,
-                'All', 'Coverage', 'All', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult conflicts =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'Coverage', 'conflicts', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult inSync =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'Coverage', 'sync', null
-            );
-
-        TPM_PAAMStackData.PaamPageResult denied =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'Coverage', 'All', 'Denied'
-            );
-
-        TPM_PAAMStackData.PaamPageResult restricted =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'Coverage', 'All', 'Restricted'
-            );
-
-        TPM_PAAMStackData.PaamPageResult noMatches =
-            TPM_PAAMStackData.getStackLayJunction(
-                2, null, null, 'All', 'NO_MATCH_EXPECTED_987', 'All', null
-            );
-
-        // ADD ONLY: cover cursor edge cases without altering org data.
-        List<TPM_PAAMStackData.PaamRowWrapper> cursorRows =
-            new List<TPM_PAAMStackData.PaamRowWrapper>();
-
-        TPM_PAAMStackData.PaamRowWrapper cursorA =
-            new TPM_PAAMStackData.PaamRowWrapper();
-        cursorA.Id = existing.Id;
-        cursorA.appName = 'Coverage Application';
-        cursorRows.add(cursorA);
-
-        TPM_PAAMStackData.PaamRowWrapper cursorB =
-            new TPM_PAAMStackData.PaamRowWrapper();
-        cursorB.Id = UserInfo.getUserId();
-        cursorB.appName = 'Coverage Application Z';
-        cursorRows.add(cursorB);
-
-        TPM_PAAMStackData.findStableStartIndex(
-            cursorRows, cursorA.appName, cursorA.Id
-        );
-        TPM_PAAMStackData.findStableStartIndex(
-            cursorRows, '', UserInfo.getOrganizationId()
-        );
-        TPM_PAAMStackData.findStableStartIndex(
-            cursorRows, 'Coverage Application', UserInfo.getOrganizationId()
-        );
-        TPM_PAAMStackData.findStableStartIndex(
-            cursorRows, 'ZZZ After All Apps', UserInfo.getOrganizationId()
-        );
-        TPM_PAAMStackData.findStableStartIndex(
-            null, 'Coverage Application', UserInfo.getOrganizationId()
-        );
-        TPM_PAAMStackData.findStableStartIndex(
-            new List<TPM_PAAMStackData.PaamRowWrapper>(),
-            'Coverage Application', UserInfo.getOrganizationId()
+        const previousParents = new Map(
+            (previous.filteredFieldValue || []).map(parent => [
+                clean(parent.value || parent.label),
+                parent
+            ])
         );
 
-        // ADD ONLY: exercise PAAM, unexpected, and in-sync mapping branches
-        // using in-memory records (no writes to read-only status fields).
-        TPM_Stack_Layer_Import_Relationship__c mappingRecord =
-            new TPM_Stack_Layer_Import_Relationship__c(
-                App__c = existing.App__c,
-                Stack_Layer_Config__c = existing.Stack_Layer_Config__c,
-                Mapping_Type__c = 'PAAM',
-                App_UUID__c = 'COVMAP',
-                Stack_Layer_UUID__c = 'TESTMAP'
-            );
+        const selectedValues = new Set(previous.selectedValue || []);
 
-        Schema.SObjectType referencedAppType =
-            TPM_Stack_Layer_Import_Relationship__c.App__c
-                .getDescribe().getReferenceTo()[0];
+        return {
+            ...group,
+            selectedValue: [...selectedValues],
 
-        SObject appStub = referencedAppType.newSObject();
-        appStub.put('App_Name__c', 'Coverage Application');
-        mappingRecord.putSObject('App__r', appStub);
+            filteredFieldValue: (
+                group.filteredFieldValue || []
+            ).map(parent => {
 
-        TPM_Stack_Layer_Config__c configStub = [
-            SELECT Id, Name
-            FROM TPM_Stack_Layer_Config__c
-            LIMIT 1
-        ];
-        mappingRecord.putSObject('Stack_Layer_Config__r', configStub);
+                const parentKey = clean(
+                    parent.value || parent.label
+                );
 
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
+                const oldParent = previousParents.get(parentKey);
 
-        mappingRecord.Mapping_Type__c = 'UNEXPECTED_TEST';
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
+                const oldChildren = new Map(
+                    (oldParent?.children || []).map(child => [
+                        clean(child.value || child.label),
+                        child
+                    ])
+                );
 
-        mappingRecord.Mapping_Type__c = 'PAAM and CI';
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
+                return {
+                    ...parent,
+                    checked: oldParent
+                        ? Boolean(oldParent.checked) ||
+                          selectedValues.has(parent.value)
+                        : selectedValues.has(parent.value),
 
-        // ADD ONLY: walk each optional relationship branch in the stable
-        // row mapper. These SObjects are in memory only: no CRUD, triggers,
-        // or writes to StackLayerStatus__c.
-        Schema.SObjectType mapCategoryType =
-            referencedAppType.getDescribe().fields.getMap().get('Category__c')
-                .getDescribe().getReferenceTo()[0];
-        SObject mapCategory = mapCategoryType.newSObject();
-        setName(mapCategory, 'Coverage Category Stub');
-        appStub.putSObject('Category__r', mapCategory);
-        mappingRecord.putSObject('App__r', appStub);
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
+                    children: (parent.children || []).map(child => {
+                        const oldChild = oldChildren.get(
+                            clean(child.value || child.label)
+                        );
 
-        Schema.SObjectType mapDomainType =
-            mapCategoryType.getDescribe().fields.getMap().get('Domain__c')
-                .getDescribe().getReferenceTo()[0];
-        SObject mapDomain = mapDomainType.newSObject();
-        setName(mapDomain, 'Coverage Domain Stub');
-        mapCategory.putSObject('Domain__r', mapDomain);
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
-
-        Schema.SObjectType mapPortType =
-            mapDomainType.getDescribe().fields.getMap().get('Port__c')
-                .getDescribe().getReferenceTo()[0];
-        SObject mapPort = mapPortType.newSObject();
-        setName(mapPort, 'Coverage Port Stub');
-        mapDomain.putSObject('Port__r', mapPort);
-
-        Schema.SObjectType businessOwnerType =
-            referencedAppType.getDescribe().fields.getMap()
-                .get('Business_Owner__c').getDescribe().getReferenceTo()[0];
-        SObject ownerStub = businessOwnerType.newSObject();
-        setName(ownerStub, 'Coverage Owner Stub');
-        appStub.putSObject('Business_Owner__r', ownerStub);
-        appStub.putSObject('Application_Owner__r', ownerStub);
-        appStub.putSObject('IT_Architect__r', ownerStub);
-
-        // The field is a picklist; the test reads a real active value.
-        if (validSubtype != null && subtypePicklist.getDescribe().isUpdateable()) {
-            appStub.put('Subtype__c', validSubtype);
-        }
-        mappingRecord.putSObject('App__r', appStub);
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, UserInfo.getUserId(), 'COVMAP|TESTMAP'
-        );
-        mappingRecord.Mapping_Type__c = 'CI';
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
-        mappingRecord.Mapping_Type__c = 'PAAM';
-        TPM_PAAMStackData.buildStablePaamRow(
-            mappingRecord, null, 'COVMAP|TESTMAP'
-        );
-
-        // Additional existing public branches: no record creation necessary.
-        TPM_PAAMStackData.getUniqueAppCount('MyPrimary');
-        TPM_PAAMStackData.getUniqueAppCount('MyAll');
-        TPM_PAAMStackData.getUniqueAppCount('UnrecognizedOwnership');
-        TPM_PAAMStackData.getStackLayJunction(
-            null, '__PAAM_LAST_PAGE__', null,
-            'All', 'NO_MATCH_EXPECTED_987', 'All', null
-        );
-
-        Test.stopTest();
-
-        // One assertion verifies stable total, forward/back navigation,
-        // status filtering and consistency between sync/conflict totals.
-        System.assertEquals(
-            true,
-            firstPage.totalRecords >= 5 &&
-            firstPage.rows.size() == 2 &&
-            firstPage.hasMore &&
-            secondPage.totalRecords == firstPage.totalRecords &&
-            secondPage.rows.size() > 0 &&
-            secondPage.rows[0].Id != firstPage.rows[0].Id &&
-            !lastPage.hasMore &&
-            lastPage.rows.size() > 0 &&
-            previousPage.rows.size() == firstPage.rows.size() &&
-            previousPage.rows[0].Id == firstPage.rows[0].Id &&
-            conflicts.totalConflicts + inSync.totalSync == firstPage.totalRecords &&
-            noMatches.filteredTotalRecords == 0,
-            'Pagination, unique counts and filters should remain consistent.'
-        );
-    }
+                        return {
+                            ...child,
+                            checked: Boolean(oldChild?.checked)
+                        };
+                    })
+                };
+            })
+        };
+    });
 }
+
+this.restorePreviousCheckboxSelections(previousFilterState);
+
+
