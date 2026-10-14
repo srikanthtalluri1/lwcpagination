@@ -1,21 +1,16 @@
-Set<String> periods = new Set<String>();
-for (TPM_Assessment__c a : [
-    SELECT Assessment_Period_Quarter_Year__c
-    FROM TPM_Assessment__c
-    WHERE Assessment_Period_Quarter_Year__c != null
-    LIMIT 50000
-]) {
-    periods.add(a.Assessment_Period_Quarter_Year__c);
+// Governor-safe: COUNT per candidate period, no row materialization.
+for (String p : new List<String>{'Q12021','Q22019','Q12020','2019','Q22013'}) {
+    Integer c = Database.countQuery(
+        'SELECT COUNT() FROM TPM_Assessment__c WHERE Assessment_Period_Quarter_Year__c = :p'
+    );
+    System.debug(p + ' => ' + c);
 }
-System.debug('TOTAL ROWS: ' + [SELECT COUNT() FROM TPM_Assessment__c]);
-System.debug('DISTINCT PERIODS: ' + periods);
 
 
 
 Map<String, Schema.SObjectField> fm = TPM_Assessment__c.SObjectType.getDescribe().fields.getMap();
 for (String c : new List<String>{'current_overall_rating__c','overall_rating__c','overall__c'}) {
     if (fm.containsKey(c)) {
-        Schema.DescribeFieldResult d = fm.get(c).getDescribe();
-        System.debug(d.getName() + ' TYPE=' + d.getType());
+        System.debug(fm.get(c).getDescribe().getName() + ' TYPE=' + fm.get(c).getDescribe().getType());
     }
 }
