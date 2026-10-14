@@ -1,35 +1,21 @@
-Map<String, Schema.SObjectField> fm = TPM_Assessment__c.SObjectType.getDescribe().fields.getMap();
-
-// 1) Which period field resolves, and what real values exist + counts
-List<String> aliases = new List<String>{
-    'assessment_period_quarter_year__c','assessment_period__c',
-    'assessmentperiod__c','assessment_cycle__c'
-};
-String pf;
-for (String a : aliases) { if (fm.containsKey(a)) { pf = fm.get(a).getDescribe().getName(); break; } }
-System.debug('PERIOD FIELD: ' + pf);
-System.debug('TOTAL ROWS: ' + [SELECT COUNT() FROM TPM_Assessment__c]);
-if (pf != null) {
-    for (AggregateResult ar : Database.query(
-        'SELECT ' + pf + ' pv, COUNT(Id) c FROM TPM_Assessment__c ' +
-        'WHERE ' + pf + ' != null GROUP BY ' + pf + ' ORDER BY COUNT(Id) DESC LIMIT 20')) {
-        System.debug('PERIOD: ' + ar.get('pv') + ' => ' + ar.get('c'));
-    }
+Set<String> periods = new Set<String>();
+for (TPM_Assessment__c a : [
+    SELECT Assessment_Period_Quarter_Year__c
+    FROM TPM_Assessment__c
+    WHERE Assessment_Period_Quarter_Year__c != null
+    LIMIT 50000
+]) {
+    periods.add(a.Assessment_Period_Quarter_Year__c);
 }
+System.debug('TOTAL ROWS: ' + [SELECT COUNT() FROM TPM_Assessment__c]);
+System.debug('DISTINCT PERIODS: ' + periods);
 
-// 2) Are the scoring/grouping fields numeric + populated? Check the actual resolved field types.
-Map<String, List<String>> probe = new Map<String, List<String>>{
-    'overall' => new List<String>{'Current_Overall_Rating__c','Overall_Rating__c','Overall__c'},
-    'portfolio' => new List<String>{'Portfolio__c','Portfolio_Name__c','Port_Name__c'},
-    'barr' => new List<String>{'BARR_Risk_Level__c','BARR__c'},
-    'rag' => new List<String>{'Assessment_Health_Status__c','Health__c','RAG__c'}
-};
-for (String k : probe.keySet()) {
-    String resolved;
-    for (String c : probe.get(k)) { if (fm.containsKey(c.toLowerCase())) { resolved = fm.get(c.toLowerCase()).getDescribe().getName(); break; } }
-    if (resolved != null) {
-        System.debug(k + ' -> ' + resolved + ' | TYPE=' + fm.get(resolved.toLowerCase()).getDescribe().getType());
-    } else {
-        System.debug(k + ' -> NOT FOUND among ' + probe.get(k));
+
+
+Map<String, Schema.SObjectField> fm = TPM_Assessment__c.SObjectType.getDescribe().fields.getMap();
+for (String c : new List<String>{'current_overall_rating__c','overall_rating__c','overall__c'}) {
+    if (fm.containsKey(c)) {
+        Schema.DescribeFieldResult d = fm.get(c).getDescribe();
+        System.debug(d.getName() + ' TYPE=' + d.getType());
     }
 }
