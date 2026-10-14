@@ -1,3 +1,16 @@
+public with sharing class TpmArchitectureHubController {
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getAssessmentData(String filtersJson) {
+        return TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getPortfolioDetailData(String portfolioName) {
+        return TpmArchitectureHubAssessmentService.getPortfolioDetailData(portfolioName);
+    }
+}
+
+
 public with sharing class TpmArchitectureHubAssessmentService {
     private static final String ASSESSMENT_OBJECT = 'TPM_Assessment__c';
     private static final String PORTFOLIO_OBJECT = 'TPM_Port__c';
