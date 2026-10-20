@@ -1,18 +1,41 @@
-public with sharing class TpmArchitectureHubController {
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getAssessmentData(String filtersJson) {
-        return TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
-    }
+Cycle dropdown
 
-    // Dynamic cycle options are intentionally fetched without client caching, so
-    // a newly created assessment period appears on the next page load.
-    @AuraEnabled
-    public static List<Map<String, Object>> getAvailableCycles() {
-        return TpmArchitectureHubAssessmentService.getAvailableCycles();
-    }
+SELECT Assessment_Period_Quarter_Year__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c != null
+AND Assessment_Period_Quarter_Year__c != '0'
 
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getPortfolioDetailData(String portfolioName) {
-        return TpmArchitectureHubAssessmentService.getPortfolioDetailData(portfolioName);
-    }
-}
+Technology Health by Portfolio table
+SELECT
+    Id,
+    App__c,
+    App__r.Portfolio_Name_Report__c,
+    Current_Overall_Rating__c,
+    Technology_Rating__c,
+    Supportability_Maintainability_Score__c,
+    Business_Rating__c,
+    Security_Compliance_Score__c,
+    Assessment_Health_Status__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
+LIMIT 50000
+
+Verify a portfolio's ratings
+
+SELECT
+    COUNT(Id) totalAssessments,
+    COUNT(Current_Overall_Rating__c) overallRated,
+    AVG(Current_Overall_Rating__c) avgOverall,
+    COUNT(Technology_Rating__c) techRated,
+    AVG(Technology_Rating__c) avgTechnology,
+    COUNT(Supportability_Maintainability_Score__c) resourceRated,
+    AVG(Supportability_Maintainability_Score__c) avgResource,
+    COUNT(Business_Rating__c) businessRated,
+    AVG(Business_Rating__c) avgBusiness,
+    COUNT(Security_Compliance_Score__c) complianceRated,
+    AVG(Security_Compliance_Score__c) avgCompliance
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
+AND App__r.Portfolio_Name_Report__c =
+    'Operations Infrastructure Portfolio'
+
