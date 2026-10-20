@@ -1,35 +1,49 @@
 
-Schema.SObjectType portType =
-    Schema.getGlobalDescribe().get('TPM_Port__c');
+Map<String, Object> result =
+    TpmArchitectureHubController.getAssessmentData(
+        '{"assessmentPeriod":"Q12021"}'
+    );
 
-if (portType == null) {
-    System.debug('HUB_PORT_OBJECT_NOT_FOUND');
-} else {
-    System.debug('HUB_PORT_OBJECT=TPM_Port__c');
+Map<String, String> fields =
+    (Map<String, String>) result.get('fields');
 
-    for (Schema.SObjectField field :
-         portType.getDescribe().fields.getMap().values()) {
+System.debug(
+    'HUB_CATEGORY_FIELD=' + fields.get('category')
+);
 
-        Schema.DescribeFieldResult d =
-            field.getDescribe();
+List<Map<String, Object>> rows =
+    (List<Map<String, Object>>) result.get('records');
 
-        String searchText =
-            (d.getName() + ' ' + d.getLabel())
-            .toLowerCase();
+Map<String, Integer> categoryCounts =
+    new Map<String, Integer>();
 
-        if (searchText.contains('group') ||
-            searchText.contains('category') ||
-            searchText.contains('portfolio') ||
-            searchText.contains('division') ||
-            searchText.contains('segment') ||
-            searchText.contains('parent') ||
-            searchText.contains('company')) {
+for (Map<String, Object> row : rows) {
+    Object value = row.get('category');
 
-            System.debug(
-                'HUB_PORT_FIELD=' + d.getName() +
-                ' | LABEL=' + d.getLabel() +
-                ' | TYPE=' + d.getType()
-            );
-        }
-    }
+    String category =
+        value == null ||
+        String.isBlank(String.valueOf(value))
+        ? '(Blank)'
+        : String.valueOf(value).trim();
+
+    Integer count = categoryCounts.containsKey(category)
+        ? categoryCounts.get(category) : 0;
+
+    categoryCounts.put(category, count + 1);
+}
+
+List<String> categories =
+    new List<String>(categoryCounts.keySet());
+
+categories.sort();
+
+System.debug(
+    'HUB_CATEGORY_DISTINCT=' + categories.size()
+);
+
+for (String category : categories) {
+    System.debug(
+        'HUB_CATEGORY=' + category +
+        ' | COUNT=' + categoryCounts.get(category)
+    );
 }
