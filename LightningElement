@@ -7,62 +7,35 @@ Map<String, Object> result =
 List<Map<String, Object>> rows =
     (List<Map<String, Object>>) result.get('records');
 
-List<String> metrics = new List<String>{
-    'overall',
-    'tech',
-    'resource',
-    'business',
-    'compliance',
-    'barr',
-    'time',
-    'rag',
-    'status'
-};
-
-Map<String, Integer> populated =
+Map<String, Integer> timeCounts =
     new Map<String, Integer>();
-
-Map<String, Integer> healthValues =
-    new Map<String, Integer>();
-
-for (String metric : metrics) {
-    populated.put(metric, 0);
-}
 
 for (Map<String, Object> row : rows) {
-    for (String metric : metrics) {
-        Object value = row.get(metric);
 
-        if (value != null &&
-            !String.isBlank(String.valueOf(value))) {
-            populated.put(
-                metric,
-                populated.get(metric) + 1
-            );
-        }
-    }
+    Object rawValue = row.get('time');
 
-    Object rag = row.get('rag');
+    String timeValue =
+        rawValue == null ||
+        String.isBlank(String.valueOf(rawValue))
+        ? '(Blank)'
+        : String.valueOf(rawValue).trim();
 
-    if (rag != null &&
-        !String.isBlank(String.valueOf(rag))) {
-        String health = String.valueOf(rag);
-        Integer count = healthValues.containsKey(health)
-            ? healthValues.get(health) : 0;
+    Integer count =
+        timeCounts.containsKey(timeValue)
+        ? timeCounts.get(timeValue)
+        : 0;
 
-        healthValues.put(health, count + 1);
-    }
+    timeCounts.put(timeValue, count + 1);
 }
 
-System.debug('HUB_TOTAL=' + rows.size());
+List<String> categories =
+    new List<String>(timeCounts.keySet());
 
-for (String metric : metrics) {
+categories.sort();
+
+for (String category : categories) {
     System.debug(
-        'HUB_POPULATED_' + metric.toUpperCase()
-        + '=' + populated.get(metric)
+        'HUB_TIME_VALUE=' + category +
+        ' | COUNT=' + timeCounts.get(category)
     );
 }
-
-System.debug(
-    'HUB_RAG_VALUES=' + JSON.serialize(healthValues)
-);
