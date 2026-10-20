@@ -1,9 +1,48 @@
 
-SELECT
-    COUNT(Id) totalApps,
-    COUNT(Supportability_Maintainability_Score__c) resourceScores,
-    COUNT(Security_Compliance_Score__c) complianceScores
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
-AND App__r.Portfolio_Name_Report__c =
-    'Operations Infrastructure Portfolio'
+Integer total = [
+    SELECT COUNT()
+    FROM TPM_Assessment__c
+];
+
+System.debug('HUB_TOTAL_ASSESSMENTS=' + total);
+
+if (total > 45000) {
+    System.debug(
+        'HUB_TOO_MANY_ROWS_FOR_THIS_CHECK'
+    );
+} else {
+    Map<String, Integer> cycleCounts =
+        new Map<String, Integer>();
+
+    for (TPM_Assessment__c rec : [
+        SELECT Assessment_Period_Quarter_Year__c
+        FROM TPM_Assessment__c
+        LIMIT 45000
+    ]) {
+        String cycle =
+            rec.Assessment_Period_Quarter_Year__c;
+
+        if (String.isBlank(cycle)) {
+            cycle = '(Blank)';
+        } else {
+            cycle = cycle.trim();
+        }
+
+        Integer count = cycleCounts.containsKey(cycle)
+            ? cycleCounts.get(cycle) : 0;
+
+        cycleCounts.put(cycle, count + 1);
+    }
+
+    List<String> cycles =
+        new List<String>(cycleCounts.keySet());
+
+    cycles.sort();
+
+    for (String cycle : cycles) {
+        System.debug(
+            'HUB_CYCLE=' + cycle +
+            ' | COUNT=' + cycleCounts.get(cycle)
+        );
+    }
+}
