@@ -7,63 +7,62 @@ Map<String, Object> result =
 List<Map<String, Object>> rows =
     (List<Map<String, Object>>) result.get('records');
 
-Map<String, Integer> portfolioCounts =
+List<String> metrics = new List<String>{
+    'overall',
+    'tech',
+    'resource',
+    'business',
+    'compliance',
+    'barr',
+    'time',
+    'rag',
+    'status'
+};
+
+Map<String, Integer> populated =
     new Map<String, Integer>();
 
-Map<String, Integer> scoredCounts =
+Map<String, Integer> healthValues =
     new Map<String, Integer>();
 
-Integer blankPortfolioCount = 0;
-
-for (Map<String, Object> row : rows) {
-    Object portfolioValue = row.get('portfolio');
-
-    if (portfolioValue == null ||
-        String.isBlank(String.valueOf(portfolioValue))) {
-        blankPortfolioCount++;
-        continue;
-    }
-
-    String portfolioName =
-        String.valueOf(portfolioValue).trim();
-
-    Integer existingCount =
-        portfolioCounts.containsKey(portfolioName)
-        ? portfolioCounts.get(portfolioName) : 0;
-
-    portfolioCounts.put(
-        portfolioName, existingCount + 1
-    );
-
-    if (row.get('overall') != null) {
-        Integer existingScored =
-            scoredCounts.containsKey(portfolioName)
-            ? scoredCounts.get(portfolioName) : 0;
-
-        scoredCounts.put(
-            portfolioName, existingScored + 1
-        );
-    }
+for (String metric : metrics) {
+    populated.put(metric, 0);
 }
 
-List<String> names =
-    new List<String>(portfolioCounts.keySet());
+for (Map<String, Object> row : rows) {
+    for (String metric : metrics) {
+        Object value = row.get(metric);
 
-names.sort();
+        if (value != null &&
+            !String.isBlank(String.valueOf(value))) {
+            populated.put(
+                metric,
+                populated.get(metric) + 1
+            );
+        }
+    }
+
+    Object rag = row.get('rag');
+
+    if (rag != null &&
+        !String.isBlank(String.valueOf(rag))) {
+        String health = String.valueOf(rag);
+        Integer count = healthValues.containsKey(health)
+            ? healthValues.get(health) : 0;
+
+        healthValues.put(health, count + 1);
+    }
+}
 
 System.debug('HUB_TOTAL=' + rows.size());
 
-System.debug('HUB_PORTFOLIO_COUNT=' + names.size());
-
-System.debug('HUB_BLANK_PORTFOLIO=' +
-    blankPortfolioCount);
-
-for (String name : names) {
+for (String metric : metrics) {
     System.debug(
-        'HUB_PORTFOLIO=' + name +
-        ' | RECORDS=' + portfolioCounts.get(name) +
-        ' | SCORED=' +
-        (scoredCounts.containsKey(name)
-            ? scoredCounts.get(name) : 0)
+        'HUB_POPULATED_' + metric.toUpperCase()
+        + '=' + populated.get(metric)
     );
 }
+
+System.debug(
+    'HUB_RAG_VALUES=' + JSON.serialize(healthValues)
+);
