@@ -1,26 +1,14 @@
 
-Schema.SObjectType assessmentType =
-    Schema.getGlobalDescribe().get(
-        'TPM_Assessment__c'
-    );
+Schema.SObjectType portType =
+    Schema.getGlobalDescribe().get('TPM_Port__c');
 
-Schema.DescribeFieldResult appLookup =
-    assessmentType.getDescribe()
-    .fields.getMap()
-    .get('App__c')
-    .getDescribe();
-
-for (Schema.SObjectType appType :
-     appLookup.getReferenceTo()) {
-
-    System.debug(
-        'HUB_APP_OBJECT=' +
-        appType.getDescribe().getName()
-    );
+if (portType == null) {
+    System.debug('HUB_PORT_OBJECT_NOT_FOUND');
+} else {
+    System.debug('HUB_PORT_OBJECT=TPM_Port__c');
 
     for (Schema.SObjectField field :
-         appType.getDescribe()
-         .fields.getMap().values()) {
+         portType.getDescribe().fields.getMap().values()) {
 
         Schema.DescribeFieldResult d =
             field.getDescribe();
@@ -29,13 +17,16 @@ for (Schema.SObjectType appType :
             (d.getName() + ' ' + d.getLabel())
             .toLowerCase();
 
-        if (searchText.contains('portfolio') ||
-            searchText.contains('group') ||
-            searchText.contains('category')) {
+        if (searchText.contains('group') ||
+            searchText.contains('category') ||
+            searchText.contains('portfolio') ||
+            searchText.contains('division') ||
+            searchText.contains('segment') ||
+            searchText.contains('parent') ||
+            searchText.contains('company')) {
 
             System.debug(
-                'HUB_GROUP_FIELD=' +
-                d.getName() +
+                'HUB_PORT_FIELD=' + d.getName() +
                 ' | LABEL=' + d.getLabel() +
                 ' | TYPE=' + d.getType()
             );
