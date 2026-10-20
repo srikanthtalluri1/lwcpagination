@@ -4,28 +4,66 @@ Map<String, Object> result =
         '{"assessmentPeriod":"Q12021"}'
     );
 
-Map<String, String> fields =
-    (Map<String, String>) result.get('fields');
+List<Map<String, Object>> rows =
+    (List<Map<String, Object>>) result.get('records');
 
-List<String> keys = new List<String>{
-    'name',
-    'portfolio',
-    'domain',
-    'overall',
-    'tech',
-    'resource',
-    'business',
-    'compliance',
-    'barr',
-    'time',
-    'status',
-    'rag',
-    'assessmentPeriod'
-};
+Map<String, Integer> portfolioCounts =
+    new Map<String, Integer>();
 
-for (String key : keys) {
+Map<String, Integer> scoredCounts =
+    new Map<String, Integer>();
+
+Integer blankPortfolioCount = 0;
+
+for (Map<String, Object> row : rows) {
+    Object portfolioValue = row.get('portfolio');
+
+    if (portfolioValue == null ||
+        String.isBlank(String.valueOf(portfolioValue))) {
+        blankPortfolioCount++;
+        continue;
+    }
+
+    String portfolioName =
+        String.valueOf(portfolioValue).trim();
+
+    Integer existingCount =
+        portfolioCounts.containsKey(portfolioName)
+        ? portfolioCounts.get(portfolioName) : 0;
+
+    portfolioCounts.put(
+        portfolioName, existingCount + 1
+    );
+
+    if (row.get('overall') != null) {
+        Integer existingScored =
+            scoredCounts.containsKey(portfolioName)
+            ? scoredCounts.get(portfolioName) : 0;
+
+        scoredCounts.put(
+            portfolioName, existingScored + 1
+        );
+    }
+}
+
+List<String> names =
+    new List<String>(portfolioCounts.keySet());
+
+names.sort();
+
+System.debug('HUB_TOTAL=' + rows.size());
+
+System.debug('HUB_PORTFOLIO_COUNT=' + names.size());
+
+System.debug('HUB_BLANK_PORTFOLIO=' +
+    blankPortfolioCount);
+
+for (String name : names) {
     System.debug(
-        'HUB_' + key.toUpperCase() +
-        '=' + fields.get(key)
+        'HUB_PORTFOLIO=' + name +
+        ' | RECORDS=' + portfolioCounts.get(name) +
+        ' | SCORED=' +
+        (scoredCounts.containsKey(name)
+            ? scoredCounts.get(name) : 0)
     );
 }
