@@ -4,17 +4,28 @@ Map<String, Object> result =
         '{"assessmentPeriod":"Q12021"}'
     );
 
-System.debug(
-    'HUB_FIELDS=' +
-    JSON.serialize(result.get('fields'))
-);
+Map<String, String> fields =
+    (Map<String, String>) result.get('fields');
 
-System.debug(
-    'HUB_ROWS=' +
-    result.get('rowCount')
-);
+List<String> keys = new List<String>{
+    'name',
+    'portfolio',
+    'domain',
+    'overall',
+    'tech',
+    'resource',
+    'business',
+    'compliance',
+    'barr',
+    'time',
+    'status',
+    'rag',
+    'assessmentPeriod'
+};
 
-System.debug(
-    'HUB_PERIOD=' +
-    result.get('assessmentPeriod')
-);
+for (String key : keys) {
+    System.debug(
+        'HUB_' + key.toUpperCase() +
+        '=' + fields.get(key)
+    );
+}
