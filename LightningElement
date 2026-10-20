@@ -1,42 +1,9 @@
 
-List<TPM_Assessment__c> rows = [
-    SELECT Id, App__c
-    FROM TPM_Assessment__c
-    WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
-    LIMIT 50000
-];
-
-Set<Id> appIds = new Set<Id>();
-
-Integer blankApps = 0;
-Integer repeats = 0;
-
-for (TPM_Assessment__c rec : rows) {
-
-    if (rec.App__c == null) {
-        blankApps++;
-        continue;
-    }
-
-    if (appIds.contains(rec.App__c)) {
-        repeats++;
-    } else {
-        appIds.add(rec.App__c);
-    }
-}
-
-System.debug(
-    'HUB_ASSESSMENT_RECORDS=' + rows.size()
-);
-
-System.debug(
-    'HUB_UNIQUE_APPLICATIONS=' + appIds.size()
-);
-
-System.debug(
-    'HUB_BLANK_APP_LOOKUP=' + blankApps
-);
-
-System.debug(
-    'HUB_REPEAT_ASSESSMENTS=' + repeats
-);
+SELECT
+    COUNT(Id) totalApps,
+    COUNT(Supportability_Maintainability_Score__c) resourceScores,
+    COUNT(Security_Compliance_Score__c) complianceScores
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
+AND App__r.Portfolio_Name_Report__c =
+    'Operations Infrastructure Portfolio'
