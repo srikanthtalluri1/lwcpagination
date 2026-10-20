@@ -1,41 +1,44 @@
 
-Map<String, Object> result =
-    TpmArchitectureHubController.getAssessmentData(
-        '{"assessmentPeriod":"Q12021"}'
+Schema.SObjectType assessmentType =
+    Schema.getGlobalDescribe().get(
+        'TPM_Assessment__c'
     );
 
-List<Map<String, Object>> rows =
-    (List<Map<String, Object>>) result.get('records');
+Schema.DescribeFieldResult appLookup =
+    assessmentType.getDescribe()
+    .fields.getMap()
+    .get('App__c')
+    .getDescribe();
 
-Map<String, Integer> timeCounts =
-    new Map<String, Integer>();
+for (Schema.SObjectType appType :
+     appLookup.getReferenceTo()) {
 
-for (Map<String, Object> row : rows) {
-
-    Object rawValue = row.get('time');
-
-    String timeValue =
-        rawValue == null ||
-        String.isBlank(String.valueOf(rawValue))
-        ? '(Blank)'
-        : String.valueOf(rawValue).trim();
-
-    Integer count =
-        timeCounts.containsKey(timeValue)
-        ? timeCounts.get(timeValue)
-        : 0;
-
-    timeCounts.put(timeValue, count + 1);
-}
-
-List<String> categories =
-    new List<String>(timeCounts.keySet());
-
-categories.sort();
-
-for (String category : categories) {
     System.debug(
-        'HUB_TIME_VALUE=' + category +
-        ' | COUNT=' + timeCounts.get(category)
+        'HUB_APP_OBJECT=' +
+        appType.getDescribe().getName()
     );
+
+    for (Schema.SObjectField field :
+         appType.getDescribe()
+         .fields.getMap().values()) {
+
+        Schema.DescribeFieldResult d =
+            field.getDescribe();
+
+        String searchText =
+            (d.getName() + ' ' + d.getLabel())
+            .toLowerCase();
+
+        if (searchText.contains('portfolio') ||
+            searchText.contains('group') ||
+            searchText.contains('category')) {
+
+            System.debug(
+                'HUB_GROUP_FIELD=' +
+                d.getName() +
+                ' | LABEL=' + d.getLabel() +
+                ' | TYPE=' + d.getType()
+            );
+        }
+    }
 }
