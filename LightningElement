@@ -1,1080 +1,584 @@
-:host {
-    --patriotic-blue: var(--slds-g-color-brand-base-10, #003065);
-    --field-gold: var(--slds-g-color-warning-base-40, #8c7f4f);
-    --field-gold-dark: var(--slds-g-color-warning-base-40, #8c7f4f);
-    --heritage-red: var(--slds-g-color-error-base-40, #ba0517);
-    --land-green: var(--slds-g-color-success-base-40, #2e844a);
-    --sea-blue: var(--slds-g-color-brand-base-30, #0176d3);
-    --space-01: var(--slds-g-color-neutral-base-20, #444);
-    --space-02: var(--slds-g-color-neutral-base-30, #5c5c5c);
-    --space-03: var(--slds-g-color-neutral-base-50, #747474);
-    --gray-01: var(--slds-g-color-neutral-base-95, #f3f3f3);
-    --gray-02: var(--slds-g-color-neutral-base-80, #c9c9c9);
-    --gray-04: var(--slds-g-color-neutral-base-10, #181818);
-    --warm-white: var(--slds-g-color-neutral-base-100, #fff);
-    display: block;
-    position: relative;
-    min-height: 100vh;
-    color: var(--gray-04);
-    background: var(--warm-white);
-    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-}
+<template>
+    <div class="confidential-bar">CONFIDENTIAL - USAA INTERNAL USE ONLY</div>
 
-* { box-sizing: border-box; }
-.confidential-bar { position: absolute; z-index: 10; inset: 0 0 auto; height: 22px; display: flex; justify-content: center; align-items: center; color: var(--field-gold); background: var(--space-01); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
-.workspace { min-height: 100vh; padding-top: 0; }
-.content-shell { min-height: 100vh; background: #f3f1ee; }
-.topbar {
-    position: sticky;
-    z-index: 4;
-    top: 0;
-    display: flex;
-    align-items: center;
-    min-height: 50px;
-    gap: 14px;
-    padding: 0 0 0 14px;
-    background: #f3f1ee;
-    border-bottom: 1px solid rgba(35, 50, 62, 0.22);
-}
-.page-title {
-    min-width: 0;
-    overflow: hidden;
-    color: #003065;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.topbar-controls {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-left: auto;
-    padding-right: 18px;
-}
-.topbar-search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 360px;
-    min-width: 220px;
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid rgba(58, 63, 67, 0.38);
-    border-radius: 6px;
-    background: rgba(255,255,255,0.15);
-}
-.topbar-search-icon { --slds-c-icon-color-foreground-default: #5c636c; }
-.topbar-search-input {
-    width: 100%;
-    min-height: 30px;
-    border: 0;
-    background: transparent;
-    color: #2b2b2b;
-    font-size: 14px;
-    outline: none;
-}
-.topbar-search-input::placeholder { color: #6f7277; }
-.cycle-cluster {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-left: 14px;
-    border-left: 1px solid rgba(34, 51, 68, 0.25);
-}
-.cycle-label {
-    color: #4d5967;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-.cycle-select-shell { position: relative; }
-.cycle-select {
-    min-width: 101px;
-    min-height: 32px;
-    padding: 0 26px 0 12px;
-    border: 1px solid rgba(58, 63, 67, 0.45);
-    border-radius: 6px;
-    background: rgba(255,255,255,0.15);
-    color: #003065;
-    font-size: 13px;
-    font-weight: 700;
-    appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, #4e5a68 50%), linear-gradient(135deg, #4e5a68 50%, transparent 50%);
-    background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 8px) calc(50% - 2px);
-    background-size: 5px 5px, 5px 5px;
-    background-repeat: no-repeat;
-}
-.cycle-select:focus { outline: none; border-color: #003065; }
-.as-of {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding-left: 12px;
-    border-left: 1px solid rgba(34, 51, 68, 0.25);
-    font-size: 10px;
-    line-height: 1.4;
-    text-align: right;
-    white-space: nowrap;
-}
-.as-of strong {
-    color: #003065;
-    font-size: 11px;
-    font-weight: 700;
-}
-.main-content { max-width: 1600px; padding: 26px 30px 48px; }
-.page-heading { margin-bottom: 19px; }
-.eyebrow { margin-bottom: 5px; color: var(--field-gold-dark); font-size: 9px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
-h1, h2 { margin: 0; color: var(--patriotic-blue); font-family: Georgia, 'Times New Roman', serif; line-height: 1.2; }
-h1 { font-size: 30px; letter-spacing: -.02em; }
-h2 { font-size: 16px; }
-.lede { max-width: 850px; margin: 8px 0 0; font-size: 13px; line-height: 1.6; }
-.status-note { margin-bottom: 17px; padding: 10px 14px; border-left: 3px solid var(--slds-g-color-warning-base-40, var(--field-gold)); border-radius: 0 5px 5px 0; color: var(--slds-g-color-neutral-base-10, var(--gray-04)); background: var(--slds-g-color-warning-base-95, #fff7e6); font-size: 12px; }
-.status-note strong { color: var(--patriotic-blue); }
-.kpi-grid { margin-bottom: 16px; }
-.kpi-card { position: relative; min-width: 0; overflow: hidden; padding: 14px 15px; border: 1px solid var(--gray-02); border-radius: 7px; background: var(--slds-g-color-neutral-base-100, #fff); }
-.kpi-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--sea-blue); content: ''; }
-.kpi-card.accent-red::before { background: var(--heritage-red); }
-.kpi-card.accent-gold::before { background: var(--field-gold-dark); }
-.kpi-card.accent-green::before { background: var(--land-green); }
-.kpi-card.accent-navy::before { background: var(--patriotic-blue); }
-.kpi-label { overflow: hidden; font-size: 9px; font-weight: 700; letter-spacing: .09em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.kpi-value { margin: 5px 0 1px; color: var(--patriotic-blue); font-family: Georgia, 'Times New Roman', serif; font-size: 29px; font-weight: 700; line-height: 1.12; }
-.kpi-detail { font-size: 10px; }
-.section-grid { margin-bottom: 14px; }
-.section-card { min-width: 0; min-height: 144px; padding: 14px 15px; border: 1px solid var(--gray-02); border-radius: 7px; color: var(--slds-g-color-neutral-base-10, var(--gray-04)); background: var(--slds-g-color-neutral-base-100, #fff); text-align: left; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
-.section-card:hover { transform: translateY(-2px); border-color: var(--slds-g-color-brand-base-80, #a9c6da); box-shadow: 0 7px 18px color-mix(in srgb, var(--slds-g-color-brand-base-10, #003065) 9%, transparent); }
-.section-card-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; margin-bottom: 9px; }
-.section-card-heading h2 { font-family: inherit; font-size: 13px; font-weight: 700; }
-.section-card-heading > span, .card-note { font-size: 9px; text-align: right; }
-.section-value { color: var(--patriotic-blue); font-family: Georgia, 'Times New Roman', serif; font-size: 23px; font-weight: 700; line-height: 1.15; }
-.section-detail { margin-top: 3px; font-size: 10px; }
-.section-footnote { margin-top: 9px; font-size: 10px; line-height: 1.45; }
-.section-description { margin: 8px 0 0; font-size: 10px; line-height: 1.6; }
-.health-stack { margin-top: 12px; }
-.native-card { display: block; margin-bottom: 16px; }
-.platform-layer { min-width: 0; }
-.layer-title { margin-bottom: 6px; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.layer-metrics { display: flex; align-items: baseline; gap: 7px; color: var(--space-02); font-size: 10px; }
-.layer-metrics strong { color: var(--patriotic-blue); font-family: Georgia, 'Times New Roman', serif; font-size: 25px; }
-.layer-detail { margin-top: 2px; font-size: 10px; }
-.platform-layer p { margin: 6px 0 0; font-size: 10px; line-height: 1.5; }
-.health-counts { margin-left: 6px; font-size: 9px; }
-.portfolio-visual-row { min-height: 52px; }
-.heatmap-scroll { overflow-x: auto; }
-.heatmap-table { min-width: 980px; }
-.heatmap-table th, .heatmap-table td { vertical-align: middle; text-align: center; }
-.heatmap-table th:first-child { min-width: 205px; text-align: left; }
-.heatmap-name { color: var(--patriotic-blue); font-weight: 700; white-space: nowrap; }
-.numeric-cell { color: var(--space-02); font-variant-numeric: tabular-nums; }
-.heat-cell { min-width: 84px; min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 4px 5px; border-radius: 4px; color: var(--slds-g-color-neutral-base-100, #fff); font-size: 11px; font-variant-numeric: tabular-nums; }
-.heat-cell span { font-size: 8px; font-weight: 700; opacity: .9; }
-.heat-red { background: var(--slds-g-color-error-base-40, var(--heritage-red)); }
-.heat-yellow { background: var(--slds-g-color-warning-base-40, var(--field-gold-dark)); }
-.heat-green { background: var(--slds-g-color-success-base-40, var(--land-green)); }
-.heat-neutral { background: var(--slds-g-color-neutral-base-50, #747474); }
-.analytics-grid, .movers-grid { margin: 0 -.75rem; }
-.chart-legend { font-size: 10px; }
-.dimension-row { display: flex; align-items: center; gap: 10px; }
-.dimension-row c-tpm-score-bar-chart { flex: 1; }
-.dimension-delta { min-width: 40px; color: var(--space-02); font-size: 10px; font-weight: 700; text-align: right; }
-.composition-chart + .composition-chart { margin-top: 22px; }
-.chart-subtitle { margin-bottom: 9px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.composition-legend { gap: 8px 14px; margin-top: 9px; }
-.legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; }
-.legend-item i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-.portfolio-group { margin-top: 22px; }
-.group-heading { margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--gray-02); }
-.portfolio-summary-score { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; font-size: 10px; }
-.portfolio-summary-score strong { color: var(--patriotic-blue); font-family: Georgia, 'Times New Roman', serif; font-size: 26px; }
-.portfolio-dimensions { display: grid; gap: 10px; }
-.risk-summary { padding-top: 8px; border-top: 1px solid var(--gray-01); font-size: 10px; }
-.explorer-filters { align-items: end; }
-.explorer-pager { min-height: 36px; }
-.explorer-loading { min-height: 72px; }
-.data-footer { padding: 2px 1px; color: var(--space-03); font-size: 10px; }
-.empty-state { max-width: 760px; margin-top: 25px; text-align: center; }
-.empty-icon { margin-bottom: 8px; color: var(--field-gold-dark); font-size: 30px; }
-.empty-state p { max-width: 520px; margin: 10px auto 18px; line-height: 1.6; }
+    <div class="workspace">
+        <aside class="sidebar" aria-label="Architecture Hub navigation">
+            <div class="brand">
+                <div class="brand-mark">Architecture<span>Hub</span></div>
+                <div class="brand-sub">CTO Enterprise Architecture</div>
+            </div>
+            <nav class="nav" aria-label="Architecture Hub sections">
+                <template for:each={navigation} for:item="group">
+                    <div key={group.key} class="nav-group">
+                        <template lwc:if={group.label}>
+                            <div class="nav-label">{group.label}</div>
+                        </template>
+                        <template for:each={group.items} for:item="item">
+                            <button key={item.page} class={item.navClass} data-page={item.page} onclick={handleNavigate}>
+                                <span class="nav-text">{item.label}</span>
+                                <template lwc:if={item.badge}>
+                                    <span class="badge">{item.badge}</span>
+                                </template>
+                            </button>
+                        </template>
+                    </div>
+                </template>
+            </nav>
+            <div class="sidebar-foot">Architecture Hub</div>
+        </aside>
 
-@media (max-width: 1250px) {
-    .section-card { min-height: 128px; }
-}
-@media (max-width: 900px) {
-    .sidebar { width: 208px; }
-    .content-shell { margin-left: 208px; }
-    .main-content { padding: 22px 20px 38px; }
-    .topbar { padding: 0 20px; }
-    .topbar-controls { gap: 10px; }
-    .topbar-search { min-width: 240px; }
-    .platform-grid { row-gap: 12px; }
-}
-@media (max-width: 650px) {
-    .workspace { padding-top: 22px; }
-    .sidebar { position: static; width: 100%; max-height: none; }
-    .brand { padding: 13px 16px 11px; }
-    .sidebar-foot { display: none; }
-    .content-shell { margin-left: 0; }
-    .topbar { position: static; min-height: 52px; flex-wrap: wrap; gap: 9px; padding: 10px 14px; }
-    .topbar-title { width: 100%; font-size: 13px; }
-    .topbar-controls { width: 100%; flex-wrap: wrap; gap: 8px; }
-    .topbar-search { min-width: 0; flex: 1 1 100%; }
-    .cycle-cluster { gap: 5px; padding-left: 0; border-left: 0; }
-    .cycle-label { font-size: 8px; }
-    .cycle-select { min-width: 88px; min-height: 34px; font-size: 12px; }
-    .as-of { padding-left: 8px; font-size: 8px; border-left: 1px solid var(--gray-02); }
-    .main-content { padding: 21px 14px 32px; }
-    h1 { font-size: 25px; }
-    .kpi-value { font-size: 25px; }
-    .section-card { min-height: 132px; padding: 12px; }
-    .native-card { margin-bottom: 12px; }
-    .analytics-grid, .movers-grid { margin: 0; }
-}
-@media (max-width: 390px) {
-    .kpi-card { padding: 11px 13px; }
-    .kpi-value { font-size: 23px; }
-}
+        <div class="content-shell">
+            <header class="topbar">
+                <div class="crumbs"><span class="cur">{pageTitle}</span></div>
+                <div class="topbar-spacer"></div>
+                <label class="gsearch" for="architecture-hub-global-search">
+                    <lightning-icon class="gi" icon-name="utility:search" size="xx-small" alternative-text="Search"></lightning-icon>
+                    <input
+                        id="architecture-hub-global-search"
+                        class="gsearch-input"
+                        type="search"
+                        placeholder="Search applications, portfolios..."
+                        value={applicationSearch}
+                        oninput={handleTopbarSearchInput}
+                        onkeydown={handleTopbarSearchKeydown}
+                    />
+                </label>
+                <div class="cyclesel">
+                    <span class="fl">Cycle</span>
+                    <select class="cyclesel-select" value={selectedCycle} onchange={handleCycleChange} disabled={cyclesLoading} aria-label="Assessment cycle">
+                        <template for:each={cycleOptions} for:item="option">
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        </template>
+                    </select>
+                </div>
+                <div class="asof"><b>{selectedCycle}</b></div>
+            </header>
 
-:host {
-    --sidebar-w: 252px;
-    --topbar-h: 56px;
-    --confbar-h: 22px;
-    --bg-alt: #f5f5f0;
-    --border: #d6d4cc;
-    --border-light: #e8e7e1;
-}
-.confidential-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 300;
-    height: var(--confbar-h);
-    background: var(--space-01);
-    color: var(--field-gold);
-}
-.workspace {
-    min-height: 100vh;
-    background: var(--bg-alt);
-}
-.sidebar {
-    position: fixed;
-    top: var(--confbar-h);
-    left: 0;
-    bottom: 0;
-    width: var(--sidebar-w);
-    background: var(--patriotic-blue);
-    overflow-y: auto;
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-}
-.brand {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid rgba(255,255,255,.12);
-    background: transparent;
-}
-.brand-mark {
-    color: #fff;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-}
-.brand-mark span {
-    color: var(--field-gold);
-}
-.brand-sub {
-    color: rgba(255,255,255,.55);
-    font-size: 10.5px;
-    letter-spacing: .09em;
-    text-transform: uppercase;
-    margin-top: 3px;
-}
-.nav {
-    padding: 10px 0 24px;
-    flex: 1;
-}
-.nav-group {
-    margin-bottom: 2px;
-}
-.nav-label {
-    color: rgba(255,255,255,.4);
-    font-size: 9.5px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    padding: 14px 20px 5px;
-    font-weight: 600;
-}
-.nav-link {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    width: 100%;
-    padding: 7px 20px;
-    border: 0;
-    border-left: 3px solid transparent;
-    background: transparent;
-    color: rgba(255,255,255,.8);
-    font-size: 13px;
-    text-align: left;
-    transition: all .12s;
-}
-.nav-link:hover {
-    background: rgba(255,255,255,.07);
-    color: #fff;
-}
-.nav-link.active {
-    background: rgba(208,190,122,.13);
-    color: #fff;
-    border-left-color: var(--field-gold);
-    font-weight: 600;
-}
-.nav-text {
-    flex: 1;
-}
-.badge {
-    background: rgba(255,255,255,.14);
-    color: rgba(255,255,255,.75);
-    font-size: 9.5px;
-    padding: 1px 6px;
-    border-radius: 9px;
-    font-weight: 600;
-}
-.sidebar-foot {
-    padding: 12px 20px;
-    border-top: 1px solid rgba(255,255,255,.1);
-    color: rgba(255,255,255,.4);
-    font-size: 10.5px;
-}
-.topbar {
-    position: fixed;
-    top: var(--confbar-h);
-    left: var(--sidebar-w);
-    right: 0;
-    height: var(--topbar-h);
-    background: #fff;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 0 24px;
-    z-index: 150;
-}
-.crumbs {
-    font-size: 12.5px;
-    color: var(--space-02);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    min-width: 0;
-}
-.crumbs .cur {
-    color: var(--patriotic-blue);
-    font-weight: 600;
-}
-.topbar-spacer {
-    flex: 1;
-}
-.gsearch {
-    position: relative;
-    display: block;
-}
-.gsearch .gi {
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    transform: translateY(-50%);
-    --slds-c-icon-color-foreground-default: #b9b6ac;
-}
-.gsearch-input {
-    width: 230px;
-    padding: 6px 10px 6px 28px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    font-family: inherit;
-    font-size: 12.5px;
-    background: var(--bg-alt);
-    color: var(--gray-04);
-}
-.gsearch-input:focus {
-    outline: none;
-    border-color: #3a7ea6;
-    background: #fff;
-    width: 290px;
-}
-.cyclesel {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 12px;
-    color: var(--space-02);
-    border-left: 1px solid var(--border);
-    padding-left: 14px;
-}
-.fl {
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--space-02);
-    font-weight: 700;
-}
-.cyclesel-select {
-    font-family: inherit;
-    font-size: 12px;
-    padding: 4px 7px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: #fff;
-    color: var(--patriotic-blue);
-    font-weight: 600;
-}
-.asof {
-    font-size: 11px;
-    color: var(--space-03);
-    text-align: right;
-    line-height: 1.35;
-    border-left: 1px solid var(--border);
-    padding-left: 14px;
-}
-.asof b {
-    color: var(--patriotic-blue);
-    font-weight: 600;
-    display: block;
-}
-.main-content {
-    margin-left: var(--sidebar-w);
-    margin-top: calc(var(--confbar-h) + var(--topbar-h));
-    padding: 26px 30px 70px;
-    max-width: 1560px;
-    background: var(--bg-alt);
-}
-.pagehead {
-    margin-bottom: 22px;
-}
-.pagehead h1 {
-    font-size: 31px;
-    letter-spacing: -.015em;
-}
-.pagehead .lede {
-    color: var(--space-02);
-    font-size: 14.5px;
-    margin-top: 8px;
-    max-width: 820px;
-    line-height: 1.55;
-}
-.status-note {
-    margin-bottom: 18px;
-    padding: 11px 16px;
-    border-left: 3px solid var(--field-gold);
-    border-radius: 0 5px 5px 0;
-    background: #f2eddd;
-    color: var(--gray-04);
-    font-size: 12.5px;
-}
-.grid {
-    display: grid;
-    gap: 16px;
-}
-.g2 {
-    grid-template-columns: repeat(2, 1fr);
-}
-.g3 {
-    grid-template-columns: repeat(3, 1fr);
-}
-.g5 {
-    grid-template-columns: repeat(5, 1fr);
-}
-.kpi-grid,
-.section-grid {
-    margin-bottom: 16px;
-}
-.kpi-card {
-    min-width: 0;
-    padding: 15px 17px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-}
-.kpi-label {
-    font-size: 10px;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-    color: var(--space-02);
-    font-weight: 600;
-}
-.kpi-value {
-    margin: 5px 0 3px;
-    font-size: 32px;
-    line-height: 1.05;
-}
-.kpi-detail {
-    font-size: 11.5px;
-    color: var(--space-02);
-}
-.section-card {
-    min-width: 0;
-    min-height: 220px;
-    padding: 18px 20px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-    text-align: left;
-    color: var(--gray-04);
-}
-.section-card-heading h2 {
-    font-size: 14.5px;
-}
-.section-card-heading > span {
-    font-size: 11.5px;
-    color: var(--space-03);
-}
-.section-value {
-    margin-top: 8px;
-    font-size: 23px;
-}
-.section-detail,
-.section-footnote,
-.section-description {
-    color: var(--space-02);
-    font-size: 11.5px;
-}
-.card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 18px 20px;
-    margin-bottom: 18px;
-}
-.card-h {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-.card-h h2 {
-    font-size: 16px;
-}
-.card-h .note {
-    margin-left: auto;
-    font-size: 11.5px;
-    color: var(--space-03);
-}
-.platform-layer {
-    min-width: 0;
-}
-.layer-title {
-    margin-bottom: 6px;
-    font-size: 10px;
-    letter-spacing: .13em;
-    color: var(--field-gold-dark);
-    font-weight: 700;
-    text-transform: uppercase;
-}
-.layer-metrics strong {
-    font-size: 32px;
-}
-.layer-detail,
-.platform-layer p {
-    color: var(--space-02);
-    font-size: 12px;
-}
-.data-footer {
-    color: var(--space-03);
-    font-size: 10.5px;
-}
-@media (max-width: 1300px) {
-    .g5 {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .g3 {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-@media (max-width: 900px) {
-    .sidebar {
-        width: 208px;
-    }
-    .topbar {
-        left: 208px;
-        padding: 0 18px;
-    }
-    .main-content {
-        margin-left: 208px;
-        padding: 22px 20px 38px;
-    }
-    .g2,
-    .g3,
-    .g5 {
-        grid-template-columns: 1fr;
-    }
-}
-@media (max-width: 650px) {
-    .sidebar {
-        position: static;
-        width: 100%;
-        top: 0;
-    }
-    .topbar {
-        position: static;
-        left: 0;
-        height: auto;
-        flex-wrap: wrap;
-        padding: 12px 14px;
-    }
-    .main-content {
-        margin: 0;
-        padding: 18px 14px 32px;
-    }
-    .gsearch-input,
-    .gsearch-input:focus {
-        width: 100%;
-    }
-}
+            <main class="main-content">
+                <template lwc:if={showPageLoadError}>
+                    <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert">{explorerError}</div>
+                </template>
+                <template lwc:if={showEmptyAssessmentNotice}>
+                    <div class="slds-text-color_weak slds-p-around_medium" role="status">No Salesforce assessment records were returned for this cycle.</div>
+                </template>
+                <template lwc:if={isDashboard}>
+                    <div class="pagehead">
+                        <div class="eyebrow">Enterprise Architecture</div>
+                        <h1>Technology Architecture Practice</h1>
+                        <p class="lede">Assessment results from Salesforce for {activeAssessmentPeriod}.</p>
+                    </div>
 
-.n {
-    font-size: 10px;
-    letter-spacing: .13em;
-    color: var(--field-gold-dark);
-    font-weight: 700;
-}
-.t-scroll {
-    overflow-x: auto;
-}
-.heat {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 2px;
-}
-.heat th {
-    background: transparent;
-    border: none;
-    padding: 5px 7px;
-    font-size: 9.5px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--space-02);
-    font-weight: 700;
-    text-align: center;
-}
-.heat td {
-    border: none;
-    padding: 0;
-}
-.heat .pf {
-    padding: 6px 10px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--patriotic-blue);
-    background: #fff;
-    border-radius: 4px;
-    white-space: nowrap;
-}
-.heat .cell {
-    height: 34px;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 12.5px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-.heat .cell .dd {
-    font-size: 9px;
-    font-weight: 600;
-    opacity: .85;
-}
-.cnt {
-    text-align: center;
-    font-size: 11.5px;
-    color: var(--space-02);
-    background: #fff;
-    border-radius: 4px;
-    padding: 7px 4px;
-    font-variant-numeric: tabular-nums;
-}
-.risk-hot {
-    color: var(--heritage-red);
-    font-weight: 700;
-}
-.stack {
-    display: flex;
-    height: 22px;
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 10px 0 8px;
-}
-.stack div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 10.5px;
-    font-weight: 700;
-}
-.compact-stack {
-    margin-top: 12px;
-}
-.legend {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 11.5px;
-    color: var(--space-02);
-}
-.legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.legend-item i {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-.dimension-stack {
-    margin-top: 18px;
-}
-.dimrow {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    margin-bottom: 9px;
-}
-.dl {
-    width: 112px;
-    font-size: 12px;
-    color: var(--space-02);
-    font-weight: 600;
-    flex-shrink: 0;
-}
-.dtrack {
-    flex: 1;
-    height: 19px;
-    background: var(--gray-01);
-    border-radius: 3px;
-    position: relative;
-    overflow: hidden;
-}
-.dfill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    border-radius: 3px;
-}
-.dv {
-    width: 66px;
-    text-align: right;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--patriotic-blue);
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-}
-.dd {
-    width: 52px;
-    font-size: 11px;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-.composition-block + .composition-block {
-    margin-top: 16px;
-}
-.mini-title {
-    font-size: 10px;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-    color: var(--space-02);
-    font-weight: 700;
-    margin-bottom: 7px;
-}
-.portfolio-overview-grid {
-    margin-bottom: 26px;
-}
-.num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-.t-name {
-    font-weight: 600;
-    color: var(--patriotic-blue);
-}
-.t-sub {
-    font-size: 11px;
-    color: var(--space-03);
-}
-.positive-delta {
-    color: var(--land-green);
-    font-weight: 700;
-}
-.negative-delta {
-    color: var(--heritage-red);
-    font-weight: 700;
-}
-.portfolio-group-section {
-    margin-bottom: 26px;
-}
-.group-heading {
-    margin-bottom: 11px;
-}
-.portfolio-card-grid {
-    align-items: stretch;
-}
-.portfolio-summary {
-    margin: 0;
-}
-.portfolio-card-header {
-    margin-bottom: 9px;
-}
-.portfolio-card-header h3 {
-    font-size: 15px;
-}
-.portfolio-overall-line {
-    display: flex;
-    align-items: baseline;
-    gap: 9px;
-    margin-bottom: 9px;
-}
-.portfolio-overall-value {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 27px;
-    font-weight: 700;
-}
-.portfolio-overall-delta {
-    font-size: 11.5px;
-    font-weight: 600;
-}
-.portfolio-dimensions {
-    margin-top: 13px;
-}
-.compact-dimrow .dl {
-    width: 86px;
-    font-size: 11px;
-}
-.compact-dimrow .dtrack {
-    height: 14px;
-}
-.compact-dimrow .dv {
-    width: 48px;
-    font-size: 11px;
-}
-.portfolio-risk-summary {
-    margin-top: 10px;
-    font-size: 11.5px;
-    color: var(--space-02);
-}
-.risk-hot-text {
-    color: var(--heritage-red);
-    font-weight: 700;
-}
-.risk-muted-text {
-    color: inherit;
-    font-weight: 400;
-}
+                    <template lwc:if={showInitialSpinner}>
+                        <div class="explorer-loading slds-is-relative" role="status" aria-live="polite">
+                            <lightning-spinner alternative-text="Loading enterprise assessment data" size="medium"></lightning-spinner>
+                        </div>
+                    </template>
 
-.portfolio-clickable,
-.portfolio-row-clickable {
-    cursor: pointer;
-}
-.portfolio-row-clickable:hover .pf,
-.portfolio-clickable:hover h3 {
-    text-decoration: underline;
-}
-.portfolio-breadcrumbs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 6px 0 12px;
-    font-size: 12px;
-}
-.breadcrumb-button {
-    border: 0;
-    background: none;
-    color: var(--patriotic-blue);
-    padding: 0;
-    font: inherit;
-    cursor: pointer;
-}
-.breadcrumb-separator {
-    color: var(--space-03);
-}
-.portfolio-detail-pagehead {
-    margin-bottom: 10px;
-}
-.portfolio-detail-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--gray-01);
-    margin-bottom: 20px;
-}
-.portfolio-detail-tab {
-    border: 0;
-    border-bottom: 2px solid transparent;
-    background: none;
-    color: var(--patriotic-blue);
-    padding: 10px 12px;
-    font-size: 13px;
-    cursor: pointer;
-}
-.portfolio-detail-tab.active {
-    border-bottom-color: var(--gold-02);
-    font-weight: 700;
-}
-.portfolio-detail-kpis,
-.portfolio-detail-summary-grid,
-.portfolio-domain-grid {
-    margin-bottom: 20px;
-}
-.portfolio-detail-kpi-card {
-    margin: 0;
-}
-.portfolio-detail-kpi-label {
-    font-size: 10px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--space-02);
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-.portfolio-detail-kpi-value {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 32px;
-    color: var(--patriotic-blue);
-    font-weight: 700;
-}
-.portfolio-detail-kpi-detail {
-    font-size: 12px;
-    color: var(--space-03);
-}
-.portfolio-detail-copy-card {
-    margin-bottom: 18px;
-}
-.portfolio-detail-copy {
-    font-size: 13.5px;
-    line-height: 1.65;
-    color: var(--space-02);
-}
-.portfolio-detail-highlights {
-    margin: 14px 0 0;
-    padding-left: 18px;
-    line-height: 1.7;
-    font-size: 13px;
-}
-.portfolio-detail-empty {
-    padding: 22px;
-    color: var(--space-03);
-    font-size: 13px;
-}
-.portfolio-detail-placeholder-card {
-    margin-bottom: 18px;
-}
-.portfolio-domain-card {
-    margin: 0;
-}
+                    <template lwc:if={showDashboardData}>
+                    <div class="status-note" role="status">{dashboardStatusLine}</div>
 
-.main-content {
-    scroll-margin-top: calc(
-        var(--confbar-h) + var(--topbar-h) + 12px
-    );
-}
-@media (max-width: 1024px) {
-    .portfolio-detail-tabs {
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-}
+                    <section class="grid g5 kpi-grid" aria-label="Enterprise application health metrics">
+                        <template for:each={kpis} for:item="item">
+                            <article key={item.label} class={item.className}>
+                                <div class="kpi-label">{item.label}</div>
+                                <div class="kpi-value">{item.value}</div>
+                                <div class="kpi-detail">{item.detail}</div>
+                            </article>
+                        </template>
+                    </section>
 
-/* Added: keep Assess health totals permanently visible, not only on hover. */
-.dashboard-health-legend {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 7px;
-    margin-top: 11px;
-    font-size: 11px;
-    line-height: 1.3;
-    color: #475569;
-}
-.dashboard-health-row { display: flex; align-items: center; gap: 8px; }
-.health-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; }
-.health-dot-red { background: #960000; }
-.health-dot-yellow { background: #8C7F4F; }
-.health-dot-green { background: #6A815E; }
+                    <section class="grid g5 section-grid" aria-label="Architecture practice sections">
+                        <template for:each={sectionCards} for:item="item">
+                            <button key={item.title} class="section-card" data-page={item.page} onclick={handleNavigate}>
+                                <div class="section-card-heading"><h2>{item.title}</h2><span>{item.kicker}</span></div>
+                                <template lwc:if={item.hasValue}>
+                                    <div class="section-value">{item.value}</div>
+                                    <div class="section-detail">{item.detail}</div>
+                                </template>
+                                <template lwc:if={item.showMix}>
+                                    <c-tpm-stacked-bar-chart class="health-stack" segments={item.segments} chart-label={item.healthLabel}></c-tpm-stacked-bar-chart>
+                                    <!-- Always-visible dynamic health counts; same data as the hover tooltip. -->
+                                    <div class="dashboard-health-legend" aria-label="Assessment health counts">
+                                        <div class="dashboard-health-row"><span class="health-dot health-dot-red"></span><span>Red {item.redCount} · &lt;2.5</span></div>
+                                        <div class="dashboard-health-row"><span class="health-dot health-dot-yellow"></span><span>Yellow {item.yellowCount} · 2.5–3.5</span></div>
+                                        <div class="dashboard-health-row"><span class="health-dot health-dot-green"></span><span>Green {item.greenCount} · ≥3.5</span></div>
+                                    </div>
+                                </template>
+                                <template lwc:if={item.description}>
+                                    <p class="section-description">{item.description}</p>
+                                </template>
+                                <template lwc:if={item.footnote}>
+                                    <div class="section-footnote">{item.footnote}</div>
+                                </template>
+                            </button>
+                        </template>
+                    </section>
 
-/* Added: visible focus and a reliable target offset for details navigation. */
-.portfolio-clickable:focus-visible,
-.portfolio-row-clickable:focus-visible { outline: 3px solid #0176d3; outline-offset: 3px; }
-.portfolio-detail-pagehead { scroll-margin-top: calc(var(--confbar-h, 22px) + var(--topbar-h, 56px) + 14px); }
+                    <template lwc:if={hasEnterpriseDimensions}>
+                    <section class="card native-card">
+                        <div class="card-h">
+                            <h2>Enterprise Health Dimensions</h2>
+                            <div class="note">Mean score · 1–5</div>
+                        </div>
+                        <div class="grid g2 dimension-grid">
+                            <template for:each={dimensionScores} for:item="dimension">
+                                <div key={dimension.label}>
+                                    <c-tpm-score-bar-chart label={dimension.label} value={dimension.value}></c-tpm-score-bar-chart>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
 
+                    </template>
+                    <footer class="data-footer">Salesforce TPM_Assessment__c · {selectedCycle}</footer>
+                    </template>
+                </template>
 
-/* Portfolio click and layout correction: overlay uses a real accessible button. */
-.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.portfolio-card-grid { align-items: stretch; }
-.portfolio-card-grid > .portfolio-clickable {
-    position: relative;
-    display: block;
-    width: 100%;
-    min-width: 0;
-    height: 100%;
-    margin: 0;
-}
-.portfolio-card-open {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: block;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    border-radius: inherit;
-    background: transparent;
-    cursor: pointer;
-}
-.portfolio-card-grid > .portfolio-clickable:hover,
-.portfolio-card-grid > .portfolio-clickable:focus-within {
-    border-color: #0176d3;
-    box-shadow: 0 0 0 2px rgba(1,118,211,.14);
-}
-.portfolio-card-open:focus-visible { outline: 3px solid #0176d3; outline-offset: 2px; }
-.portfolio-table-open {
-    border: 0;
-    padding: 2px 0;
-    color: inherit;
-    font: inherit;
-    font-weight: 600;
-    text-align: left;
-    text-decoration: none;
-    background: transparent;
-    cursor: pointer;
-}
-.portfolio-table-open:hover,
-.portfolio-table-open:focus-visible { color: #003065; text-decoration: underline; }
-.portfolio-unrated-notice {
-    padding: 11px 14px;
-    margin: 0 0 16px;
-    border-left: 3px solid #8c7f4f;
-    border-radius: 3px;
-    background: #f7f3e8;
-    color: #444;
-    font-size: 12px;
-}
-@media (max-width: 1350px) {
-    .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 700px) {
-    .g4 { grid-template-columns: minmax(0, 1fr); }
-}
+                <template lwc:elseif={isPortfolioHealth}>
+                    <div class="pagehead">
+                        <div class="eyebrow">Assess</div>
+                        <h1>Portfolio Health</h1>
+                        <div class="lede">Named portfolios returned by Salesforce for {activeAssessmentPeriod}.</div>
+                    </div>
+
+                    <template lwc:if={showInitialSpinner}>
+                        <div class="explorer-loading slds-is-relative" role="status" aria-live="polite">
+                            <lightning-spinner alternative-text="Loading portfolio health data" size="medium"></lightning-spinner>
+                        </div>
+                    </template>
+
+                    <template lwc:if={showPortfolioData}>
+                    <template lwc:if={isPortfolioDetailView}>
+                        <div class="portfolio-breadcrumbs">
+                            <button class="breadcrumb-button" onclick={handlePortfolioBack}>Home</button>
+                            <span class="breadcrumb-separator">&rsaquo;</span>
+                            <button class="breadcrumb-button" onclick={handlePortfolioBack}>Portfolio Health</button>
+                        </div>
+
+                        <div class="pagehead portfolio-detail-pagehead">
+                            <div class="eyebrow">{selectedPortfolioGroupLabel}</div>
+                            <h1>{selectedPortfolio.name}</h1>
+                            <div class="lede">{selectedPortfolio.count} assessment records <template lwc:if={selectedPortfolio.hasOverall}>&middot; overall rating {selectedPortfolio.overallDisplay}</template></div>
+                        </div>
+
+                        <div class="portfolio-detail-tabs">
+                            <template for:each={portfolioDetailTabs} for:item="tab">
+                                <button key={tab.value} class={tab.className} data-tab={tab.value} onclick={handlePortfolioTab}>{tab.label}</button>
+                            </template>
+                        </div>
+
+                        <template lwc:if={isPortfolioSummaryTab}>
+                            <div class="grid g5 portfolio-detail-kpis">
+                                <template for:each={selectedPortfolioDetailCards} for:item="card">
+                                    <section key={card.label} class="card portfolio-detail-kpi-card">
+                                        <div class="portfolio-detail-kpi-label">{card.label}</div>
+                                        <div class="portfolio-detail-kpi-value">{card.value}</div>
+                                        <div class="portfolio-detail-kpi-detail">{card.detail}</div>
+                                    </section>
+                                </template>
+                            </div>
+                            <template lwc:if={selectedPortfolioHasNoScores}>
+                                <div class="portfolio-unrated-notice" role="status">This portfolio has assessment records for the selected cycle, but no populated Overall, Technology, Resource, Business Value, or Compliance ratings. Application counts and any available risk/TIME data are still shown.</div>
+                            </template>
+
+                            <div class="grid g2 portfolio-detail-summary-grid">
+                                <template lwc:if={selectedPortfolioHasHealth}>
+                                <section class="card">
+                                    <div class="card-h"><h3>Health Mix</h3></div>
+                                    <div class="stack">
+                                        <template for:each={selectedPortfolioHealthStackSegments} for:item="segment">
+                                            <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                        </template>
+                                    </div>
+                                    <div class="legend">
+                                        <span class="legend-item">Red {selectedPortfolio.red} - &lt;2.5</span>
+                                        <span class="legend-item">Yellow {selectedPortfolio.yellow} - 2.5-3.5</span>
+                                        <span class="legend-item">Green {selectedPortfolio.green} - &gt;=3.5</span>
+                                    </div>
+                                    <div class="dimension-stack">
+                                        <template for:each={selectedPortfolioDimensionRows} for:item="dimension">
+                                            <div key={dimension.label} class="dimrow">
+                                                <div class="dl">{dimension.label}</div>
+                                                <div class="dtrack"><div class="dfill" style={dimension.fillStyle}></div></div>
+                                                <div class="dv">{dimension.value}</div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </section>
+                                </template>
+
+                                <template lwc:if={hasSelectedPortfolioComposition}>
+                                <section class="card">
+                                    <div class="card-h"><h3>Composition</h3></div>
+                                    <template for:each={selectedPortfolioCompositionCharts} for:item="chart">
+                                        <div key={chart.title} class="composition-block">
+                                            <div class="mini-title">{chart.title}</div>
+                                            <div class="stack">
+                                                <template for:each={chart.stackSegments} for:item="segment">
+                                                    <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                                </template>
+                                            </div>
+                                            <div class="legend">
+                                                <template for:each={chart.legend} for:item="item">
+                                                    <span key={item.label} class="legend-item"><i style={item.indicatorStyle}></i>{item.label} {item.value}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </section>
+                                </template>
+                            </div>
+
+                            <section class="card portfolio-detail-copy-card">
+                                <div class="card-h"><h3>Portfolio Summary &amp; Highlights</h3><span class="note">Auto-generated from Salesforce assessment data</span></div>
+                                <p class="portfolio-detail-copy">{selectedPortfolioNarrative}</p>
+                                <template lwc:if={hasSelectedPortfolioHighlights}>
+                                <ul class="portfolio-detail-highlights">
+                                    <template for:each={selectedPortfolioHighlights} for:item="highlight">
+                                        <li key={highlight}>{highlight}</li>
+                                    </template>
+                                </ul>
+                                </template>
+                            </section>
+                        </template>
+
+                        <template lwc:elseif={isPortfolioHealthTab}>
+                            <div class="grid g2 portfolio-detail-summary-grid">
+                                <section class="card">
+                                    <div class="card-h"><h3>Four-Dimension Health</h3></div>
+                                    <div class="dimension-stack">
+                                        <template for:each={selectedPortfolioDimensionRows} for:item="dimension">
+                                            <div key={dimension.label} class="dimrow">
+                                                <div class="dl">{dimension.label}</div>
+                                                <div class="dtrack"><div class="dfill" style={dimension.fillStyle}></div></div>
+                                                <div class="dv">{dimension.value}</div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="stack">
+                                        <template for:each={selectedPortfolioHealthStackSegments} for:item="segment">
+                                            <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                        </template>
+                                    </div>
+                                </section>
+
+                                <section class="card">
+                                    <div class="card-h"><h3>Domain Detail by Health</h3></div>
+                                    <div class="t-scroll">
+                                        <table>
+                                            <thead>
+                                                <tr><th>Domain</th><th class="num">Apps</th><th class="num">Overall</th><th class="num">Red</th><th class="num">Yellow</th><th class="num">Green</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={selectedPortfolioDomainRows} for:item="domain">
+                                                    <tr key={domain.name}>
+                                                        <td class="t-name">{domain.name}</td>
+                                                        <td class="num">{domain.count}</td>
+                                                        <td class="num">{domain.overallDisplay}</td>
+                                                        <td class="num risk-hot-text">{domain.red}</td>
+                                                        <td class="num">{domain.yellow}</td>
+                                                        <td class="num">{domain.green}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            </div>
+                        </template>
+
+                        <template lwc:elseif={isPortfolioUnhealthyTab}>
+                            <section class="card">
+                                <div class="card-h"><h3>Unhealthy Applications</h3><span class="note">Overall rating below 2.5</span></div>
+                                <template lwc:if={hasSelectedPortfolioUnhealthyRows}>
+                                    <div class="t-scroll">
+                                        <table>
+                                            <thead>
+                                                <tr><th>Application</th><th>Domain</th><th>BARR</th><th>TIME</th><th class="num">Overall</th><th class="num">Tech</th><th class="num">Rsrc</th><th class="num">Biz</th><th class="num">Cmpl</th><th>Architect</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={selectedPortfolioUnhealthyRows} for:item="row">
+                                                    <tr key={row.id}>
+                                                        <td class="t-name">{row.name}</td>
+                                                        <td class="t-sub">{row.domain}</td>
+                                                        <td>{row.barr}</td>
+                                                        <td>{row.time}</td>
+                                                        <td class="num">{row.overallDisplay}</td>
+                                                        <td class="num">{row.techDisplay}</td>
+                                                        <td class="num">{row.resourceDisplay}</td>
+                                                        <td class="num">{row.businessDisplay}</td>
+                                                        <td class="num">{row.complianceDisplay}</td>
+                                                        <td class="t-sub">{row.architect}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <div class="portfolio-detail-empty">No unhealthy applications were returned from Salesforce for this portfolio.</div>
+                                </template>
+                            </section>
+                        </template>
+
+                        <template lwc:elseif={isPortfolioDomainsTab}>
+                            <div class="grid g3 portfolio-domain-grid">
+                                <template for:each={selectedPortfolioDomainRows} for:item="domain">
+                                    <article key={domain.name} class="card portfolio-domain-card">
+                                        <div class="card-h portfolio-card-header">
+                                            <h3>{domain.name}</h3><span class="note">{domain.count} apps</span>
+                                        </div>
+                                        <template lwc:if={domain.hasOverall}>
+                                            <div class="portfolio-overall-line"><span class="portfolio-overall-value" style={domain.overallStyle}>{domain.overallDisplay}</span></div>
+                                        </template>
+                                        <template lwc:if={domain.hasHealth}>
+                                            <div class="stack compact-stack">
+                                                <template for:each={domain.healthSegments} for:item="segment">
+                                                    <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template lwc:if={domain.hasDimensionData}>
+                                            <div class="portfolio-dimensions">
+                                                <template for:each={domain.dimensionRows} for:item="dimension">
+                                                    <div key={dimension.label} class="dimrow compact-dimrow">
+                                                        <div class="dl">{dimension.label}</div>
+                                                        <div class="dtrack"><div class="dfill" style={dimension.fillStyle}></div></div>
+                                                        <div class="dv">{dimension.value}</div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template lwc:if={domain.hasRiskData}>
+                                            <div class="portfolio-risk-summary">{domain.criticalHigh} Critical/High - <span class={domain.unhealthyClass}>{domain.unhealthyCriticalHigh} unhealthy</span></div>
+                                        </template>
+                                    </article>
+                                </template>
+                            </div>
+                        </template>
+
+                    </template>
+                    <template lwc:else>
+
+                    <template lwc:if={hasPortfolioRatings}>
+                    <section class="card">
+                        <div class="card-h"><h2>Technology Health by Portfolio</h2><span class="note">Mean ratings from available Salesforce assessment scores</span></div>
+                        <div class="t-scroll">
+                            <table class="heat">
+                                <thead>
+                                    <tr>
+                                        <th style="width:230px"></th>
+                                        <template for:each={portfolioDimensions} for:item="dimension">
+                                            <th key={dimension.key} class="rot">{dimension.label}</th>
+                                        </template>
+                                        <th class="rot">Apps</th>
+                                        <th class="rot">Red</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={portfolioHeatmapRows} for:item="portfolio">
+                                        <tr key={portfolio.name} class="portfolio-row-clickable" data-portfolio={portfolio.name} onclick={handlePortfolioOpen} onkeydown={handlePortfolioKeydown} tabindex="0" role="button" aria-label={portfolio.name}>
+                                            <td><button type="button" class="portfolio-table-open" data-portfolio={portfolio.name} onclick={handlePortfolioOpen}>{portfolio.name}</button></td>
+                                            <template for:each={portfolio.scoreCells} for:item="cell">
+                                                <td key={cell.key}>
+                                                    <div class="cell" style={cell.style}>
+                                                        {cell.score}
+                                                        <span class="dd">{cell.delta}</span>
+                                                    </div>
+                                                </td>
+                                            </template>
+                                            <td><div class="cnt">{portfolio.count}</div></td>
+                                            <td><div class={portfolio.redClass}>{portfolio.redDisplay}</div></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    </template>
+                    <div class="grid g2 portfolio-overview-grid">
+                        <template lwc:if={hasEnterpriseHealth}><section class="card">
+                            <div class="card-h"><span class="n">02</span><h3>Enterprise Health Mix</h3></div>
+                            <div class="stack">
+                                <template for:each={enterpriseHealthStackSegments} for:item="segment">
+                                    <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                </template>
+                            </div>
+                            <div class="legend">
+                                <span class="legend-item">Red {enterprise.red} - &lt;2.5</span>
+                                <span class="legend-item">Yellow {enterprise.yellow} - 2.5-3.5</span>
+                                <span class="legend-item">Green {enterprise.green} - &gt;=3.5</span>
+                            </div>
+                            <div class="dimension-stack">
+                                <template for:each={enterpriseDimensionRowsForView} for:item="dimension">
+                                    <div key={dimension.label} class="dimrow">
+                                        <div class="dl">{dimension.label}</div>
+                                        <div class="dtrack"><div class="dfill" style={dimension.fillStyle}></div></div>
+                                        <div class="dv">{dimension.value}</div>
+                                        <div class="dd">{dimension.delta}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </section></template>
+
+                        <template lwc:if={hasCompositionCharts}><section class="card">
+                            <div class="card-h"><span class="n">03</span><h3>Portfolio Composition</h3></div>
+                            <template for:each={compositionChartsForView} for:item="chart">
+                                <div key={chart.title} class="composition-block">
+                                    <div class="mini-title">{chart.title}</div>
+                                    <div class="stack">
+                                        <template for:each={chart.stackSegments} for:item="segment">
+                                            <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                        </template>
+                                    </div>
+                                    <div class="legend">
+                                        <template for:each={chart.legend} for:item="item">
+                                            <span key={item.label} class="legend-item"><i style={item.indicatorStyle}></i>{item.label} {item.value}</span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </section></template>
+                    </div>
+
+                    <template for:each={portfolioOverviewGroups} for:item="group">
+                        <section key={group.label} class="portfolio-group-section">
+                            <div class="eyebrow group-heading">{group.label}</div>
+                            <div class="grid g4 portfolio-card-grid">
+                                <template for:each={group.portfolios} for:item="portfolio">
+                                    <article key={portfolio.name} class="card portfolio-summary portfolio-clickable">
+                                        <button type="button" class="portfolio-card-open" data-portfolio={portfolio.name} onclick={handlePortfolioOpen} aria-label={portfolio.name}>
+                                            <span class="slds-assistive-text">Open portfolio details</span>
+                                        </button>
+                                        <div class="card-h portfolio-card-header">
+                                            <h3>{portfolio.name}</h3>
+                                            <span class="note">{portfolio.count} apps</span>
+                                        </div>
+                                        <template lwc:if={portfolio.hasOverall}>
+                                            <div class="portfolio-overall-line"><span class="portfolio-overall-value" style={portfolio.overallStyle}>{portfolio.overallDisplay}</span></div>
+                                        </template>
+                                        <template lwc:if={portfolio.hasHealth}>
+                                            <div class="stack compact-stack">
+                                                <template for:each={portfolio.healthStackSegments} for:item="segment">
+                                                    <div key={segment.label} style={segment.style}>{segment.value}</div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template lwc:if={portfolio.hasDimensionData}>
+                                            <div class="portfolio-dimensions">
+                                                <template for:each={portfolio.dimensionRows} for:item="dimension">
+                                                    <div key={dimension.label} class="dimrow compact-dimrow">
+                                                        <div class="dl">{dimension.label}</div>
+                                                        <div class="dtrack"><div class="dfill" style={dimension.fillStyle}></div></div>
+                                                        <div class="dv">{dimension.value}</div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template lwc:if={portfolio.hasRiskData}>
+                                            <div class="portfolio-risk-summary">{portfolio.criticalHigh} Critical/High - <span class={portfolio.unhealthyClass}>{portfolio.unhealthyCriticalHigh} unhealthy</span></div>
+                                        </template>
+                                    </article>
+                                </template>
+                            </div>
+                        </section>
+                    </template>
+                    <footer class="data-footer">Salesforce TPM_Assessment__c · {selectedCycle}</footer>
+                    </template>
+                    </template>
+                </template>
+
+                <template lwc:elseif={isApplicationExplorer}>
+                    <div class="page-heading">
+                        <div class="eyebrow slds-text-title_caps">Assess</div>
+                        <h1 class="slds-text-heading_large">Application Explorer</h1>
+                        <p class="lede slds-text-color_weak">Applications assessed in period {selectedCycle}, faceted and sortable. Search application names, architects, owners, domains, and categories; filter by portfolio, BARR, TIME, health, and status.</p>
+                    </div>
+
+                    <template lwc:if={explorerLoading}>
+                        <div class="explorer-loading slds-is-relative" role="status" aria-live="polite">
+                            <lightning-spinner alternative-text="Loading assessment applications" size="medium"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template lwc:if={hasExplorerError}>
+                        <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert">
+                            <span>{explorerError}</span>
+                        </div>
+                    </template>
+                    <template lwc:if={showExplorerEmptyState}>
+                        <div class="slds-box slds-theme_shade slds-text-align_center slds-text-color_weak slds-m-bottom_medium" role="status">
+                            No application assessment records found for {selectedCycle}.
+                        </div>
+                    </template>
+
+                    <lightning-card title="Application Filters" class="native-card">
+                        <div class="explorer-filters slds-grid slds-wrap slds-gutters slds-p-around_medium">
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3 slds-p-bottom_small">
+                                <lightning-input type="search" label="Search" placeholder="Search name, architect, owner..." value={applicationSearch} onchange={handleExplorerSearch}></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-3 slds-p-bottom_small">
+                                <lightning-combobox label="Portfolio" value={applicationPortfolio} options={portfolioOptions} data-filter="Portfolio" onchange={handleExplorerFilter}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-3 slds-p-bottom_small">
+                                <lightning-combobox label="Domain" value={applicationDomain} options={domainOptions} data-filter="Domain" onchange={handleExplorerFilter} disabled={isDomainFilterDisabled}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-4 slds-p-bottom_small">
+                                <lightning-combobox label="BARR" value={applicationBarr} options={barrOptions} data-filter="Barr" onchange={handleExplorerFilter}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-4 slds-p-bottom_small">
+                                <lightning-combobox label="TIME" value={applicationTime} options={timeOptions} data-filter="Time" onchange={handleExplorerFilter}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-4 slds-p-bottom_small">
+                                <lightning-combobox label="Health" value={applicationRag} options={ragOptions} data-filter="Rag" onchange={handleExplorerFilter}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-small-size_1-of-2 slds-large-size_1-of-4 slds-p-bottom_small">
+                                <lightning-combobox label="Status" value={applicationStatus} options={statusOptions} data-filter="Status" onchange={handleExplorerFilter}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-top_x-small">
+                                <span class="slds-text-body_small slds-text-color_weak">{explorerResultLabel}</span>
+                                <lightning-button label="Reset filters" onclick={handleExplorerReset}></lightning-button>
+                            </div>
+                        </div>
+                    </lightning-card>
+
+                    <template lwc:if={hasExplorerRows}>
+                        <lightning-card title="Assessed Applications" class="native-card">
+                            <div class="slds-p-around_medium">
+                                <lightning-datatable
+                                    key-field="id"
+                                    data={explorerPageRows}
+                                    columns={explorerColumns}
+                                    sorted-by={explorerSortBy}
+                                    sorted-direction={explorerSortDirection}
+                                    onsort={handleExplorerSort}
+                                    hide-checkbox-column
+                                    show-row-number-column
+                                ></lightning-datatable>
+                                <div class="explorer-pager slds-grid slds-grid_align-center slds-grid_vertical-align-center slds-m-top_medium">
+                                    <lightning-button label="Previous" onclick={handleExplorerPrevious} disabled={explorerPreviousDisabled}></lightning-button>
+                                    <span class="slds-p-horizontal_medium slds-text-body_small slds-text-color_weak">{explorerPageLabel}</span>
+                                    <lightning-button label="Next" onclick={handleExplorerNext} disabled={explorerNextDisabled}></lightning-button>
+                                </div>
+                            </div>
+                        </lightning-card>
+                    </template>
+                </template>
+
+                <template lwc:else>
+                    <div class="page-heading">
+                        <div class="eyebrow">Architecture Hub</div>
+                        <h1>{pageTitle}</h1>
+                        <p class="lede slds-text-color_weak">This view has no configured Salesforce data source.</p>
+                    </div>
+                    <section class="empty-state slds-card slds-p-around_large">
+                        <div class="empty-icon" aria-hidden="true">&#9670;</div>
+                        <h2>{pageTitle}</h2>
+                        <p class="slds-text-color_weak">No Salesforce-backed view is configured for this section.</p>
+                        <lightning-button label="Return to dashboard" variant="brand" data-page="dashboard" onclick={handleNavigate}></lightning-button>
+                    </section>
+                </template>
+            </main>
+        </div>
+    </div>
+</template>
