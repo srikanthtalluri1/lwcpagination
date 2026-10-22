@@ -1,24 +1,6 @@
-return [...this.visiblePortfolios].sort((a,b) =>
-    a.name.localeCompare(b.name, undefined, {
-        sensitivity: 'base'
-    })
-).map((portfolio) => ({
-
-
-
-handlePortfolioOpen(event) {
-    this.selectedPortfolioName = event.currentTarget.dataset.portfolio || '';
-    this.selectedPortfolioTab = 'summary';
-
-    // Scroll to the portfolio details after clicking
-    if (this.selectedPortfolioName) {
-        const mainContent = this.template.querySelector('.main-content');
-
-        if (mainContent) {
-            mainContent.scrollIntoView({
-                behavior: 'auto',
-                block: 'start'
-            });
-        }
-    }
+/* Portfolio detail - prevent header from covering content */
+.main-content {
+    scroll-margin-top: calc(
+        var(--confbar-h) + var(--topbar-h) + 12px
+    );
 }
