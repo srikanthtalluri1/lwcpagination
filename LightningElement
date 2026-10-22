@@ -436,13 +436,22 @@ export default class TpmArchitectureHub extends LightningElement {
 			overallDelta: '',
 			overallStyle: `color:${this.ragColor(portfolio.overall)}`,
 			unhealthyClass: portfolio.unhealthyCriticalHigh ? 'risk-hot-text' : 'risk-muted-text',
+			// Keep the full Image 1 card layout even when a cycle has no ratings.
+			// No hardcoded scores: every value still comes from the selected-cycle records.
 			healthStackSegments: this.buildStackSegments([
 				{ label: 'Red', value: portfolio.red, color: '#960000' },
 				{ label: 'Yellow', value: portfolio.yellow, color: '#8C7F4F' },
 				{ label: 'Green', value: portfolio.green, color: '#6A815E' }
 			]),
-			dimensionRows: SCORE_DIMENSIONS.filter((dim) => dim.key !== 'overall' && typeof portfolio[dim.key] === 'number').map((dim) => ({
-				label: dim.label, value: this.formatScore(portfolio[dim.key]), fillStyle: this.dimensionFillStyle(portfolio[dim.key])
+			dimensionRows: SCORE_DIMENSIONS.filter((dim) => dim.key !== 'overall').map((dim) => ({
+				label: dim.label,
+				value: typeof portfolio[dim.key] === 'number' ? this.formatScore(portfolio[dim.key]) : '—',
+				fillStyle: typeof portfolio[dim.key] === 'number'
+					? this.dimensionFillStyle(portfolio[dim.key])
+					: 'width:0%;background:transparent',
+				rowClass: typeof portfolio[dim.key] === 'number'
+					? 'dimrow compact-dimrow'
+					: 'dimrow compact-dimrow portfolio-dimension-unrated'
 			}))
 		}));
 		// Preserve the original four named groups for exact-name matches only.
@@ -1170,4 +1179,3 @@ get enterpriseHealthSegments() {
 }
 
 
-s
