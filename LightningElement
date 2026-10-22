@@ -1,41 +1,24 @@
-Cycle dropdown
+return [...this.visiblePortfolios].sort((a,b) =>
+    a.name.localeCompare(b.name, undefined, {
+        sensitivity: 'base'
+    })
+).map((portfolio) => ({
 
-SELECT Assessment_Period_Quarter_Year__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c != null
-AND Assessment_Period_Quarter_Year__c != '0'
 
-Technology Health by Portfolio table
-SELECT
-    Id,
-    App__c,
-    App__r.Portfolio_Name_Report__c,
-    Current_Overall_Rating__c,
-    Technology_Rating__c,
-    Supportability_Maintainability_Score__c,
-    Business_Rating__c,
-    Security_Compliance_Score__c,
-    Assessment_Health_Status__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
-LIMIT 50000
 
-Verify a portfolio's ratings
+handlePortfolioOpen(event) {
+    this.selectedPortfolioName = event.currentTarget.dataset.portfolio || '';
+    this.selectedPortfolioTab = 'summary';
 
-SELECT
-    COUNT(Id) totalAssessments,
-    COUNT(Current_Overall_Rating__c) overallRated,
-    AVG(Current_Overall_Rating__c) avgOverall,
-    COUNT(Technology_Rating__c) techRated,
-    AVG(Technology_Rating__c) avgTechnology,
-    COUNT(Supportability_Maintainability_Score__c) resourceRated,
-    AVG(Supportability_Maintainability_Score__c) avgResource,
-    COUNT(Business_Rating__c) businessRated,
-    AVG(Business_Rating__c) avgBusiness,
-    COUNT(Security_Compliance_Score__c) complianceRated,
-    AVG(Security_Compliance_Score__c) avgCompliance
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c = 'Q12021'
-AND App__r.Portfolio_Name_Report__c =
-    'Operations Infrastructure Portfolio'
+    // Scroll to the portfolio details after clicking
+    if (this.selectedPortfolioName) {
+        const mainContent = this.template.querySelector('.main-content');
 
+        if (mainContent) {
+            mainContent.scrollIntoView({
+                behavior: 'auto',
+                block: 'start'
+            });
+        }
+    }
+}
