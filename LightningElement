@@ -1,27 +1,5 @@
-
 SELECT
-    Id,
-    Application__c,
-    App__c,
-    App__r.Portfolio_Name_Report__c,
-    Assessment_Health_Status__c,
-    Current_Overall_Rating__c,
-    Technology_Rating__c,
-    Business_Rating__c
+    COUNT(Current_Overall_Rating__c) ratedRecords,
+    AVG(Current_Overall_Rating__c) overallRating
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-AND (
-    Assessment_Health_Status__c IN ('Unhealthy', 'Red')
-    OR (
-        (
-            Assessment_Health_Status__c = null
-            OR Assessment_Health_Status__c NOT IN (
-                'Unhealthy', 'Red',
-                'Degraded', 'Yellow',
-                'Healthy', 'Green'
-            )
-        )
-        AND Current_Overall_Rating__c < 2.5
-    )
-)
-ORDER BY Application__c
