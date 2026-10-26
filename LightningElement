@@ -1,13 +1,134 @@
+1. Red — Unhealthy
 
-SELECT
-    Id,
-    Application__c,
-    App__r.Portfolio_Name_Report__c,
-    Assessment_Health_Status__c,
-    Current_Overall_Rating__c
+Description: Counts applications with Health Status Unhealthy/Red, or Overall Rating below 2.50 when a recognized Health Status is unavailable.
+
+SOQL — View actual records:
+
+SELECT Application__c,
+       Assessment_Health_Status__c,
+       Current_Overall_Rating__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND Assessment_Health_Status__c = 'Unhealthy'
+
+Verified Result: 2 applications with ratings of 2.20 each.
+
+Logic: Explicit Unhealthy/Red status takes priority; otherwise an Overall Rating below 2.50 produces Red. This query verifies the two Q12020 records; the LWC also supports fallback classification.
+
+2. Yellow — At Risk
+
+Description: Counts applications with Health Status Degraded/Yellow, or an Overall Rating from 2.50 to below 3.50 when a recognized Health Status is unavailable.
+
+SOQL:
+
+SELECT Application__c,
+       Assessment_Health_Status__c,
+       Current_Overall_Rating__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND Assessment_Health_Status__c IN ('Degraded', 'Yellow')
+
+Verified Result: 0 applications.
+
+Logic: Explicit Degraded/Yellow status takes priority; otherwise an Overall Rating ≥ 2.50 and below 3.50 produces Yellow.
+
+3. Green — Healthy
+
+Description: Counts applications with Health Status Healthy/Green, or an Overall Rating of 3.50 or higher when a recognized Health Status is unavailable.
+
+SOQL:
+
+SELECT Application__c,
+       Assessment_Health_Status__c,
+       Current_Overall_Rating__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND Assessment_Health_Status__c = 'Healthy'
+
+Verified Result: 2 applications with ratings of 3.60 each.
+
+Logic: Explicit Healthy/Green status takes priority; otherwise an Overall Rating ≥ 3.50 produces Green.
+
+4. Individual Overall Rating
+
+Description: Retrieves each application's existing Overall Rating from Salesforce field Current_Overall_Rating__c; the Architecture Hub LWC does not calculate this individual rating.
+
+SOQL:
+
+SELECT Application__c,
+       App__r.Portfolio_Name_Report__c,
+       Assessment_Health_Status__c,
+       Current_Overall_Rating__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND Current_Overall_Rating__c != null
+ORDER BY Current_Overall_Rating__c
+
+Verified Results:
+
+Application
+
+Health Status
+
+Overall Rating
+
+SMS Trace Utility
+
+Unhealthy
+
+2.20
+
+Intelligent Printer
+
+Unhealthy
+
+2.20
+
+Notification Framework
+
+Healthy
+
+3.60
+
+Portfolio Planner
+
+Healthy
+
+3.60
+
+Logic: The LWC reads the existing numeric rating. How Salesforce originally derives this field requires separate field-definition or automation verification.
+
+5. Enterprise Overall Rating
+
+Description: Calculates the average of all populated application Overall Ratings for the selected assessment cycle, excluding blank values.
+
+SOQL:
+
+SELECT COUNT(Current_Overall_Rating__c) ratedRecords,
+       AVG(Current_Overall_Rating__c) enterpriseOverall
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+
+Verified Result: 4 rated records; Enterprise Overall = 2.90.
+
+Calculation:
+
+(2.20 + 2.20 + 3.60 + 3.60) / 4 = 2.90
+
+Logic: The LWC adds the populated Overall Ratings and divides by the number of rated records. It displays the result rounded to two decimal places.
+
+6. Missing Ratings Validation
+
+Description: Identifies assessment records without either a Health Status or an Overall Rating; these records do not contribute to Red/Yellow/Green counts or Enterprise Overall.
+
+SOQL:
+
+SELECT Id, Application__c,
+       Assessment_Health_Status__c,
+       Current_Overall_Rating__c
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
 AND Assessment_Health_Status__c = null
 AND Current_Overall_Rating__c = null
-ORDER BY Application__c
-s
+
+Verified Result: 1,805 records.
