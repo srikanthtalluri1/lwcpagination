@@ -1,10 +1,22 @@
-1. Assessed Applications — Q12020
-Description: Displays the total number of Salesforce assessment records for the selected assessment cycle.
+2. Red — Unhealthy (Q12020)
+Description: Displays the number of applications classified as Unhealthy/Red in the selected cycle, using Assessment_Health_Status__c or an Overall Rating below 2.5 when no recognized health status exists.
 
 SOQL:
+
 SELECT COUNT()
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-
-
-Expected result: 1,809
+AND (
+    Assessment_Health_Status__c IN ('Unhealthy', 'Red')
+    OR (
+        (
+            Assessment_Health_Status__c = null
+            OR Assessment_Health_Status__c NOT IN (
+                'Unhealthy', 'Red',
+                'Degraded', 'Yellow',
+                'Healthy', 'Green'
+            )
+        )
+        AND Current_Overall_Rating__c < 2.5
+    )
+)
