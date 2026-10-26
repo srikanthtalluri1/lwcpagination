@@ -1,10 +1,13 @@
 
 SELECT
+    Id,
     Application__c,
     App__r.Portfolio_Name_Report__c,
     Assessment_Health_Status__c,
     Current_Overall_Rating__c
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-AND Current_Overall_Rating__c != null
-ORDER BY Current_Overall_Rating__c
+AND Assessment_Health_Status__c = null
+AND Current_Overall_Rating__c = null
+ORDER BY Application__c
+s
