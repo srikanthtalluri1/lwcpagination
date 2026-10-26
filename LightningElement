@@ -1,15 +1,16 @@
 
-Set<String> domains = new Set<String>();
-
-for (TPM_Assessment__c rec : [
-    SELECT App__r.Domain_Name__c
-    FROM TPM_Assessment__c
-    WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-]) {
-    if (rec.App__r != null &&
-        String.isNotEmpty(rec.App__r.Domain_Name__c)) {
-        domains.add(rec.App__r.Domain_Name__c);
-    }
-}
-
-System.debug('TOTAL DISTINCT DOMAINS = ' + domains.size());
+SELECT
+    COUNT(Id) totalApps,
+    COUNT(Current_Overall_Rating__c) overallCount,
+    AVG(Current_Overall_Rating__c) overallAvg,
+    COUNT(Technology_Rating__c) techCount,
+    AVG(Technology_Rating__c) techAvg,
+    COUNT(Supportability_Maintainability_Score__c) resourceCount,
+    AVG(Supportability_Maintainability_Score__c) resourceAvg,
+    COUNT(Business_Rating__c) businessCount,
+    AVG(Business_Rating__c) businessAvg,
+    COUNT(Security_Compliance_Score__c) complianceCount,
+    AVG(Security_Compliance_Score__c) complianceAvg
+FROM TPM_Assessment__c
+WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND App__r.Portfolio_Name_Report__c = 'Banking'
