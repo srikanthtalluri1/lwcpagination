@@ -1,43 +1,15 @@
-5. Domains — 88
 
-Description: Displays the number of distinct, nonblank application domains found in Salesforce for the selected assessment cycle.
+Set<String> domains = new Set<String>();
 
-SOQL — View domain data:
+for (TPM_Assessment__c rec : [
+    SELECT App__r.Domain_Name__c
+    FROM TPM_Assessment__c
+    WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+]) {
+    if (rec.App__r != null &&
+        String.isNotEmpty(rec.App__r.Domain_Name__c)) {
+        domains.add(rec.App__r.Domain_Name__c);
+    }
+}
 
-SELECT Application__c,
-       App__r.Domain_Name__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-AND App__r.Domain_Name__c != null
-LIMIT 2000
-
-Logic: The LWC extracts App__r.Domain_Name__c, removes blank values and duplicates, and counts the remaining unique domain names.
-
-Expected result: 88 distinct domains.
-
-Verification: Export the SOQL results and count the unique domain names. The query returns individual records, not one row per domain.
-
-6. TIME — 336
-
-Description: Displays the number of assessment records whose related applications have a TIME recommendation of Migrate or Eliminate.
-
-SOQL — View actual applications:
-
-SELECT Application__c,
-       App__r.Portfolio_Name_Report__c,
-       App__r.App_TIME_Recommendation__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
-AND App__r.App_TIME_Recommendation__c
-    IN ('Migrate', 'Eliminate')
-LIMIT 2000
-
-Logic: The LWC checks the App__r.App_TIME_Recommendation__c field and counts records classified as Migrate or Eliminate.
-
-Expected result: 336 records.
-
-Calculation:
-
-Migrate records + Eliminate records = 336
-
-The application-level TIME recommendation comes from Salesforce; the LWC only counts the matching records.
+System.debug('TOTAL DISTINCT DOMAINS = ' + domains.size());
