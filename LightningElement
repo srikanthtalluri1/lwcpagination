@@ -1,5 +1,10 @@
+
 SELECT
-    COUNT(Current_Overall_Rating__c) ratedRecords,
-    AVG(Current_Overall_Rating__c) overallRating
+    Application__c,
+    App__r.Portfolio_Name_Report__c,
+    Assessment_Health_Status__c,
+    Current_Overall_Rating__c
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
+AND Current_Overall_Rating__c != null
+ORDER BY Current_Overall_Rating__c
