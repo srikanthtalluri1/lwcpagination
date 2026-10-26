@@ -1,9 +1,13 @@
-2. Red — Unhealthy (Q12020)
-Description: Displays the number of applications classified as Unhealthy/Red in the selected cycle, using Assessment_Health_Status__c or an Overall Rating below 2.5 when no recognized health status exists.
 
-SOQL:
-
-SELECT COUNT()
+SELECT
+    Id,
+    Application__c,
+    App__c,
+    App__r.Portfolio_Name_Report__c,
+    Assessment_Health_Status__c,
+    Current_Overall_Rating__c,
+    Technology_Rating__c,
+    Business_Rating__c
 FROM TPM_Assessment__c
 WHERE Assessment_Period_Quarter_Year__c = 'Q12020'
 AND (
@@ -20,3 +24,4 @@ AND (
         AND Current_Overall_Rating__c < 2.5
     )
 )
+ORDER BY Application__c
