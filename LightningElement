@@ -1,13 +1,11 @@
 
 SELECT
-    ParentId,
-    Parent.Name,
-    Field,
-    OldValue,
-    NewValue,
-    CreatedDate,
-    CreatedBy.Name
-FROM TPM_Assessment_Period__History
-WHERE Field = 'Assessment_Period_Status__c'
-ORDER BY CreatedDate DESC
+    Id,
+    Name,
+    Assessment_Period_Status__c,
+    LastModifiedDate
+FROM TPM_Assessment_Period__c
+WHERE Assessment_Period_Status__c
+    IN ('Active', 'Locked', 'Published', 'Inactive')
+ORDER BY LastModifiedDate DESC
 LIMIT 200
