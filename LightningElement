@@ -1,9 +1,5 @@
-,
+Hi Neelima,
 
-// NEW: Pass the Salesforce Assessment Period lookup ID.
-assessmentPeriodId:
-    this.availableCycles.find(
-        (cycle) => cycle.period === requestedPeriod
-    )?.periodId || ''
+I have completed the updates to the Architecture Hub cycle dropdown and validated the Active, Locked, Published, and Inactive scenarios.
 
-loadAssessmentData() {
+The dropdown now dynamically displays assessment cycles based on their status. When an Active or Locked cycle is available, it is displayed alongside the Published cycle. If neither is available, the dropdown displays the Published cycle and the most recent cycle transitioned from Published to Inactive, based on Salesforce field history.
