@@ -1,10 +1,8 @@
-this.availableCycles = cycles.map((cycle) => ({
-    period: cycle.period,
-
-    // NEW properties
-    periodId: cycle.periodId || '',
-    status: cycle.status || '',
-    name: cycle.name || cycle.period,
-
-    count: Number(cycle.count) || 0
-}));
+if (this.availableCycles.some((cycle) => cycle.status)) {
+    return this.availableCycles.map((cycle) => ({
+        label:
+            `${cycle.name} — ${cycle.status} ` +
+            `(${NUMBER_FORMAT.format(cycle.count)} records)`,
+        value: cycle.period
+    }));
+}
