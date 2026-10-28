@@ -1,8 +1,9 @@
-if (this.availableCycles.some((cycle) => cycle.status)) {
-    return this.availableCycles.map((cycle) => ({
-        label:
-            `${cycle.name} — ${cycle.status} ` +
-            `(${NUMBER_FORMAT.format(cycle.count)} records)`,
-        value: cycle.period
-    }));
-}
+,
+
+// NEW: Pass the Salesforce Assessment Period lookup ID.
+assessmentPeriodId:
+    this.availableCycles.find(
+        (cycle) => cycle.period === requestedPeriod
+    )?.periodId || ''
+
+loadAssessmentData() {
