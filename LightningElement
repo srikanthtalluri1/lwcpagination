@@ -1,11 +1,9 @@
 
 SELECT
-    Assessment_Period__r.Name,
-    Assessment_Period__r.Assessment_Period_Status__c,
-    Assessment_Period_Quarter_Year__c,
     Id,
-    Application__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period__r.Assessment_Period_Status__c
+    Name,
+    Assessment_Period_Status__c
+FROM TPM_Assessment_Period__c
+WHERE Assessment_Period_Status__c
     IN ('Active', 'Locked', 'Published')
-LIMIT 200
+ORDER BY Name DESC
