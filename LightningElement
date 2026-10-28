@@ -1,168 +1,43 @@
-private static String cycleSortKey(String code) {
-    return code.substring(2) + code.substring(1, 2);
-}
+spec.conditions.add(mappedFields.get('assessmentPeriod') + ' = :assessmentPeriod');
+spec.binds.put('assessmentPeriod', activePeriod);
 
+String periodId = filterValue(filters, 'assessmentPeriodId');
 
+if (!String.isBlank(periodId)) {
 
-private static List<Map<String, Object>> getStatusEligibleCycles() {
+    Id selectedId;
 
-    // Find the current Active/Locked and Published periods.
-    List<TPM_Assessment_Period__c> periods = [
-        SELECT Id, Name, Assessment_Period_Status__c
-        FROM TPM_Assessment_Period__c
-        WHERE Assessment_Period_Status__c
-            IN ('Active', 'Locked', 'Published')
-        WITH USER_MODE
-        LIMIT 2000
-    ];
+    try {
+        selectedId = Id.valueOf(periodId.trim());
+    } catch (Exception e) {
+        throw handledError('Invalid Assessment Period ID.');
+    }
 
-    TPM_Assessment_Period__c currentPeriod;
-    TPM_Assessment_Period__c publishedPeriod;
-    Integer activeLockedCount = 0;
+    Boolean eligible = false;
 
-    for (TPM_Assessment_Period__c rec : periods) {
-        String status = rec.Assessment_Period_Status__c;
-
-        if (status == 'Active' || status == 'Locked') {
-            activeLockedCount++;
-        }
-
-        String code = cycleCodeForPeriodName(rec.Name);
-        if (code == null) continue;
-
-        String key = cycleSortKey(code);
-
-        if (status == 'Active' || status == 'Locked') {
-            if (currentPeriod == null ||
-                key.compareTo(cycleSortKey(
-                    cycleCodeForPeriodName(currentPeriod.Name)
-                )) > 0) {
-                currentPeriod = rec;
-            }
-        } else if (status == 'Published') {
-            if (publishedPeriod == null ||
-                key.compareTo(cycleSortKey(
-                    cycleCodeForPeriodName(publishedPeriod.Name)
-                )) > 0) {
-                publishedPeriod = rec;
-            }
+    for (Map<String, Object> cycle : getStatusEligibleCycles()) {
+        if (String.valueOf(cycle.get('periodId')) ==
+            String.valueOf(selectedId)) {
+            eligible = true;
+            break;
         }
     }
 
-    if (activeLockedCount > 1) {
+    if (!eligible) {
         throw handledError(
-            'More than one Active/Locked cycle was found.'
+            'Assessment Period is no longer eligible. Refresh the page.'
         );
     }
 
-    TPM_Assessment_Period__c previousInactive;
+    spec.conditions.add(
+        'Assessment_Period__c = :assessmentPeriodLookupId'
+    );
+    spec.binds.put('assessmentPeriodLookupId', selectedId);
 
-    // Negative scenario: no Active/Locked period.
-    if (currentPeriod == null && publishedPeriod != null) {
-
-        Map<Id, TPM_Assessment_Period__c> inactiveMap =
-            new Map<Id, TPM_Assessment_Period__c>([
-                SELECT Id, Name, Assessment_Period_Status__c
-                FROM TPM_Assessment_Period__c
-                WHERE Assessment_Period_Status__c = 'Inactive'
-                WITH USER_MODE
-                LIMIT 2000
-            ]);
-
-        if (!inactiveMap.isEmpty()) {
-            Set<Id> inactiveIds = inactiveMap.keySet();
-            Set<Id> checkedIds = new Set<Id>();
-
-            // Latest status change first.
-            for (TPM_Assessment_Period__History h : [
-                SELECT Id, ParentId, Field,
-                       OldValue, NewValue, CreatedDate
-                FROM TPM_Assessment_Period__History
-                WHERE ParentId IN :inactiveIds
-                AND Field = 'Assessment_Period_Status__c'
-                WITH USER_MODE
-                ORDER BY CreatedDate DESC, Id DESC
-                LIMIT 2000
-            ]) {
-                // Check only the most recent status
-                // change for each period.
-                if (checkedIds.contains(h.ParentId)) {
-                    continue;
-                }
-
-                checkedIds.add(h.ParentId);
-
-                TPM_Assessment_Period__c rec =
-                    inactiveMap.get(h.ParentId);
-
-                if (String.valueOf(h.OldValue) == 'Published' &&
-                    String.valueOf(h.NewValue) == 'Inactive' &&
-                    cycleCodeForPeriodName(rec.Name) != null) {
-
-                    previousInactive = rec;
-                    break;
-                }
-            }
-        }
-    }
-
-    // Build the dropdown in the correct order.
-    List<TPM_Assessment_Period__c> selected =
-        new List<TPM_Assessment_Period__c>();
-
-    if (currentPeriod != null) {
-        selected.add(currentPeriod);
-    }
-
-    if (publishedPeriod != null) {
-        selected.add(publishedPeriod);
-    }
-
-    if (currentPeriod == null &&
-        publishedPeriod != null &&
-        previousInactive != null) {
-        selected.add(previousInactive);
-    }
-
-    // Get actual assessment counts using lookup IDs.
-    Set<Id> periodIds = new Set<Id>();
-
-    for (TPM_Assessment_Period__c rec : selected) {
-        periodIds.add(rec.Id);
-    }
-
-    Map<Id, Integer> counts = new Map<Id, Integer>();
-
-    if (!periodIds.isEmpty()) {
-        for (AggregateResult ar : [
-            SELECT Assessment_Period__c periodId,
-                   COUNT(Id) total
-            FROM TPM_Assessment__c
-            WHERE Assessment_Period__c IN :periodIds
-            WITH USER_MODE
-            GROUP BY Assessment_Period__c
-        ]) {
-            counts.put(
-                (Id) ar.get('periodId'),
-                (Integer) ar.get('total')
-            );
-        }
-    }
-
-    // Return the data expected by the existing LWC.
-    List<Map<String, Object>> result =
-        new List<Map<String, Object>>();
-
-    for (TPM_Assessment_Period__c rec : selected) {
-        result.add(new Map<String, Object>{
-            'period' => cycleCodeForPeriodName(rec.Name),
-            'periodId' => String.valueOf(rec.Id),
-            'name' => rec.Name,
-            'status' => rec.Assessment_Period_Status__c,
-            'count' => counts.containsKey(rec.Id)
-                ? counts.get(rec.Id) : 0
-        });
-    }
-
-    return result;
+} else {
+    // ORIGINAL logic retained for legacy requests.
+    spec.conditions.add(
+        mappedFields.get('assessmentPeriod') + ' = :assessmentPeriod'
+    );
+    spec.binds.put('assessmentPeriod', activePeriod);
 }
