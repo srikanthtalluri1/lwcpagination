@@ -1,43 +1,10 @@
-spec.conditions.add(mappedFields.get('assessmentPeriod') + ' = :assessmentPeriod');
-spec.binds.put('assessmentPeriod', activePeriod);
+this.availableCycles = cycles.map((cycle) => ({
+    period: cycle.period,
 
-String periodId = filterValue(filters, 'assessmentPeriodId');
+    // NEW properties
+    periodId: cycle.periodId || '',
+    status: cycle.status || '',
+    name: cycle.name || cycle.period,
 
-if (!String.isBlank(periodId)) {
-
-    Id selectedId;
-
-    try {
-        selectedId = Id.valueOf(periodId.trim());
-    } catch (Exception e) {
-        throw handledError('Invalid Assessment Period ID.');
-    }
-
-    Boolean eligible = false;
-
-    for (Map<String, Object> cycle : getStatusEligibleCycles()) {
-        if (String.valueOf(cycle.get('periodId')) ==
-            String.valueOf(selectedId)) {
-            eligible = true;
-            break;
-        }
-    }
-
-    if (!eligible) {
-        throw handledError(
-            'Assessment Period is no longer eligible. Refresh the page.'
-        );
-    }
-
-    spec.conditions.add(
-        'Assessment_Period__c = :assessmentPeriodLookupId'
-    );
-    spec.binds.put('assessmentPeriodLookupId', selectedId);
-
-} else {
-    // ORIGINAL logic retained for legacy requests.
-    spec.conditions.add(
-        mappedFields.get('assessmentPeriod') + ' = :assessmentPeriod'
-    );
-    spec.binds.put('assessmentPeriod', activePeriod);
-}
+    count: Number(cycle.count) || 0
+}));
