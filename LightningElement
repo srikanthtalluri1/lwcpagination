@@ -1,5 +1,17 @@
-tpmStackedBarChart
-tpmScoreBarChart
-tpmArchitectureHub
+Apex Classes
+Class	Purpose
+TpmArchitectureHubController	Connects the LWC to Apex services to retrieve assessment data, cycles, and portfolio details.
+TpmArchitectureHubAssessmentService	Retrieves Salesforce assessment data, manages Active/Locked/Published/Inactive cycles, and calculates the data used by the dashboard.
+TpmArchitectureHubPlatformController	Connects the LWC to the Platform Strategy service.
+TpmArchitectureHubPlatformService	Retrieves platform information from TPM_Platform__c for Platform Strategy.
+TpmArchitectureHubSchema	Validates Salesforce object metadata and accessibility before querying platform data.
 
-TPMArchitectureHubPrototype
+Lightning Web Components
+LWC	Purpose
+tpmArchitectureHub	Main component displaying the Enterprise Dashboard, Portfolio Health, Application Explorer, cycle dropdown, and navigation.
+tpmStackedBarChart	Displays Red, Yellow, and Green health distribution as a stacked bar chart.
+tpmScoreBarChart	Displays numerical assessment ratings as visual score bars.
+
+Aura Component
+Component	Purpose
+TPMArchitectureHubPrototype	Hosts the main tpmArchitectureHub LWC as a standalone Salesforce application.
