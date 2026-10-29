@@ -1,10 +1,10 @@
-List<Map<String, Object>> cycles =
-    TpmArchitectureHubController.getAvailableCycles();
-
-System.debug('TOTAL CYCLES = ' + cycles.size());
-
-for (Map<String, Object> cycle : cycles) {
-    System.debug(
-        'CYCLE RESULT = ' + JSON.serializePretty(cycle)
-    );
-}
+SELECT Id,
+       Assessment_Period__r.Name,
+       Current_Overall_Rating__c,
+       Assessment_Health_Status__c,
+       App__r.Portfolio_Name_Report__c,
+       App__r.Domain_Name__c,
+       App__r.App_TIME_Recommendation__c
+FROM TPM_Assessment__c
+WHERE Assessment_Period__r.Name = 'Q4 2024'
+LIMIT 100
