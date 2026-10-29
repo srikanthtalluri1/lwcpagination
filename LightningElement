@@ -1,10 +1,5 @@
-SELECT Id,
-       Name,
-       Type__c,
-       Scope__c,
-       Operational_Status__c,
-       Active__c,
-       Active_Apps__c
+SELECT Type__c, COUNT(Id) total
 FROM TPM_Platform__c
-ORDER BY Name
-LIMIT 200
+WHERE Name != null
+GROUP BY Type__c
+ORDER BY Type__c
