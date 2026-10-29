@@ -1,6 +1,4 @@
 SELECT Id,
-       Application__c,
-       App__r.App_Name_Formula__c,
        App__r.App_Name__c
 FROM TPM_Assessment__c
 WHERE Assessment_Period__r.Name = 'Q1 2024'
