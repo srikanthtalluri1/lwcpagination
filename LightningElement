@@ -1,7 +1,10 @@
 SELECT Id,
-       Technology_Rating__c,
-       Supportability_Maintainability_Score__c,
-       Business_Rating__c,
-       Security_Compliance_Score__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period__r.Name = 'Q4 2024'
+       Name,
+       Type__c,
+       Scope__c,
+       Operational_Status__c,
+       Active__c,
+       Active_Apps__c
+FROM TPM_Platform__c
+ORDER BY Name
+LIMIT 200
