@@ -1,1 +1,1 @@
-'name' => new List<String>{ 'App__r.App_Name__c', 'Application__c', 'App__r.App_Name_Formula__c', 'Port_Name__c', 'Name', 'Application Name', 'Application' },
+TpmArchitectureHubSchema
