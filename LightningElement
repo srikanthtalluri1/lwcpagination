@@ -1,4 +1,10 @@
-SELECT QualifiedApiName, Label, DataType
-FROM FieldDefinition
-WHERE EntityDefinition.QualifiedApiName = 'TPM_Platform__c'
-ORDER BY QualifiedApiName
+SELECT Id,
+       Name,
+       Class__c,
+       Type__c,
+       Scope__c,
+       Operational_Status__c
+FROM TPM_Platform__c
+WHERE Name != null
+ORDER BY Name
+LIMIT 200
