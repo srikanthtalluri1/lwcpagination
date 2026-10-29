@@ -1,6 +1,1 @@
-SELECT Id,
-       App__r.App_Name__c
-FROM TPM_Assessment__c
-WHERE Assessment_Period__r.Name = 'Q1 2024'
-AND App__r.Portfolio_Name_Report__c = 'Banking'
-LIMIT 5
+'name' => new List<String>{ 'App__r.App_Name__c', 'Application__c', 'App__r.App_Name_Formula__c', 'Port_Name__c', 'Name', 'Application Name', 'Application' },
