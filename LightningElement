@@ -1,5 +1,10 @@
-Hi Neelima,
+List<Map<String, Object>> cycles =
+    TpmArchitectureHubController.getAvailableCycles();
 
-I have completed the updates to the Architecture Hub cycle dropdown and validated the Active, Locked, Published, and Inactive scenarios.
+System.debug('TOTAL CYCLES = ' + cycles.size());
 
-The dropdown now dynamically displays assessment cycles based on their status. When an Active or Locked cycle is available, it is displayed alongside the Published cycle. If neither is available, the dropdown displays the Published cycle and the most recent cycle transitioned from Published to Inactive, based on Salesforce field history.
+for (Map<String, Object> cycle : cycles) {
+    System.debug(
+        'CYCLE RESULT = ' + JSON.serializePretty(cycle)
+    );
+}
