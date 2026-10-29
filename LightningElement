@@ -1,5 +1,4 @@
-SELECT QualifiedApiName, Label
-FROM EntityDefinition
-WHERE QualifiedApiName LIKE 'TPM_%'
-ORDER BY QualifiedApiName
-LIMIT 200
+SELECT COUNT()
+FROM TPM_Assessment__c
+WHERE Assessment_Period__r.Name = 'Q1 2024'
+AND App__r.Portfolio_Name_Report__c = 'Banking'
