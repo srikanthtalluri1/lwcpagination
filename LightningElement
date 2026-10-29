@@ -1,4 +1,11 @@
-SELECT COUNT()
+SELECT
+    COUNT(Id) totalRecords,
+    COUNT(Current_Overall_Rating__c) overallRated,
+    AVG(Current_Overall_Rating__c) avgOverall,
+    COUNT(Technology_Rating__c) techRated,
+    AVG(Technology_Rating__c) avgTechnology,
+    COUNT(Business_Rating__c) businessRated,
+    AVG(Business_Rating__c) avgBusiness
 FROM TPM_Assessment__c
 WHERE Assessment_Period__r.Name = 'Q1 2024'
 AND App__r.Portfolio_Name_Report__c = 'Banking'
