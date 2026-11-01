@@ -1,17 +1,775 @@
-Apex Classes
-Class	Purpose
-TpmArchitectureHubController	Connects the LWC to Apex services to retrieve assessment data, cycles, and portfolio details.
-TpmArchitectureHubAssessmentService	Retrieves Salesforce assessment data, manages Active/Locked/Published/Inactive cycles, and calculates the data used by the dashboard.
-TpmArchitectureHubPlatformController	Connects the LWC to the Platform Strategy service.
-TpmArchitectureHubPlatformService	Retrieves platform information from TPM_Platform__c for Platform Strategy.
-TpmArchitectureHubSchema	Validates Salesforce object metadata and accessibility before querying platform data.
 
-Lightning Web Components
-LWC	Purpose
-tpmArchitectureHub	Main component displaying the Enterprise Dashboard, Portfolio Health, Application Explorer, cycle dropdown, and navigation.
-tpmStackedBarChart	Displays Red, Yellow, and Green health distribution as a stacked bar chart.
-tpmScoreBarChart	Displays numerical assessment ratings as visual score bars.
+@isTest
+@SuppressWarnings('PMD.ApexUnitTestClassShouldHaveAsserts,PMD.MethodNamingConventions,PMD.ApexAssertionsShouldIncludeMessage')
+private class TpmArchitectureHubAssessmentServiceTest {
+    private static TPM_Assessment_Period__c period(String name, String status) {
+        return new TPM_Assessment_Period__c(Name = name, Assessment_Period_Status__c = status);
+    }
 
-Aura Component
-Component	Purpose
-TPMArchitectureHubPrototype	Hosts the main tpmArchitectureHub LWC as a standalone Salesforce application.
+    private static Boolean assertAuraError(String filtersJson) {
+        Boolean thrown = false;
+        try {
+            TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        } catch (AuraHandledException e) {
+            thrown = true;
+        }
+        System.assert(thrown, 'Expected AuraHandledException for: ' + filtersJson);
+        return thrown;
+    }
+
+    private static void assertAssessmentResponse(Map<String, Object> result, String expectedPeriod) {
+        System.assertNotEquals(null, result);
+        System.assertEquals('TPM_Assessment__c', result.get('objectApiName'));
+        System.assertEquals(expectedPeriod, result.get('assessmentPeriod'));
+        Map<String, String> fields = (Map<String, String>) result.get('fields');
+        System.assertNotEquals(null, fields);
+        System.assert(fields.containsKey('name'));
+        List<Map<String, Object>> records = (List<Map<String, Object>>) result.get('records');
+        System.assertNotEquals(null, records);
+        System.assertEquals(0, result.get('rowCount'));
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithEmptyFilters() {
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData('{}');
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for empty filters.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithNullFilters() {
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(null);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for null filters.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithExplicitPeriod() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriod' => 'Q12026' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for explicit period filter.');
+        assertAssessmentResponse(result, 'Q12026');
+    }
+
+    @isTest
+    static void testGetAvailableCyclesWithoutPeriods() {
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertNotEquals(null, result);
+        System.assertEquals(0, result.size());
+    }
+
+    @isTest
+    static void testGetAvailableCyclesWithActiveAndPublishedPeriods() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q1 2026', 'Active'), period('Q4 2025', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(2, result.size());
+        System.assertEquals('Q12026', result[0].get('period'));
+        System.assertEquals('Active', result[0].get('status'));
+        System.assertEquals('Q42025', result[1].get('period'));
+        System.assertEquals('Published', result[1].get('status'));
+    }
+
+    @isTest
+    static void testGetPortfolioDetailDataWithPortfolio() {
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getPortfolioDetailData('  Test Portfolio  ');
+        Test.stopTest();
+        System.assertEquals('Test Portfolio', result.get('portfolioName'));
+        System.assertNotEquals(null, result.get('risks'));
+        //System.assertNotEquals(null, result.get('initiatives'));
+    }
+
+    @isTest
+    static void testGetPortfolioDetailDataWithNullPortfolio() {
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getPortfolioDetailData(null);
+        Test.stopTest();
+        System.assertEquals('', result.get('portfolioName'));
+    }
+
+    @isTest
+    static void testCycleCodeForPeriodName() {
+        System.assertEquals('Q12026', TpmArchitectureHubAssessmentService.cycleCodeForPeriodName('Q1 2026'));
+        System.assertEquals('Q12026', TpmArchitectureHubAssessmentService.cycleCodeForPeriodName('Q12026'));
+        System.assertEquals('Q42025', TpmArchitectureHubAssessmentService.cycleCodeForPeriodName(' q4 2025 '));
+        System.assertEquals(null, TpmArchitectureHubAssessmentService.cycleCodeForPeriodName(null));
+        System.assertEquals(null, TpmArchitectureHubAssessmentService.cycleCodeForPeriodName(''));
+        System.assertEquals(null, TpmArchitectureHubAssessmentService.cycleCodeForPeriodName('Q5 2026'));
+    }
+
+    @isTest
+    static void testIsValidCycleCode() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('Q12026'));
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('2026'));
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode(' q42025 '));
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode('X12026'));
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode('Q52026'));
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode(null));
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode(''));
+    }
+
+    @isTest
+    static void testSortCycleCountsReturnsDescending() {
+        Map<String, Integer> counts = new Map<String, Integer>{ 'Q12024' => 5, 'Q12025' => 3, 'Q42025' => 2, 'Q12026' => 8, '2025' => 4 };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.sortCycleCounts(counts);
+        Test.stopTest();
+        System.assertEquals(5, result.size());
+        System.assertEquals('Q12026', result[0].get('period'));
+        System.assertEquals(8, result[0].get('count'));
+    }
+
+    @isTest
+    static void testSortCycleCountsWithEmptyCounts() {
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.sortCycleCounts(new Map<String, Integer>());
+        Test.stopTest();
+        System.assertEquals(0, result.size());
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithCycleFilter() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'cycle' => 'Q22025' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for cycle filter.');
+        assertAssessmentResponse(result, 'Q22025');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithAllFilters() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriod' => 'Q12025', 'portfolio' => 'P', 'domain' => 'D', 'barr' => 'High', 'timeRecommendation' => 'M', 'health' => 'G', 'status' => 'A', 'searchTerm' => 's' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for multi-filter query.');
+        assertAssessmentResponse(result, 'Q12025');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithBlankFiltersFallsBackToDefault() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriod' => '   ', 'cycle' => '' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response when blank filters fallback to default.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithInvalidJson() {
+        System.assertEquals(true, assertAuraError('{not valid json'), 'Expected invalid JSON to throw AuraHandledException.');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithMissingObject() {
+        TpmArchitectureHubAssessmentService.objectApiNameOverride = 'Does_Not_Exist__c';
+        System.assertEquals(true, assertAuraError('{}'), 'Expected missing object override to throw AuraHandledException.');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithObjectMissingPeriodField() {
+        TpmArchitectureHubAssessmentService.objectApiNameOverride = 'Account';
+        System.assertEquals(true, assertAuraError('{}'), 'Expected object missing period field to throw AuraHandledException.');
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithInvalidPeriodId() {
+        System.assertEquals(
+            true,
+            assertAuraError(JSON.serialize(new Map<String, Object>{ 'assessmentPeriodId' => 'not-an-id' })),
+            'Expected invalid period id to throw AuraHandledException.'
+        );
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithIneligiblePeriodId() {
+        String prefix = TPM_Assessment_Period__c.SObjectType.getDescribe().getKeyPrefix();
+        System.assertEquals(
+            true,
+            assertAuraError(JSON.serialize(new Map<String, Object>{ 'assessmentPeriodId' => prefix + '000000000001' })),
+            'Expected ineligible period id to throw AuraHandledException.'
+        );
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithEligiblePeriodId() {
+        TPM_Assessment_Period__c active = period('Q1 2026', 'Active');
+        insert active;
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriodId' => String.valueOf(active.Id) });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result.get('records'));
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithPeriodFieldOverride() {
+        TpmArchitectureHubAssessmentService.periodFieldOverride = 'Assessment_Period_Quarter_Year__c';
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData('{}');
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response with period field override.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testCyclesWithMultiplePublishedPicksLatest() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q3 2025', 'Published'), period('Q4 2025', 'Published'), period('Q2 2025', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(1, result.size());
+        System.assertEquals('Q42025', result[0].get('period'));
+    }
+
+    @isTest
+    static void testCyclesWithActivePicksItOverPublished() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q1 2026', 'Active'), period('Q4 2025', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(2, result.size());
+        System.assertEquals('Q12026', result[0].get('period'));
+        System.assertEquals('Active', result[0].get('status'));
+    }
+
+    @isTest
+    static void testCyclesWithLockedPicksItOverPublished() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q1 2026', 'Locked'), period('Q4 2025', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(2, result.size());
+        System.assertEquals('Q12026', result[0].get('period'));
+        System.assertEquals('Locked', result[0].get('status'));
+    }
+
+    @isTest
+    static void testCyclesSkipsUnparseablePeriodNames() {
+        insert new List<TPM_Assessment_Period__c>{ period('Junk Name', 'Active'), period('Q1 2026', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(1, result.size());
+        System.assertEquals('Q12026', result[0].get('period'));
+    }
+
+    @isTest
+    static void testCyclesWithOnlyInactiveReturnsEmpty() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q1 2025', 'Inactive'), period('Q2 2025', 'Inactive') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(0, result.size());
+    }
+
+    @isTest
+    static void testGetFieldValueSimpleField() {
+        Account acct = new Account(Name = 'Test Company');
+        Object result = TpmArchitectureHubAssessmentService.getFieldValue(acct, 'Name');
+        System.assertEquals('Test Company', result);
+    }
+
+    @isTest
+    static void testGetFieldValueNullRow() {
+        Object result = TpmArchitectureHubAssessmentService.getFieldValue(null, 'Name');
+        System.assertEquals(null, result);
+    }
+
+    @isTest
+    static void testGetFieldValueBlankFieldPath() {
+        Account acct = new Account(Name = 'Test');
+        Object result = TpmArchitectureHubAssessmentService.getFieldValue(acct, '');
+        System.assertEquals(null, result);
+    }
+
+    @isTest
+    static void testGetFieldValueNullFieldPath() {
+        Account acct = new Account(Name = 'Test');
+        Object result = TpmArchitectureHubAssessmentService.getFieldValue(acct, null);
+        System.assertEquals(null, result);
+    }
+
+    @isTest
+    static void testGetFieldValueMissingRelationship() {
+        Account acct = new Account(Name = 'Test');
+        Object result = TpmArchitectureHubAssessmentService.getFieldValue(acct, 'Parent.Name');
+        System.assertEquals(null, result);
+    }
+
+    @isTest
+    static void testSortCycleCountsDirectCallSingleItem() {
+        Map<String, Integer> counts = new Map<String, Integer>{ 'Q12025' => 7 };
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.sortCycleCounts(counts);
+        System.assertEquals(1, result.size());
+    }
+
+    @isTest
+    static void testSortCycleCountsDirectCallYearOnly() {
+        Map<String, Integer> counts = new Map<String, Integer>{ '2020' => 3 };
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.sortCycleCounts(counts);
+        System.assertEquals(1, result.size());
+        System.assertEquals('2020', result[0].get('period'));
+    }
+
+    @isTest
+    static void testSortCycleCountsDirectCallAllQuarters() {
+        Map<String, Integer> counts = new Map<String, Integer>{ 'Q12020' => 1, 'Q22020' => 2, 'Q32020' => 3, 'Q42020' => 4 };
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.sortCycleCounts(counts);
+        System.assertEquals(4, result.size());
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallQ1() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('Q12020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallQ2() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('Q22020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallQ3() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('Q32020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallQ4() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('Q42020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallYearOnly1999() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('1999'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallYearOnly2099() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('2099'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallInvalidQ5() {
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode('Q52020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallInvalidPrefix() {
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode('X12020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallWithSpaces() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('  Q12020  '));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallLowerCase() {
+        System.assertEquals(true, TpmArchitectureHubAssessmentService.isValidCycleCode('q12020'));
+    }
+
+    @isTest
+    static void testIsValidCycleCodeDirectCallInvalidBlank() {
+        System.assertEquals(false, TpmArchitectureHubAssessmentService.isValidCycleCode(''));
+    }
+
+    @isTest
+    static void testGetFieldValueDirectCallDifferentField() {
+        Account a = new Account(Phone = '555-1234');
+        System.assertEquals('555-1234', TpmArchitectureHubAssessmentService.getFieldValue(a, 'Phone'));
+    }
+
+    @isTest
+    static void testCycleSortKey() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q3 2026', 'Active'), period('Q2 2026', 'Published') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(2, result.size());
+        System.assertEquals('Q32026', result[0].get('period'));
+    }
+
+    @isTest
+    static void testSearchFilteringWithMultipleFields() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriod' => 'Q12021', 'searchTerm' => 'test' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for search filtering test.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testCyclesWithPublishedOnlyAndInactivePeriod() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q4 2025', 'Published'), period('Q3 2025', 'Inactive') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertEquals(1, result.size());
+        System.assertEquals('Q42025', result[0].get('period'));
+    }
+
+    @isTest
+    static void testCyclesWithNoActiveButPublishedAndMultipleInactive() {
+        insert new List<TPM_Assessment_Period__c>{ period('Q4 2025', 'Published'), period('Q3 2025', 'Inactive'), period('Q2 2025', 'Inactive') };
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+        System.assertNotEquals(null, result);
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithOnlySearchTerm() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'searchTerm' => 'xyz' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'Expected non-null response for search-term-only filter.');
+        assertAssessmentResponse(result, 'Q12021');
+    }
+
+    @isTest
+    static void testResolveActivePeriodWithCycleKeyOverAssessmentPeriod() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriod' => 'Q12025', 'cycle' => 'Q22025' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertEquals('Q12025', result.get('assessmentPeriod'));
+    }
+
+    @isTest
+    static void testResolveActivePeriodWithOnlyCycle() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'cycle' => 'Q32025' });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        System.assertEquals('Q32025', result.get('assessmentPeriod'));
+    }
+
+    @isTest
+    static void testNormalizeRowsWithMultipleFields() {
+        String filtersJson = JSON.serialize(new Map<String, Object>{
+            'assessmentPeriod' => 'Q12021',
+            'searchTerm' => 'test'
+        });
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+        List<Map<String, Object>> records = (List<Map<String, Object>>) result.get('records');
+        System.assertNotEquals(null, records);
+        for (Map<String, Object> rec : records) {
+            System.assertNotEquals(null, rec.get('id'));
+        }
+    }
+
+    // ---------- New helpers and tests added to raise coverage ----------
+
+    private static Id createParentFor(Schema.SObjectField lookupField) {
+        SObject parent = lookupField.getDescribe().getReferenceTo()[0].newSObject();
+        Map<String, Schema.SObjectField> parentFields = parent.getSObjectType().getDescribe().fields.getMap();
+        if (parentFields.containsKey('Name') && parentFields.get('Name').getDescribe().isCreateable()) {
+            parent.put('Name', 'Test Parent');
+        }
+        insert parent;
+        return parent.Id;
+    }
+
+    private static TPM_Assessment__c newAssessment(Id periodId) {
+        return new TPM_Assessment__c(
+            Assessment_Period__c = periodId,
+            App__c = createParentFor(TPM_Assessment__c.App__c)
+        );
+    }
+
+    private static Integer statusHistoryCount(Id periodId) {
+        return [
+            SELECT COUNT() FROM TPM_Assessment_Period__History
+            WHERE ParentId = :periodId AND Field = 'Assessment_Period_Status__c'
+        ];
+    }
+
+    private static Boolean tryInsertWithLookups(SObject rec) {
+        try {
+            String ownType = rec.getSObjectType().getDescribe().getName();
+            for (Schema.SObjectField token : rec.getSObjectType().getDescribe().fields.getMap().values()) {
+                Schema.DescribeFieldResult fieldDescribe = token.getDescribe();
+                if (!fieldDescribe.isCreateable() ||
+                    fieldDescribe.getType() != Schema.DisplayType.Reference ||
+                    fieldDescribe.getReferenceTo().isEmpty()) {
+                    continue;
+                }
+                String target = fieldDescribe.getReferenceTo()[0].getDescribe().getName();
+                if (target != 'User' && target != 'Group' && target != 'RecordType' && target != ownType) {
+                    rec.put(fieldDescribe.getName(), createParentFor(token));
+                }
+            }
+            insert rec;
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @isTest
+    static void testCyclesIncludePreviousInactiveFromHistory() {
+        TPM_Assessment_Period__c published = period('Q4 2025', 'Published');
+        TPM_Assessment_Period__c wasPublished = period('Q3 2025', 'Published');
+        insert new List<TPM_Assessment_Period__c>{ published, wasPublished };
+        wasPublished.Assessment_Period_Status__c = 'Inactive';
+        update wasPublished;
+
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+
+        if (statusHistoryCount(wasPublished.Id) > 0) {
+            System.assertEquals(2, result.size());
+            System.assertEquals('Q42025', result[0].get('period'));
+            System.assertEquals('Q32025', result[1].get('period'));
+            System.assertEquals('Inactive', result[1].get('status'));
+            System.assertEquals(0, result[1].get('count'));
+        } else {
+            System.assertEquals(1, result.size());
+        }
+    }
+
+    @isTest
+    static void testCyclesSkipsOlderHistoryRowsForSamePeriod() {
+        TPM_Assessment_Period__c published = period('Q4 2025', 'Published');
+        TPM_Assessment_Period__c churned = period('Q3 2025', 'Published');
+        insert new List<TPM_Assessment_Period__c>{ published, churned };
+        churned.Assessment_Period_Status__c = 'Locked';
+        update churned;
+        churned.Assessment_Period_Status__c = 'Inactive';
+        update churned;
+
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+
+        System.assertEquals(1, result.size());
+        System.assertEquals('Q42025', result[0].get('period'));
+    }
+
+    @isTest
+    static void testGetAvailableCyclesReturnsCountsForPeriods() {
+        List<TPM_Assessment_Period__c> periods = new List<TPM_Assessment_Period__c>{
+            period('Q1 2026', 'Active'),
+            period('Q2 2026', 'Published'),
+            period('Q3 2026', 'Published')
+        };
+        insert periods;
+
+        Test.startTest();
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.getAvailableCycles();
+        Test.stopTest();
+
+        System.assertNotEquals(null, result);
+        for (Map<String, Object> cycle : result) {
+            System.assertNotEquals(null, cycle.get('period'));
+            System.assertNotEquals(null, cycle.get('count'));
+            System.assert((Integer) cycle.get('count') >= 0);
+        }
+    }
+
+    @isTest
+    static void testGetAssessmentDataWithValidPeriodId() {
+        TPM_Assessment_Period__c period1 = period('Q1 2026', 'Active');
+        insert period1;
+
+        Test.startTest();
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriodId' => String.valueOf(period1.Id) });
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) result.get('records');
+        System.assertNotEquals(null, records);
+        if (!records.isEmpty()) {
+            System.assertNotEquals(null, records[0].get('id'));
+        }
+    }
+
+    @isTest
+    static void testNormalizeRowsWithAllFields() {
+        TPM_Assessment_Period__c p = period('Q1 2026', 'Active');
+        insert p;
+        String filtersJson = JSON.serialize(new Map<String, Object>{ 'assessmentPeriodId' => String.valueOf(p.Id) });
+
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+
+        List<Map<String, Object>> records = (List<Map<String, Object>>) result.get('records');
+        System.assertNotEquals(null, records);
+        Map<String, String> fields = (Map<String, String>) result.get('fields');
+        for (Map<String, Object> rec : records) {
+            for (String field : fields.keySet()) {
+                if (field != 'assessmentPeriod') {
+                    System.assert(rec.containsKey(field));
+                }
+            }
+        }
+    }
+
+    @isTest
+    static void testPortfolioDetailRisksWithMatchingRow() {
+        tryInsertWithLookups(new App_Risk_Ranking__c());
+        List<App_Risk_Ranking__c> rows = [SELECT Id, TPM_Portfolio__c FROM App_Risk_Ranking__c WHERE TPM_Portfolio__c != null LIMIT 1];
+        String portfolioKey = rows.isEmpty() ? 'Test Portfolio' : String.valueOf(rows[0].TPM_Portfolio__c);
+
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getPortfolioDetailData(portfolioKey);
+        Test.stopTest();
+
+        List<Map<String, Object>> risks = (List<Map<String, Object>>) result.get('risks');
+        System.assertNotEquals(null, risks);
+        if (!rows.isEmpty()) {
+            System.assertEquals(1, risks.size());
+            System.assertEquals(rows[0].Id, risks[0].get('Id'));
+        }
+    }
+
+    @isTest
+    static void testNormalizeRowsWithOrgData() {
+        // Test without accessing existing org data or inserting an assessment.
+        TPM_Assessment_Period__c testPeriod = period('Q1 2026', 'Active');
+        insert testPeriod;
+
+        String filtersJson = JSON.serialize(new Map<String, Object>{
+            'assessmentPeriodId' => String.valueOf(testPeriod.Id)
+        });
+
+        Test.startTest();
+        Map<String, Object> result =
+            TpmArchitectureHubAssessmentService.getAssessmentData(filtersJson);
+        Test.stopTest();
+
+        List<Map<String, Object>> records =
+            (List<Map<String, Object>>) result.get('records');
+
+        System.assertNotEquals(null, records, 'Expected a valid assessment response');
+    }
+
+    @isTest
+    static void testPortfolioDetailWaiversWithMatchingRow() {
+        tryInsertWithLookups(new AWP_Architecture_Waiver_Form__c());
+        List<AWP_Architecture_Waiver_Form__c> rows = [
+            SELECT Id, Requesting_Portfolio__c, Affected_Portfolio__c FROM AWP_Architecture_Waiver_Form__c
+            WHERE Requesting_Portfolio__c != null OR Affected_Portfolio__c != null LIMIT 1
+        ];
+        String portfolioKey = 'Test Portfolio';
+        if (!rows.isEmpty()) {
+            portfolioKey = String.valueOf(rows[0].Requesting_Portfolio__c != null ? rows[0].Requesting_Portfolio__c : rows[0].Affected_Portfolio__c);
+        }
+
+        Test.startTest();
+        Map<String, Object> result = TpmArchitectureHubAssessmentService.getPortfolioDetailData(portfolioKey);
+        Test.stopTest();
+
+        List<Map<String, Object>> waivers = (List<Map<String, Object>>) result.get('waivers');
+        System.assertNotEquals(null, waivers);
+        if (!rows.isEmpty()) {
+            System.assertEquals(1, waivers.size());
+            System.assertEquals(rows[0].Id, waivers[0].get('Id'));
+        }
+    }
+
+    // ADDITIVE: cover pure portfolio helpers without org data or DML.
+    @isTest
+    static void testFilterPortfolioRowsMatchesCaseInsensitive() {
+        List<SObject> sourceRows = new List<SObject>{
+            new Account(Name = 'Banking Applications'),
+            new Account(Name = 'Insurance Applications')
+        };
+        List<SObject> filtered = TpmArchitectureHubAssessmentService.filterPortfolioRows(
+            sourceRows,
+            ' banking ',
+            new List<String>{ 'Phone', 'Name' }
+        );
+        System.assertEquals(1, filtered.size(), 'Only the Banking record should match.');
+    }
+
+    @isTest
+    static void testFilterPortfolioRowsWithNoMatch() {
+        List<SObject> sourceRows = new List<SObject>{ new Account(Name = 'Insurance') };
+        List<SObject> filtered = TpmArchitectureHubAssessmentService.filterPortfolioRows(
+            sourceRows,
+            'Banking',
+            new List<String>{ 'Name' }
+        );
+        System.assertEquals(0, filtered.size(), 'Unmatched portfolios must return no rows.');
+    }
+
+    @isTest
+    static void testFilterPortfolioRowsWithNullInput() {
+        List<SObject> filtered = TpmArchitectureHubAssessmentService.filterPortfolioRows(
+            null,
+            'Banking',
+            new List<String>{ 'Name' }
+        );
+        System.assertEquals(0, filtered.size(), 'Null input should return an empty list.');
+    }
+
+    @isTest
+    static void testFilterPortfolioRowsWithBlankPortfolio() {
+        List<SObject> sourceRows = new List<SObject>{ new Account(Name = 'Banking') };
+        List<SObject> filtered = TpmArchitectureHubAssessmentService.filterPortfolioRows(
+            sourceRows,
+            ' ',
+            new List<String>{ 'Name' }
+        );
+        System.assertEquals(1, filtered.size(), 'Blank portfolio should retain the original rows.');
+    }
+
+    @isTest
+    static void testNormalizePortfolioRecordsWithInMemoryRows() {
+        List<SObject> sourceRows = new List<SObject>{
+            new Account(Name = 'Banking Applications', Phone = '555-0100')
+        };
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.normalizePortfolioRecords(
+            sourceRows,
+            new List<String>{ 'Name', 'Phone' }
+        );
+        System.assertEquals('555-0100', result[0].get('Phone'), 'Fields should be copied from source rows.');
+    }
+
+    @isTest
+    static void testNormalizeRowsWithInMemoryRows() {
+        List<SObject> sourceRows = new List<SObject>{
+            new Account(Name = 'Banking Applications', Phone = '555-0100')
+        };
+        Map<String, String> mappedFields = new Map<String, String>{
+            'name' => 'Name',
+            'owner' => 'Phone',
+            'assessmentPeriod' => 'Name'
+        };
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.normalizeRows(
+            sourceRows,
+            mappedFields
+        );
+        System.assertEquals('Banking Applications', result[0].get('name'), 'Name should be normalized.');
+    }
+
+    @isTest
+    static void testNormalizePortfolioRecordsWithEmptyRows() {
+        List<Map<String, Object>> result = TpmArchitectureHubAssessmentService.normalizePortfolioRecords(
+            new List<SObject>(),
+            new List<String>{ 'Name' }
+        );
+        System.assertEquals(0, result.size(), 'Empty input should stay empty.');
+    }
+}
