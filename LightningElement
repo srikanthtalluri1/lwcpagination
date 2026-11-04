@@ -1,20 +1,3 @@
-'resource' => new List<String>{
-    'Operational_Rating__c',
-    'Supportability_Maintainability_Score__c',
-    'Port_Operational_Rating__c',
-    'Resource__c',
-    'Resource_Rating__c',
-    'Resource'
-},
-
-'compliance' => new List<String>{
-    'Performance_Scalability_Score__c',
-    'Security_Compliance_Score__c',
-    'Port_Security_Compliance_Score__c',
-    'Compliance__c',
-    'Compliance_Rating__c',
-    'Compliance'
-},
 
 SELECT
     COUNT(Id) totalRecords,
