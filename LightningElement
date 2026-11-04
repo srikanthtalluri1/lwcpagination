@@ -1,9 +1,26 @@
-Overall Rating: Current_Overall_Rating__c
+'resource' => new List<String>{
+    'Operational_Rating__c',
+    'Supportability_Maintainability_Score__c',
+    'Port_Operational_Rating__c',
+    'Resource__c',
+    'Resource_Rating__c',
+    'Resource'
+},
 
-Technology: Technology_Rating__c
+'compliance' => new List<String>{
+    'Performance_Scalability_Score__c',
+    'Security_Compliance_Score__c',
+    'Port_Security_Compliance_Score__c',
+    'Compliance__c',
+    'Compliance_Rating__c',
+    'Compliance'
+},
 
-Resource: Supportability_Maintainability_Score__c
-
-Business Value: Business_Rating__c
-
-Compliance: Security_Compliance_Score__c
+SELECT
+    COUNT(Id) totalRecords,
+    COUNT(Operational_Rating__c) resourceCount,
+    AVG(Operational_Rating__c) avgResource,
+    COUNT(Performance_Scalability_Score__c) complianceCount,
+    AVG(Performance_Scalability_Score__c) avgCompliance
+FROM TPM_Assessment__c
+WHERE Assessment_Period__r.Name = 'Q2 2026'
