@@ -1,9 +1,67 @@
+public static void checkPicklistChanges(List<String> previousValues) {
 
-SELECT
-    COUNT(Id) totalRecords,
-    COUNT(Operational_Rating__c) resourceCount,
-    AVG(Operational_Rating__c) avgResource,
-    COUNT(Performance_Scalability_Score__c) complianceCount,
-    AVG(Performance_Scalability_Score__c) avgCompliance
-FROM TPM_Assessment__c
-WHERE Assessment_Period__r.Name = 'Q2 2026'
+        // Get current picklist values
+        Schema.DescribeFieldResult fieldResult =
+            TPM_APP_c.Type_c.getDescribe();
+
+        List<Schema.PicklistEntry> picklistEntries =
+            fieldResult.getPicklistValues();
+
+        Set<String> currentValues = new Set<String>();
+
+        for (Schema.PicklistEntry entry : picklistEntries) {
+            if (entry.isActive()) {
+                currentValues.add(entry.getValue());
+            }
+        }
+
+        Set<String> oldValues = new Set<String>(previousValues);
+
+        // Identify added and removed values
+        Set<String> addedValues = new Set<String>();
+        Set<String> removedValues = new Set<String>();
+
+        for (String value : currentValues) {
+            if (!oldValues.contains(value)) {
+                addedValues.add(value);
+            }
+        }
+
+        for (String value : oldValues) {
+            if (!currentValues.contains(value)) {
+                removedValues.add(value);
+            }
+        }
+
+        // Send email only if changes are found
+        if (!addedValues.isEmpty() || !removedValues.isEmpty()) {
+
+            String emailBody = 'Picklist changes detected for TPM_APP_c.Type_c\n\n';
+
+            if (!addedValues.isEmpty()) {
+                emailBody += 'New Values Added:\n';
+                for (String value : addedValues) {
+                    emailBody += '- ' + value + '\n';
+                }
+                emailBody += '\n';
+            }
+
+            if (!removedValues.isEmpty()) {
+                emailBody += 'Values Removed:\n';
+                for (String value : removedValues) {
+                    emailBody += '- ' + value + '\n';
+                }
+            }
+
+            Messaging.SingleEmailMessage email =
+                new Messaging.SingleEmailMessage();
+
+            email.setToAddresses(new List<String>{'test@gmail.com'});
+            email.setSubject('Salesforce Picklist Value Changes - TPM_APP_c.Type_c');
+            email.setPlainTextBody(emailBody);
+
+            Messaging.sendEmail(
+                new List<Messaging.SingleEmailMessage>{email}
+            );
+        }
+    }
