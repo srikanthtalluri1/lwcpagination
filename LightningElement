@@ -1,68 +1,7 @@
-@isTest
-private class TechnologyDecision_TpmAutoSyncTest {
+@IsTest
+private class TechnologyDecision_RelatedListTest {
 
-    private static final String TEST_USER_LAST_NAME = 'TpmSyncTestUser';
-
-    // Existing org permission sets are assigned when present; none are created with Apex DML.
-    // Names not present in the org are skipped.
-    private static final Set<String> TEST_USER_PERMISSION_SETS = new Set<String>{
-        'TPM_Administrator',
-        'Technology_Decission'
-    };
-
-    @testSetup
-    static void setup() {
-        Test.startTest();
-        User testUser = createTestUser();
-
-        List<UCH_Employee__c> employees = new List<UCH_Employee__c>();
-        for (Integer i = 1; i <= 6; i++) {
-            employees.add(new UCH_Employee__c(
-                Name = 'Sync Employee ' + i,
-                Department_Description__c = 'Dept',
-                Department_ID__c = '19401',
-                Active_Flag__c = 'TRUE',
-                Employee_ID__c = 'SYNC' + i,
-                Employee_Email_Address__c = 'sync' + i + '@test.com'
-            ));
-        }
-        // Employee record for test-user context (P4444).
-        employees.add(new UCH_Employee__c(
-            Name = 'Sync Test User',
-            Department_Description__c = 'Dept',
-            Department_ID__c = '19401',
-            Active_Flag__c = 'TRUE',
-            Employee_ID__c = 'P4444',
-            Employee_Email_Address__c = 'tpmsynctest@usaa.com'
-        ));
-        insert employees;
-        UCH_Employee__c emp = employees[0];
-
-        // TPM_Utility_TestData creates the Portfolio, Domains, Categories, and two Apps.
-        // Do not recreate or repeatedly update TPM objects in this test setup.
-        TPM_Utility_TestData.createPDCAData();
-
-        // The application lookup filter in these scenarios requires one Business Application.
-        // Retain the remaining TPM test records as provided by the utility.
-        TPM_App__c filterTypeApp = [
-            SELECT Id, Application_Type__c
-            FROM TPM_App__c
-            WHERE App_Name__c = 'Testing'
-            LIMIT 1
-        ];
-        filterTypeApp.Application_Type__c = 'Business Application';
-        update filterTypeApp;
-
-        TPM_App__c filterApp = [SELECT Application_Type__c, InActive__c FROM TPM_App__c WHERE App_Name__c = 'Testing'];
-        System.assertEquals('Business Application', filterApp.Application_Type__c, 'App type was changed after insert; Requesting_Application__c lookup filter needs Business Application or Application Services');
-        System.assertEquals(false, filterApp.InActive__c, 'App was marked inactive after insert; Requesting_Application__c lookup filter needs InActive__c = false');
-
-        // TPM_Utility_TestData does not create TPM_Platform__c; keep original platform setup.
-        System.runAs(testUser) {
-            insert new TPM_Platform__c(Name = 'Sync Platform', Active__c = true);
-        }
-        Test.stopTest();
-    }
+    private static final String TEST_USER_LAST_NAME = 'RelListTestUser';
 
     // User + PermissionSetAssignment are setup objects, so DML runs inside runAs(current user) to avoid MIXED_DML_OPERATION.
     private static User createTestUser() {
@@ -72,20 +11,20 @@ private class TechnologyDecision_TpmAutoSyncTest {
             testUser = new User(
                 ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
                 LastName = TEST_USER_LAST_NAME,
-                Email = 'tpmsynctest@usaa.com',
-                Username = 'tpmsynctest' + System.currentTimeMillis() + '@usaa.com.test',
-                Alias = 'tpmsync',
+                Email = 'relatedlisttest@usaa.com',
+                Username = 'relatedlisttest' + System.currentTimeMillis() + '@usaa.com.test',
+                Alias = 'rellist',
                 TimeZoneSidKey = 'America/Los_Angeles',
                 EmailEncodingKey = 'UTF-8',
                 LanguageLocaleKey = 'en_US',
                 LocaleSidKey = 'en_US',
-                EmployeeNumber = 'P4444',
+                EmployeeNumber = 'P4445',
                 IsActive = true
             );
             insert testUser;
 
             List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
-            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name IN :TEST_USER_PERMISSION_SETS]) {
+            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name = 'Technology_Decission']) {
                 assignments.add(new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = ps.Id));
             }
             insert assignments;
@@ -93,301 +32,90 @@ private class TechnologyDecision_TpmAutoSyncTest {
         return testUser;
     }
 
-    private static User tpmUser() {
+    private static User relUser() {
         return [SELECT Id FROM User WHERE LastName = :TEST_USER_LAST_NAME LIMIT 1];
     }
 
-    private static List<UCH_Employee__c> employees() {
-        return [SELECT Id FROM UCH_Employee__c WHERE Employee_ID__c LIKE 'SYNC%' ORDER BY Employee_ID__c];
-    }
+    @testSetup
+    static void setupData() {
+        User testUser = createTestUser();
+        System.runAs(testUser) {
+            // Match the test user's EmployeeNumber for employee-lookup utilities.
+            if ([SELECT COUNT() FROM UCH_Employee__c
+                 WHERE Employee_ID__c = :testUser.EmployeeNumber] == 0) {
+                insert new UCH_Employee__c(
+                    Name = 'Related List Test Employee',
+                    Employee_ID__c = testUser.EmployeeNumber,
+                    Employee_Email_Address__c = testUser.Email,
+                    Department_Description__c = 'Testing Dep 1',
+                    Department_ID__c = 'Test00',
+                    Active_Flag__c = 'TRUE'
+                );
+            }
 
-    // Same order as technologyDecision_CreateFormHelper: relationship, then decision, then back-link.
-    // Stage 'Research' + Is_Create_Notification_Send__c = true keeps TechnologyDecision_Approval_Flow from sending emails.
-    private static Id createDecision(String reason, String status, Map<String, Id> relationshipLookups) {
-        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c();
-        for (String field : relationshipLookups.keySet()) {
-            rel.put(field, relationshipLookups.get(field));
+            TechnologyDecision__c decision = new TechnologyDecision__c(
+                Is_Create_Notification_Send__c = true,
+                Is_Initial_Creation__c = true
+            );
+            insert decision;
+
+            TechnologyDecision_StakeHolder__c sh1 = new TechnologyDecision_StakeHolder__c(
+                Decision__c = decision.Id,
+                Role__c = 'Business Owner'
+            );
+            TechnologyDecision_StakeHolder__c sh2 = new TechnologyDecision_StakeHolder__c(
+                Decision__c = decision.Id,
+                Role__c = 'Sponsor'
+            );
+            insert new List<TechnologyDecision_StakeHolder__c>{ sh1, sh2 };
         }
-        insert rel;
-
-        TechnologyDecision__c decision = new TechnologyDecision__c(
-            Decision_Reason__c = reason,
-            Status__c = status,
-            Stage__c = 'Research',
-            Is_Create_Notification_Send__c = true,
-            TechnologyDecision_Relationship__c = rel.Id
-        );
-        insert decision;
-
-        rel.Decision__c = decision.Id;
-        update rel;
-        return rel.Id;
     }
 
-    private static TechnologyDecision_Relationship__c loadRelationship(Id relId) {
-        return [
-            SELECT Requesting_Domain_Architect__c, Requesting_Technical_Architect__c, Requesting_Business_Owner__c,
-                   Requesting_Application_Owner__c, Requesting_Tech_Fellow__c, Requesting_Portfolio_Architect__c
-            FROM TechnologyDecision_Relationship__c WHERE Id = :relId
-        ];
-    }
+    @IsTest
+    static void testFetchRelated() {
+        System.runAs(relUser()) {
+            TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
 
-    private static TechnologyDecision__c loadDecision(Id relId) {
-        return [
-            SELECT Requesting_Technical_Architect__c, Requesting_Business_Owner__c,
-                   Requesting_Application_Owner__c, Requesting_Tech_Fellow__c
-            FROM TechnologyDecision__c WHERE TechnologyDecision_Relationship__c = :relId
-        ];
-    }
+            List<TechnologyDecision_StakeHolder__c> result;
+            Test.startTest();
+            result = TechnologyDecision_RelatedListHandler.fetchRelated(decision.Id);
+            Test.stopTest();
 
-    // Org automation may pre-populate contact fields on create, so "unchanged" tests compare against this snapshot.
-    private static String snapshot(Id relId) {
-        return JSON.serialize(loadRelationship(relId)) + JSON.serialize(loadDecision(relId));
-    }
-
-    // TechnologyDecisionTrigger (BeforeInsert) throws when a 'New *' decision is inserted, so insert a decision that is
-    // known to work (application-based, 'Replace Application') and then re-point it to the domain / desired reason via updates.
-    private static Id createDomainDecision(String reason, String status, Id domainId) {
-        TPM_App__c app = [SELECT Id FROM TPM_App__c WHERE App_Name__c = 'Testing'];
-        Id relId = createDecision('Replace Application', status, new Map<String, Id>{ 'Requesting_Application__c' => app.Id });
-        update new TechnologyDecision_Relationship__c(Id = relId, Requesting_Application__c = null, Requesting_Domain__c = domainId);
-        if (reason != 'Replace Application') {
-            update new TechnologyDecision__c(Id = loadDecision(relId).Id, Decision_Reason__c = reason);
+            System.assertEquals(2, result.size(), 'Should return 2 stakeholders.');
+            System.assertNotEquals(null, result[0].CreatedDate, 'CreatedDate should be populated.');
         }
-        return relId;
     }
 
-    @isTest
-    static void domainContacts_updatesRelationshipAndDecision() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        TPM_Domain__c domain = [SELECT Id FROM TPM_Domain__c WHERE Domain_Id__c = 444444 LIMIT 1];
+    @IsTest
+    static void testFetchRelated_NoRecords() {
+        List<TechnologyDecision_StakeHolder__c> result;
+        System.runAs(relUser()) {
+            TechnologyDecision__c emptyDecision = new TechnologyDecision__c(
+                Is_Create_Notification_Send__c = true,
+                Is_Initial_Creation__c = true
+            );
+            insert emptyDecision;
 
-        Id relId = createDomainDecision('New Technology', 'Draft', domain.Id);
+            Test.startTest();
+            result = TechnologyDecision_RelatedListHandler.fetchRelated(emptyDecision.Id);
+            Test.stopTest();
 
-        TPM_Domain__c changed = new TPM_Domain__c(
-            Id = domain.Id,
-            Owning_Architect__c = emps[1].Id,
-            Business_Owner_Sponsor__c = emps[2].Id,
-            Tech_Fellow__c = emps[3].Id
-        );
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMDecisionContacts(new Map<Id, TPM_Domain__c>{ domain.Id => changed });
+            System.assertEquals(0, result.size(), 'Should return empty list.');
         }
-        Test.stopTest();
-
-        TechnologyDecision_Relationship__c rel = loadRelationship(relId);
-        System.assertEquals(emps[1].Id, rel.Requesting_Domain_Architect__c);
-        System.assertEquals(emps[1].Id, rel.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, rel.Requesting_Business_Owner__c);
-        System.assertEquals(emps[3].Id, rel.Requesting_Tech_Fellow__c);
-
-        TechnologyDecision__c decision = loadDecision(relId);
-        System.assertEquals(emps[1].Id, decision.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, decision.Requesting_Business_Owner__c);
-        System.assertEquals(emps[3].Id, decision.Requesting_Tech_Fellow__c);
-        } // System.runAs(tpmUser())
     }
 
-    @isTest
-    static void domainContacts_skipsExcludedStatusAndOtherReasons() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        TPM_Domain__c domain = [SELECT Id FROM TPM_Domain__c WHERE Domain_Id__c = 444444 LIMIT 1];
+    @IsTest
+    static void testFetchRelated_Sorted() {
+        System.runAs(relUser()) {
+            TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
+            List<TechnologyDecision_StakeHolder__c> result;
+            result = TechnologyDecision_RelatedListHandler.fetchRelated(decision.Id);
 
-        Id withdrawnRel = createDomainDecision('New Technology', 'Withdraw', domain.Id);
-        Id otherReasonRel = createDomainDecision('Replace Application', 'Draft', domain.Id);
-        Map<Id, String> before = new Map<Id, String>{ withdrawnRel => snapshot(withdrawnRel), otherReasonRel => snapshot(otherReasonRel) };
-
-        TPM_Domain__c changed = new TPM_Domain__c(
-            Id = domain.Id,
-            Owning_Architect__c = emps[1].Id,
-            Business_Owner_Sponsor__c = emps[2].Id,
-            Tech_Fellow__c = emps[3].Id
-        );
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMDecisionContacts(new Map<Id, TPM_Domain__c>{ domain.Id => changed });
+            // Verify sorted by CreatedDate DESC (most recent first)
+            if (result.size() > 1) {
+                System.assert(result[0].CreatedDate >= result[1].CreatedDate,
+                    'Should be sorted descending by CreatedDate.');
+            }
         }
-        Test.stopTest();
-
-        for (Id relId : before.keySet()) {
-            System.assertEquals(before.get(relId), snapshot(relId));
-        }
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void domainContacts_emptyMap_doesNothing() {
-        System.runAs(tpmUser()) {
-        TPM_Domain__c domain = [SELECT Id FROM TPM_Domain__c WHERE Domain_Id__c = 444444 LIMIT 1];
-        Id relId = createDomainDecision('New Application', 'Draft', domain.Id);
-        String before = snapshot(relId);
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMDecisionContacts(new Map<Id, TPM_Domain__c>());
-        }
-        Test.stopTest();
-
-        System.assertEquals(before, snapshot(relId));
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void appContacts_updatesApplicationAndTechnologyDecisions() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        List<TPM_App__c> apps = [SELECT Id FROM TPM_App__c ORDER BY App_Name__c];
-
-        Id appRelId = createDecision('Replace Application', 'Draft', new Map<String, Id>{ 'Requesting_Application__c' => apps[0].Id });
-        // TODO: re-enable once the Requesting_Technology__c lookup filter criteria are known.
-        // Id techRelId = createDecision('Upgrade Technology', 'Draft', new Map<String, Id>{ 'Requesting_Technology__c' => apps[1].Id });
-        // TechnologyDecisionTrigger (BeforeInsert) throws for 'New *' reasons (Requesting_Portfolio__r not queried), so they can't be inserted here.
-
-        Map<Id, TPM_App__c> changes = new Map<Id, TPM_App__c>{
-            apps[0].Id => new TPM_App__c(
-                Id = apps[0].Id, IT_Architect__c = emps[1].Id, Business_Owner__c = emps[2].Id, Application_Owner__c = emps[3].Id),
-            apps[1].Id => new TPM_App__c(
-                Id = apps[1].Id, IT_Architect__c = emps[4].Id, Business_Owner__c = emps[5].Id, Application_Owner__c = emps[0].Id)
-        };
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMAPPDecisionContacts(changes);
-        }
-        Test.stopTest();
-
-        TechnologyDecision_Relationship__c appRel = loadRelationship(appRelId);
-        System.assertEquals(emps[1].Id, appRel.Requesting_Domain_Architect__c);
-        System.assertEquals(emps[1].Id, appRel.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, appRel.Requesting_Business_Owner__c);
-        System.assertEquals(emps[3].Id, appRel.Requesting_Application_Owner__c);
-        System.assertEquals(emps[1].Id, loadDecision(appRelId).Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, loadDecision(appRelId).Requesting_Business_Owner__c);
-
-        /*
-        TechnologyDecision_Relationship__c techRel = loadRelationship(techRelId);
-        System.assertEquals(emps[4].Id, techRel.Requesting_Domain_Architect__c);
-        System.assertEquals(emps[4].Id, techRel.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[5].Id, techRel.Requesting_Business_Owner__c);
-        System.assertEquals(emps[0].Id, techRel.Requesting_Application_Owner__c);
-        System.assertEquals(emps[4].Id, loadDecision(techRelId).Requesting_Technical_Architect__c);
-        */
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void appContacts_skipsExcludedStatus() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        TPM_App__c app = [SELECT Id FROM TPM_App__c WHERE App_Name__c = 'Testing' LIMIT 1];
-        Id relId = createDecision('Existing Application', 'Reject', new Map<String, Id>{ 'Requesting_Application__c' => app.Id });
-        String before = snapshot(relId);
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMAPPDecisionContacts(new Map<Id, TPM_App__c>{
-                app.Id => new TPM_App__c(Id = app.Id, IT_Architect__c = emps[1].Id, Business_Owner__c = emps[2].Id, Application_Owner__c = emps[3].Id)
-            });
-        }
-        Test.stopTest();
-
-        System.assertEquals(before, snapshot(relId));
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void appContacts_emptyMap_doesNothing() {
-        System.runAs(tpmUser()) {
-        TPM_App__c app = [SELECT Id FROM TPM_App__c WHERE App_Name__c = 'Testing' LIMIT 1];
-        Id relId = createDecision('Upgrade Application', 'Draft', new Map<String, Id>{ 'Requesting_Application__c' => app.Id });
-        String before = snapshot(relId);
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMAPPDecisionContacts(new Map<Id, TPM_App__c>());
-        }
-        Test.stopTest();
-
-        System.assertEquals(before, snapshot(relId));
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void platformContacts_updatesRelationshipAndDecision() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        TPM_Platform__c platform = [SELECT Id FROM TPM_Platform__c LIMIT 1];
-        Id relId = createDecision('Replace Platform', 'Draft', new Map<String, Id>{ 'Requesting_Platform__c' => platform.Id });
-
-        TPM_Platform__c changed = new TPM_Platform__c(
-            Id = platform.Id,
-            Technical_Architect__c = emps[1].Id,
-            Business_Owner__c = emps[2].Id,
-            IT_Owner__c = emps[3].Id,
-            Tech_Fellow__c = emps[4].Id
-        );
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMplatformDecisionContacts(new Map<Id, TPM_Platform__c>{ platform.Id => changed });
-        }
-        Test.stopTest();
-
-        TechnologyDecision_Relationship__c rel = loadRelationship(relId);
-        System.assertEquals(emps[1].Id, rel.Requesting_Domain_Architect__c);
-        System.assertEquals(emps[1].Id, rel.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, rel.Requesting_Business_Owner__c);
-        System.assertEquals(emps[3].Id, rel.Requesting_Application_Owner__c);
-        System.assertEquals(emps[3].Id, rel.Requesting_Portfolio_Architect__c);
-        System.assertEquals(emps[4].Id, rel.Requesting_Tech_Fellow__c);
-
-        TechnologyDecision__c decision = loadDecision(relId);
-        System.assertEquals(emps[1].Id, decision.Requesting_Technical_Architect__c);
-        System.assertEquals(emps[2].Id, decision.Requesting_Business_Owner__c);
-        System.assertEquals(emps[4].Id, decision.Requesting_Tech_Fellow__c);
-        System.assertEquals(emps[3].Id, decision.Requesting_Application_Owner__c);
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void platformContacts_skipsExcludedStatus() {
-        System.runAs(tpmUser()) {
-        List<UCH_Employee__c> emps = employees();
-        TPM_Platform__c platform = [SELECT Id FROM TPM_Platform__c LIMIT 1];
-        Id relId = createDecision('Upgrade Platform', 'Withdraw', new Map<String, Id>{ 'Requesting_Platform__c' => platform.Id });
-        String before = snapshot(relId);
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMplatformDecisionContacts(new Map<Id, TPM_Platform__c>{
-                platform.Id => new TPM_Platform__c(Id = platform.Id, Technical_Architect__c = emps[1].Id, Business_Owner__c = emps[2].Id)
-            });
-        }
-        Test.stopTest();
-
-        System.assertEquals(before, snapshot(relId));
-        } // System.runAs(tpmUser())
-    }
-
-    @isTest
-    static void platformContacts_emptyMap_doesNothing() {
-        System.runAs(tpmUser()) {
-        TPM_Platform__c platform = [SELECT Id FROM TPM_Platform__c LIMIT 1];
-        Id relId = createDecision('Existing Platform', 'Draft', new Map<String, Id>{ 'Requesting_Platform__c' => platform.Id });
-        String before = snapshot(relId);
-
-        Test.startTest();
-        System.runAs(tpmUser()) {
-            TechnologyDecision_TpmAutoSync.updateTPMplatformDecisionContacts(new Map<Id, TPM_Platform__c>());
-        }
-        Test.stopTest();
-
-        System.assertEquals(before, snapshot(relId));
-        } // System.runAs(tpmUser())
     }
 }
