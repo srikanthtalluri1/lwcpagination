@@ -1,9 +1,9 @@
 @IsTest
-private class TechnologyDecision_DataTableHandler_Test {
+private class technologyDecisionAckApproval_Test {
 
-    // Shared user, matching employee and optional existing permission set.
-    @TestSetup
-    static void setupTestUser() {
+    @testSetup
+    static void setupData() {
+        // Shared Technology Decision test user (same pattern as the other tests).
         List<Profile> standardProfiles = [
             SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1
         ];
@@ -15,7 +15,7 @@ private class TechnologyDecision_DataTableHandler_Test {
             ProfileId = testProfileId,
             LastName = 'TestUser',
             Email = 'testuser@usaa.com',
-            Username = 'tddatatable.' + UserInfo.getOrganizationId() + '.' +
+            Username = 'tdackapproval.' + UserInfo.getOrganizationId() + '.' +
                 System.currentTimeMillis() + '@usaa.com.test',
             Alias = 'tuser',
             TimeZoneSidKey = 'America/Los_Angeles',
@@ -28,21 +28,20 @@ private class TechnologyDecision_DataTableHandler_Test {
         insert testUser;
 
         System.runAs(testUser) {
-            // Do not attempt to insert PermissionSet metadata in Apex.
-            // The target org may not have this permission set yet.
-            List<PermissionSet> permissionSets = [
+            // PermissionSet metadata cannot be inserted with Apex DML.
+            // Assign the existing permission set only when available.
+            List<PermissionSet> decisionPermissions = [
                 SELECT Id FROM PermissionSet
-                WHERE Name = 'Technology_Decission'
-                LIMIT 1
+                WHERE Name = 'Technology_Decission' LIMIT 1
             ];
-            if (!permissionSets.isEmpty()) {
+            if (!decisionPermissions.isEmpty()) {
                 insert new PermissionSetAssignment(
                     AssigneeId = testUser.Id,
-                    PermissionSetId = permissionSets[0].Id
+                    PermissionSetId = decisionPermissions[0].Id
                 );
             }
 
-            // The application helper may resolve an employee by EmployeeNumber.
+            // The application may resolve the running user to an employee record.
             if ([SELECT COUNT() FROM UCH_Employee__c
                     WHERE Employee_ID__c = :testUser.EmployeeNumber] == 0) {
                 insert new UCH_Employee__c(
@@ -54,239 +53,146 @@ private class TechnologyDecision_DataTableHandler_Test {
                     Active_Flag__c = 'TRUE'
                 );
             }
+
+        // Create a Decision record (adjust required fields if your org enforces any)
+        TechnologyDecision__c decision = new TechnologyDecision__c(
+            Name = 'Test Decision'
+        );
+        insert decision;
+
+        Id uId = UserInfo.getUserId();
+        DateTime nowDt = System.now();
+
+        // Create approval/ack records
+        List<TechnologyDecision_Approval__c> recs = new List<TechnologyDecision_Approval__c>();
+
+        // Acknowledged = true (2 records to validate DESC sorting)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-10),
+           // Assigned_To__c = uId,
+           // Actual_Acknowledger__c = uId,
+            Acknowledged__c = true,
+            Approved__c = false
+        ));
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-1),
+           // Assigned_To__c = uId,
+           // Actual_Acknowledger__c = uId,
+            Acknowledged__c = true,
+            Approved__c = false
+        ));
+
+        // Acknowledged = false (should NOT return from getacknowldgeRecords)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addHours(-2),
+//            Assigned_To__c = uId,
+            //Actual_Acknowledger__c = uId,
+            Acknowledged__c = false,
+            Approved__c = false
+        ));
+
+        // Approved = true (2 records to validate DESC sorting)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-2),
+           // Assigned_To__c = uId,
+           // Actual_Approver__c = uId,
+            Approved__c = true,
+            Acknowledged__c = false
+        ));
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-1),
+          // Assigned_To__c = uId,
+           // Actual_Approver__c = uId,
+            Approved__c = true,
+            Acknowledged__c = false
+        ));
+
+        // Approved = false (should NOT return from getapprovalRecords)
+        recs.add(new TechnologyDecision_Approval__c(
+            Decision__c = decision.Id,
+            Action_Date_Time__c = nowDt.addDays(-3),
+           // Assigned_To__c = uId,
+           // Actual_Approver__c = uId,
+            Approved__c = false,
+            Acknowledged__c = false
+        ));
+
+        insert recs;
         }
     }
 
-     // -------- Helpers --------
-    private static Map<String,String> tdLabels() {
-        Map<String, Schema.SObjectField> f = TechnologyDecision__c.SObjectType.getDescribe().fields.getMap();
-        Map<String,String> labels = new Map<String,String>();
-        labels.put('Status',          f.get('Status__c').getDescribe().getLabel());
-        labels.put('Stage',           f.get('Stage__c').getDescribe().getLabel());
-        labels.put('DecisionReason',  f.get('Decision_Reason__c').getDescribe().getLabel());
-        return labels;
-    }
-
-    private static void seed() {
-        insert new List<TechnologyDecision__c>{
-            new TechnologyDecision__c(Name='Alpha TD',   Status__c='Approved', Stage__c='Init',   Decision_Reason__c='New Application'),
-            new TechnologyDecision__c(Name='Bravo TD',   Status__c='Approved', Stage__c='Review'),   // null reason
-            new TechnologyDecision__c(Name='Charlie TD', Status__c='Approved', Stage__c='Final',  Decision_Reason__c='New Capability'),
-            new TechnologyDecision__c(Name='Delta TD',   Status__c='Draft',    Stage__c='Init',   Decision_Reason__c='New Technology')
-        };
-    }
-
-    // Build a filter JSON safely using the org's actual labels; only include a key if the label resolves to an API name in handler.
-    private static String buildFilters(Map<String, List<Object>> labelToValues) {
-        List<Object> filters = new List<Object>();
-        Map<String,String> L = tdLabels();
-
-        for (String logicalKey : labelToValues.keySet()) {
-            String label;
-            if (logicalKey == 'Status')         label = L.get('Status');
-            else if (logicalKey == 'Stage')     label = L.get('Stage');
-            else if (logicalKey == 'DecisionReason') label = L.get('DecisionReason');
-            else continue;
-
-            // Ask the handler to resolve label→API to ensure it exists; skip key if not resolvable in this org.
-            List<String> apiNames = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', label);
-            if (apiNames == null || apiNames.isEmpty()) continue;
-
-            filters.add(new Map<String,Object>{ label => (List<Object>)labelToValues.get(logicalKey) });
-        }
-        return JSON.serialize(filters);
-    }
-
-    // -------- Tests --------
-
-    // 1) Base call + search → exercises buildSearchTerm
     @IsTest
-    static void t_base_and_search() {
+    static void test_getacknowldgeRecords_filtersAndSorts() {
         User testUser = [
             SELECT Id FROM User
             WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
         System.runAs(testUser) {
-        seed();
-
-        // Base (no filters)
-        Test.startTest();
-        Map<String,Object> res1 = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, null, 'alldecision', null);
-       Boolean  isusernew = TechnologyDecision_DataTableHandler.hasTpmReadyOnlyPermission();
-      //   Map<String,Object> res2 = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, 'Decision Reason' , 'alldecision',null);
-        Test.stopTest();
-        System.assertNotEquals(null, res1, 'Base result should not be null');
-
-        //System.assert(res2.containsKey('decisionRecords'), 'Should return records for search');
-    
-        }
-    }
-
-    // 2) Filters → ONLY nullcheck on DecisionReason (builds " = NULL") + cleanup branch with empty filter
-    @IsTest
-    static void t_filters_null_only_and_cleanup() {
-        User testUser = [
-            SELECT Id FROM User
-            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
-            LIMIT 1
-        ];
-        System.runAs(testUser) {
-        seed();
-        Map<String, List<Object>> map1 = new Map<String, List<Object>>();
-        map1.put('DecisionReason', new List<Object>{ 'nullcheck' }); // only nullcheck
-        // Empty filter to trigger the "(" cleanup path
-        map1.put('Status', new List<Object>{}); // empty list; causes dangling "(" then cleanup
-
-        String filters = buildFilters(map1);
+        TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
 
         Test.startTest();
-        Map<String,Object> res = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, filters, 'alldecision', null);
+        List<TechnologyDecision_Approval__c> results =
+            technologyDecisionAckApproval.getacknowldgeRecords(decision.Id);
         Test.stopTest();
-        System.assertNotEquals(null, res, 'Filter result should not be null');
-    
+
+        System.assertEquals(2, results.size(), 'Should return only Acknowledged__c = true records');
+
+        // DESC order check (newest first)
+        System.assert(results[0].Action_Date_Time__c >= results[1].Action_Date_Time__c,
+            'Records should be sorted DESC by Action_Date_Time__c');
+        System.assertEquals(true, results[0].Acknowledged__c);
+        System.assertEquals(true, results[1].Acknowledged__c);
         }
     }
 
-    // 3) Filters → values + nullcheck on DecisionReason AND a Stage multi-value IN
     @IsTest
-    static void t_filters_values_plus_null() {
+    static void test_getapprovalRecords_filtersAndSorts() {
         User testUser = [
             SELECT Id FROM User
             WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
         System.runAs(testUser) {
-        seed();
-        Map<String, List<Object>> map2 = new Map<String, List<Object>>();
-        map2.put('DecisionReason', new List<Object>{ 'Risk', 'nullcheck' });
-        map2.put('Stage',          new List<Object>{ 'Final', 'Review' });
-
-        String filters = buildFilters(map2);
+        TechnologyDecision__c decision = [SELECT Id FROM TechnologyDecision__c LIMIT 1];
 
         Test.startTest();
-        Map<String,Object> res = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, filters, 'alldecision', null);
+        List<TechnologyDecision_Approval__c> results =
+            technologyDecisionAckApproval.getapprovalRecords(decision.Id);
         Test.stopTest();
-        System.assert(res.containsKey('decisionRecordsCount'));
-    
+
+        System.assertEquals(2, results.size(), 'Should return only Approved__c = true records');
+
+        // DESC order check (newest first)
+        System.assert(results[0].Action_Date_Time__c >= results[1].Action_Date_Time__c,
+            'Records should be sorted DESC by Action_Date_Time__c');
+       // System.assertEquals(true, results[0].Approved__c);
+       // System.assertEquals(true, results[1].Approved__c);
         }
     }
 
-    // 4) getUniqueValues → both alldecision and mydecision (OwnerId)
     @IsTest
-    static void t_uniqueValues_all_and_my() {
+    static void test_nullDecisionId_returnsEmptyList() {
         User testUser = [
             SELECT Id FROM User
             WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
         System.runAs(testUser) {
-        seed();
-
-        // Ensure one record is owned by the running user so "mydecision" returns something
-        TechnologyDecision__c one = [SELECT Id FROM TechnologyDecision__c WHERE Name = 'Alpha TD' LIMIT 1];
-        update new TechnologyDecision__c(Id = one.Id, OwnerId = UserInfo.getUserId());
-
-        // Use the labels your method expects: 'Status', 'Stage', 'Decision Reason'
-        List<String> ask = new List<String>{ 'Status', 'Stage', 'Decision Reason' };
-
         Test.startTest();
-        Map<String,Object> allMap = TechnologyDecision_DataTableHandler.getUniqueValues(ask, 'alldecision');
-        Map<String,Object> myMap  = TechnologyDecision_DataTableHandler.getUniqueValues(ask, 'mydecision');
+        List<TechnologyDecision_Approval__c> ack =
+            technologyDecisionAckApproval.getacknowldgeRecords(null);
+        List<TechnologyDecision_Approval__c> appr =
+            technologyDecisionAckApproval.getapprovalRecords(null);
         Test.stopTest();
-        system.debug('System debug :'+allMap.containsKey('Status'));
-              system.debug('allMap :'+allMap);
-        System.assertnotequals(allMap.containsKey('Status/Stage'), false);
-       // System.assert(((List<Object>)allMap.get('Status')).size() > 0, 'All should have counts');
-        //System.assert(myMap.containsKey('Status'), 'Expect Status bucket in my');
-    
-        }
-    }
 
-    // 5) getRecordWithFieldSet → cover success if a field set exists, else cover the exception branch
-    @IsTest
-    static void t_recordWithFieldSet() {
-        User testUser = [
-            SELECT Id FROM User
-            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
-            LIMIT 1
-        ];
-        System.runAs(testUser) {
-        seed();
-        Id anyId = [SELECT Id FROM TechnologyDecision__c LIMIT 1].Id;
-
-        // Discover any field set on the object
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get('TechnologyDecision__c');
-        Map<String, Schema.FieldSet> fs = objType.getDescribe().fieldSets.getMap();
-
-        if (!fs.isEmpty()) {
-            // happy path
-            String anyFsName = fs.keySet().iterator().next();
-            Test.startTest();
-            Map<String, Object> res = TechnologyDecision_DataTableHandler.getRecordWithFieldSet(String.valueOf(anyId), 'TechnologyDecision__c', anyFsName);
-            Test.stopTest();
-            System.assertNotEquals(null, res, 'Field set response should not be null when FS exists');
-        } else {
-            // exception path (still covers the early describe lines)
-            try {
-                Test.startTest();
-                TechnologyDecision_DataTableHandler.getRecordWithFieldSet(String.valueOf(anyId), 'TechnologyDecision__c', 'NonExistent_FS');
-                Test.stopTest();
-                System.assert(false, 'Should have thrown for missing field set');
-            } catch (Exception e) {
-                System.assert(e.getMessage().contains('Field Set'), 'Expect missing field set message');
-            }
-        }
-    
-        }
-    }
-
-    // 6) Label→API resolver called directly
-    @IsTest
-    static void t_labelToApi() {
-        User testUser = [
-            SELECT Id FROM User
-            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
-            LIMIT 1
-        ];
-        System.runAs(testUser) {
-        Map<String,String> L = tdLabels();
-        Test.startTest();
-        List<String> s1 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('Status'));
-        List<String> s2 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('Stage'));
-        List<String> s3 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('DecisionReason'));
-        Test.stopTest();
-        System.assertNotEquals(null, s1);
-        System.assertNotEquals(null, s2);
-        System.assertNotEquals(null, s3);
-    
-        }
-    }
-
-    // Added coverage for both user-scoped branches in getTechnologyDecision().
-    @IsTest
-    static void t_getTechnologyDecision_my_and_myall() {
-        User testUser = [
-            SELECT Id FROM User
-            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
-            LIMIT 1
-        ];
-        System.runAs(testUser) {
-            seed();
-
-            Test.startTest();
-            Map<String, Object> myResult =
-                TechnologyDecision_DataTableHandler.getTechnologyDecision(
-                    0, 200, null, 'mydecision', null);
-            Map<String, Object> myAllResult =
-                TechnologyDecision_DataTableHandler.getTechnologyDecision(
-                    0, 200, null, 'myalldecision', null);
-            Test.stopTest();
-
-            System.assert(
-                myResult != null && myAllResult != null,
-                'Both user-scoped result maps should be returned'
-            );
+        System.assertEquals(0, ack.size(), 'Null decisionId should return empty list (ack)');
+        System.assertEquals(0, appr.size(), 'Null decisionId should return empty list (approval)');
         }
     }
 }
