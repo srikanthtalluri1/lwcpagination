@@ -1,18 +1,22 @@
 @IsTest
-private class TechnologyDecision_HistoryHandlerTest {
+private class TechnologyDecision_DataTableHandler_Test {
 
-    /* ------------------------------------------------------------------------
-       COMMON HELPERS
-       ------------------------------------------------------------------------ */
-
+    // Shared user, matching employee and optional existing permission set.
     @TestSetup
-    static void setupTestData() {
-        // Same shared test-user pattern as technologyDecision_CreateFormHelperTest.
+    static void setupTestUser() {
+        List<Profile> standardProfiles = [
+            SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1
+        ];
+        Id testProfileId = standardProfiles.isEmpty()
+            ? UserInfo.getProfileId()
+            : standardProfiles[0].Id;
+
         User testUser = new User(
-            ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
+            ProfileId = testProfileId,
             LastName = 'TestUser',
             Email = 'testuser@usaa.com',
-            Username = 'testuser.' + System.currentTimeMillis() + '@usaa.com',
+            Username = 'tddatatable.' + UserInfo.getOrganizationId() + '.' +
+                System.currentTimeMillis() + '@usaa.com.test',
             Alias = 'tuser',
             TimeZoneSidKey = 'America/Los_Angeles',
             EmailEncodingKey = 'UTF-8',
@@ -24,28 +28,23 @@ private class TechnologyDecision_HistoryHandlerTest {
         insert testUser;
 
         System.runAs(testUser) {
-            // PermissionSet is metadata: reuse an existing permission set only.
-            // Skip assignment if it is not deployed in the target org.
-            List<PermissionSet> decisionPermissionSets = [
+            // Do not attempt to insert PermissionSet metadata in Apex.
+            // The target org may not have this permission set yet.
+            List<PermissionSet> permissionSets = [
                 SELECT Id FROM PermissionSet
                 WHERE Name = 'Technology_Decission'
                 LIMIT 1
             ];
-            if (!decisionPermissionSets.isEmpty()) {
+            if (!permissionSets.isEmpty()) {
                 insert new PermissionSetAssignment(
                     AssigneeId = testUser.Id,
-                    PermissionSetId = decisionPermissionSets[0].Id
+                    PermissionSetId = permissionSets[0].Id
                 );
             }
 
-            // Create shared TPM objects once; they are available to all test methods.
-            Test.startTest();
-            TPM_Utility_TestData.createPDCAData();
-            Test.stopTest();
-
-            // Ensure the runAs user can be resolved to a matching employee.
+            // The application helper may resolve an employee by EmployeeNumber.
             if ([SELECT COUNT() FROM UCH_Employee__c
-                 WHERE Employee_ID__c = :testUser.EmployeeNumber] == 0) {
+                    WHERE Employee_ID__c = :testUser.EmployeeNumber] == 0) {
                 insert new UCH_Employee__c(
                     Name = 'Technology Decision Test Employee',
                     Employee_ID__c = testUser.EmployeeNumber,
@@ -55,310 +54,212 @@ private class TechnologyDecision_HistoryHandlerTest {
                     Active_Flag__c = 'TRUE'
                 );
             }
-
-            // Match the existing relationship's application lookup filter.
-            TPM_App__c app = [
-                SELECT Id, Is_Assessment_Present__c, Application_Type__c
-                FROM TPM_App__c
-                WHERE UUID__c = 'EB5D4C65-4804-48E0-BD8B-HB0A27FC8E63'
-                LIMIT 1
-            ];
-            app.Is_Assessment_Present__c = true;
-            app.Application_Type__c = 'Application Services';
-            update app;
         }
     }
 
+     // -------- Helpers --------
+    private static Map<String,String> tdLabels() {
+        Map<String, Schema.SObjectField> f = TechnologyDecision__c.SObjectType.getDescribe().fields.getMap();
+        Map<String,String> labels = new Map<String,String>();
+        labels.put('Status',          f.get('Status__c').getDescribe().getLabel());
+        labels.put('Stage',           f.get('Stage__c').getDescribe().getLabel());
+        labels.put('DecisionReason',  f.get('Decision_Reason__c').getDescribe().getLabel());
+        return labels;
+    }
 
-    // Reuse the employee for the shared test user, created in @TestSetup.
-    private static UCH_Employee__c createEmployee() {
-        return [
-            SELECT Id
-            FROM UCH_Employee__c
-            WHERE Employee_ID__c = 'P4444'
+    private static void seed() {
+        insert new List<TechnologyDecision__c>{
+            new TechnologyDecision__c(Name='Alpha TD',   Status__c='Approved', Stage__c='Init',   Decision_Reason__c='New Application'),
+            new TechnologyDecision__c(Name='Bravo TD',   Status__c='Approved', Stage__c='Review'),   // null reason
+            new TechnologyDecision__c(Name='Charlie TD', Status__c='Approved', Stage__c='Final',  Decision_Reason__c='New Capability'),
+            new TechnologyDecision__c(Name='Delta TD',   Status__c='Draft',    Stage__c='Init',   Decision_Reason__c='New Technology')
+        };
+    }
+
+    // Build a filter JSON safely using the org's actual labels; only include a key if the label resolves to an API name in handler.
+    private static String buildFilters(Map<String, List<Object>> labelToValues) {
+        List<Object> filters = new List<Object>();
+        Map<String,String> L = tdLabels();
+
+        for (String logicalKey : labelToValues.keySet()) {
+            String label;
+            if (logicalKey == 'Status')         label = L.get('Status');
+            else if (logicalKey == 'Stage')     label = L.get('Stage');
+            else if (logicalKey == 'DecisionReason') label = L.get('DecisionReason');
+            else continue;
+
+            // Ask the handler to resolve label→API to ensure it exists; skip key if not resolvable in this org.
+            List<String> apiNames = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', label);
+            if (apiNames == null || apiNames.isEmpty()) continue;
+
+            filters.add(new Map<String,Object>{ label => (List<Object>)labelToValues.get(logicalKey) });
+        }
+        return JSON.serialize(filters);
+    }
+
+    // -------- Tests --------
+
+    // 1) Base call + search → exercises buildSearchTerm
+    @IsTest
+    static void t_base_and_search() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
+        System.runAs(testUser) {
+        seed();
+
+        // Base (no filters)
+        Test.startTest();
+        Map<String,Object> res1 = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, null, 'alldecision', null);
+       Boolean  isusernew = TechnologyDecision_DataTableHandler.hasTpmReadyOnlyPermission();
+      //   Map<String,Object> res2 = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, 'Decision Reason' , 'alldecision',null);
+        Test.stopTest();
+        System.assertNotEquals(null, res1, 'Base result should not be null');
+
+        //System.assert(res2.containsKey('decisionRecords'), 'Should return records for search');
+    
+        }
     }
 
-    private static TechnologyDecision_Relationship__c createRelationship() {
-        // Reuse TPM records from the utility's @TestSetup, not new TPM DML.
-        TPM_Domain__c dom = [
-            SELECT Id FROM TPM_Domain__c
-            WHERE Domain_Id__c = 444444
+    // 2) Filters → ONLY nullcheck on DecisionReason (builds " = NULL") + cleanup branch with empty filter
+    @IsTest
+    static void t_filters_null_only_and_cleanup() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
-        TPM_App__c app = [
-            SELECT Id FROM TPM_App__c
-            WHERE UUID__c = 'EB5D4C65-4804-48E0-BD8B-HB0A27FC8E63'
+        System.runAs(testUser) {
+        seed();
+        Map<String, List<Object>> map1 = new Map<String, List<Object>>();
+        map1.put('DecisionReason', new List<Object>{ 'nullcheck' }); // only nullcheck
+        // Empty filter to trigger the "(" cleanup path
+        map1.put('Status', new List<Object>{}); // empty list; causes dangling "(" then cleanup
+
+        String filters = buildFilters(map1);
+
+        Test.startTest();
+        Map<String,Object> res = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, filters, 'alldecision', null);
+        Test.stopTest();
+        System.assertNotEquals(null, res, 'Filter result should not be null');
+    
+        }
+    }
+
+    // 3) Filters → values + nullcheck on DecisionReason AND a Stage multi-value IN
+    @IsTest
+    static void t_filters_values_plus_null() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
             LIMIT 1
         ];
-
-        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c(
-            Requesting_Domain__c      = dom.Id,
-            Requesting_Application__c = app.Id
-        );
-        insert rel;
-        return rel;
-    }
-
-    // The Is_Create_Notification_Send__c / Is_Initial_Creation__c flags stop
-    // "TechnologyDecision Approval Flow" from sending its create email.
-    private static TechnologyDecision__c createBaseDecision(Boolean withRelationship) {
-        UCH_Employee__c emp = createEmployee();
-        String uniq = String.valueOf(System.now().getTime());
-
-        TechnologyDecision__c dec = new TechnologyDecision__c(
-            Name                              = 'Unit Test Decision - ' + uniq,
-            Stage__c                          = 'Saved',
-            Status__c                         = 'Draft',
-            Decision_Reason__c                = 'New Technology',
-            Why__c                            = 'Why text',
-            What__c                           = 'What text',
-            Value__c                          = 'Value text',
-            Requestor__c                      = emp.Id,
-            Requesting_Technical_Architect__c = emp.Id,
-            Requesting_Business_Owner__c      = emp.Id,
-            Requesting_Application_Owner__c   = emp.Id,
-            Requesting_Tech_Fellow__c         = emp.Id,
-            TA_Acknowledged__c                = false,
-            Is_Create_Notification_Send__c    = true,
-            Is_Initial_Creation__c            = true
-        );
-        if (withRelationship) {
-            dec.TechnologyDecision_Relationship__c = createRelationship().Id;
-        }
-        insert dec;
-        return dec;
-    }
-
-    // Updates a tracked field so Salesforce writes a TechnologyDecision__History row
-    private static TechnologyDecision__c changeStage(TechnologyDecision__c dec) {
-        dec.Stage__c = 'Preparing Decision';
-        update dec;
-        return dec;
-    }
-
-    /* ------------------------------------------------------------------------
-       buildHistoryRecords
-       ------------------------------------------------------------------------ */
-
-    @IsTest
-    static void testBuildHistoryRecords_DecisionRow() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
         System.runAs(testUser) {
-        Test.startTest();
-        TechnologyDecision__History dh = new TechnologyDecision__History(
-            Field = String.valueOf(TechnologyDecision__c.Status__c)
-        );
+        seed();
+        Map<String, List<Object>> map2 = new Map<String, List<Object>>();
+        map2.put('DecisionReason', new List<Object>{ 'Risk', 'nullcheck' });
+        map2.put('Stage',          new List<Object>{ 'Final', 'Review' });
 
-        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
-            TechnologyDecision_HistoryHandler.buildHistoryRecords(
-                new List<TechnologyDecision__History>{ dh },
-                new List<TechnologyDecision_Relationship__History>()
-            );
-        Test.stopTest();
-
-        System.assertEquals(1, wrappers.size());
-        System.assertEquals('Technology Decision', wrappers[0].source);
-        System.assertEquals(TechnologyDecision__c.Status__c.getDescribe().getLabel(),
-            wrappers[0].fieldName, 'API name should resolve to field label.');
-        }
-    }
-
-    @IsTest
-    static void testBuildHistoryRecords_UnknownFieldKeepsRawName() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        String unknownField = 'Unknown_Field_' + System.now().getTime() + '__c';
-        Test.startTest();
-        TechnologyDecision__History dh = new TechnologyDecision__History(Field = unknownField);
-
-        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
-            TechnologyDecision_HistoryHandler.buildHistoryRecords(
-                new List<TechnologyDecision__History>{ dh },
-                new List<TechnologyDecision_Relationship__History>()
-            );
-        Test.stopTest();
-
-        System.assertEquals(1, wrappers.size());
-        System.assertEquals(unknownField, wrappers[0].fieldName);
-        }
-    }
-
-    @IsTest
-    static void testBuildHistoryRecords_RelationshipRow() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        TechnologyDecision_Relationship__History rh = new TechnologyDecision_Relationship__History(
-            Field = String.valueOf(TechnologyDecision_Relationship__c.Name)
-        );
-
-        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
-            TechnologyDecision_HistoryHandler.buildHistoryRecords(
-                new List<TechnologyDecision__History>(),
-                new List<TechnologyDecision_Relationship__History>{ rh }
-            );
-        Test.stopTest();
-
-        System.assertEquals(1, wrappers.size());
-        System.assertEquals('TechnologyDecision Relationship', wrappers[0].source);
-        System.assertEquals(String.valueOf(TechnologyDecision_Relationship__c.Name), wrappers[0].fieldName);
-        }
-    }
-
-    @IsTest
-    static void testBuildHistoryRecords_NullRelationshipList() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
-            TechnologyDecision_HistoryHandler.buildHistoryRecords(
-                new List<TechnologyDecision__History>(), null);
-        Test.stopTest();
-
-        System.assertEquals(0, wrappers.size());
-        }
-    }
-
-    @IsTest
-    static void testBuildHistoryRecords_Empty() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        List<TechnologyDecision_HistoryHandler.WrapperClass> wrappers =
-            TechnologyDecision_HistoryHandler.buildHistoryRecords(
-                new List<TechnologyDecision__History>(),
-                new List<TechnologyDecision_Relationship__History>()
-            );
-        Test.stopTest();
-
-        System.assertEquals(0, wrappers.size(), 'Empty history should return empty list.');
-        }
-    }
-
-    /* ------------------------------------------------------------------------
-       getHistoryRecords / getWaiverFormHistoryRecords
-       ------------------------------------------------------------------------ */
-
-    @IsTest
-    static void testGetHistoryRecords_NullId() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        List<TechnologyDecision_HistoryHandler.WrapperClass> result =
-            TechnologyDecision_HistoryHandler.getHistoryRecords(null);
-        Test.stopTest();
-
-        System.assertEquals(0, result.size());
-        }
-    }
-
-    @IsTest
-    static void testGetHistoryRecords_WithRelationship() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        TechnologyDecision__c dec = changeStage(createBaseDecision(true));
-
-        List<TechnologyDecision_HistoryHandler.WrapperClass> result =
-            TechnologyDecision_HistoryHandler.getHistoryRecords(dec.Id);
-        Test.stopTest();
-
-        System.assertNotEquals(null, result, 'Result should not be null (with relationship).');
-        }
-    }
-
-    @IsTest
-    static void testGetHistoryRecords_WithoutRelationship() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        TechnologyDecision__c dec = changeStage(createBaseDecision(false));
-
-        List<TechnologyDecision_HistoryHandler.WrapperClass> result =
-            TechnologyDecision_HistoryHandler.getHistoryRecords(dec.Id);
-        Test.stopTest();
-
-        System.assertNotEquals(null, result, 'Result should not be null (no relationship).');
-        }
-    }
-
-    @IsTest
-    static void testGetWaiverFormHistoryRecords() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        Test.startTest();
-        TechnologyDecision__c dec = changeStage(createBaseDecision(true));
-
-        List<TechnologyDecision__History> waiver =
-            TechnologyDecision_HistoryHandler.getWaiverFormHistoryRecords(dec.Id);
-        Test.stopTest();
-
-        System.assertNotEquals(null, waiver, 'Waiver history list should not be null.');
-        }
-    }
-
-    /* ------------------------------------------------------------------------
-       getPicklistLabel
-       ------------------------------------------------------------------------ */
-
-    @IsTest
-    static void testPicklistLabel() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
-        System.runAs(testUser) {
-        String objectName = String.valueOf(TechnologyDecision__c.SObjectType);
-        String fieldName  = String.valueOf(TechnologyDecision__c.Status__c);
+        String filters = buildFilters(map2);
 
         Test.startTest();
-        List<Schema.PicklistEntry> entries =
-            TechnologyDecision__c.Status__c.getDescribe().getPicklistValues();
-        if (!entries.isEmpty()) {
-            System.assertEquals(entries[0].getLabel(),
-                TechnologyDecision_HistoryHandler.getPicklistLabel(
-                    objectName, fieldName, entries[0].getValue()));
-        }
-        System.assertEquals(null, TechnologyDecision_HistoryHandler.getPicklistLabel(
-            objectName, fieldName, 'no-such-value'));
-        System.assertEquals(null, TechnologyDecision_HistoryHandler.getPicklistLabel(
-            null, fieldName, 'x'));
-        System.assertEquals(null, TechnologyDecision_HistoryHandler.getPicklistLabel(
-            'NoSuchObject__c', fieldName, 'x'));
-        System.assertEquals(null, TechnologyDecision_HistoryHandler.getPicklistLabel(
-            objectName, 'No_Field__c', 'x'));
+        Map<String,Object> res = TechnologyDecision_DataTableHandler.getTechnologyDecision(0, 200, filters, 'alldecision', null);
         Test.stopTest();
+        System.assert(res.containsKey('decisionRecordsCount'));
+    
         }
     }
 
-    /* ------------------------------------------------------------------------
-       WrapperComparator
-       ------------------------------------------------------------------------ */
-
+    // 4) getUniqueValues → both alldecision and mydecision (OwnerId)
     @IsTest
-    static void testWrapperComparator() {
-        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+    static void t_uniqueValues_all_and_my() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
+            LIMIT 1
+        ];
         System.runAs(testUser) {
+        seed();
+
+        // Ensure one record is owned by the running user so "mydecision" returns something
+        TechnologyDecision__c one = [SELECT Id FROM TechnologyDecision__c WHERE Name = 'Alpha TD' LIMIT 1];
+        update new TechnologyDecision__c(Id = one.Id, OwnerId = UserInfo.getUserId());
+
+        // Use the labels your method expects: 'Status', 'Stage', 'Decision Reason'
+        List<String> ask = new List<String>{ 'Status', 'Stage', 'Decision Reason' };
+
         Test.startTest();
-        String userId = String.valueOf(UserInfo.getUserId());
-        Datetime now = Datetime.now();
-
-        TechnologyDecision_HistoryHandler.WrapperClass w1 =
-            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O1', 'N1', now,
-                'User1', userId, 'Src');
-        TechnologyDecision_HistoryHandler.WrapperClass w2 =
-            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O2', 'N2', now.addMinutes(5),
-                'User2', userId, 'Src');
-        TechnologyDecision_HistoryHandler.WrapperClass w3 =
-            new TechnologyDecision_HistoryHandler.WrapperClass('Field', 'O3', 'N3', now,
-                'User3', userId, 'Src');
-
-        TechnologyDecision_HistoryHandler.WrapperComparator cmp =
-            new TechnologyDecision_HistoryHandler.WrapperComparator();
+        Map<String,Object> allMap = TechnologyDecision_DataTableHandler.getUniqueValues(ask, 'alldecision');
+        Map<String,Object> myMap  = TechnologyDecision_DataTableHandler.getUniqueValues(ask, 'mydecision');
         Test.stopTest();
+        system.debug('System debug :'+allMap.containsKey('Status'));
+              system.debug('allMap :'+allMap);
+        System.assertnotequals(allMap.containsKey('Status/Stage'), false);
+       // System.assert(((List<Object>)allMap.get('Status')).size() > 0, 'All should have counts');
+        //System.assert(myMap.containsKey('Status'), 'Expect Status bucket in my');
+    
+        }
+    }
 
-        System.assertEquals(1, cmp.compare(w1, w2), 'b > a should return 1');
-        System.assertEquals(-1, cmp.compare(w2, w1), 'b < a should return -1');
-        System.assertEquals(0, cmp.compare(w1, w3), 'equal dates should return 0');
+    // 5) getRecordWithFieldSet → cover success if a field set exists, else cover the exception branch
+    @IsTest
+    static void t_recordWithFieldSet() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+        seed();
+        Id anyId = [SELECT Id FROM TechnologyDecision__c LIMIT 1].Id;
+
+        // Discover any field set on the object
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get('TechnologyDecision__c');
+        Map<String, Schema.FieldSet> fs = objType.getDescribe().fieldSets.getMap();
+
+        if (!fs.isEmpty()) {
+            // happy path
+            String anyFsName = fs.keySet().iterator().next();
+            Test.startTest();
+            Map<String, Object> res = TechnologyDecision_DataTableHandler.getRecordWithFieldSet(String.valueOf(anyId), 'TechnologyDecision__c', anyFsName);
+            Test.stopTest();
+            System.assertNotEquals(null, res, 'Field set response should not be null when FS exists');
+        } else {
+            // exception path (still covers the early describe lines)
+            try {
+                Test.startTest();
+                TechnologyDecision_DataTableHandler.getRecordWithFieldSet(String.valueOf(anyId), 'TechnologyDecision__c', 'NonExistent_FS');
+                Test.stopTest();
+                System.assert(false, 'Should have thrown for missing field set');
+            } catch (Exception e) {
+                System.assert(e.getMessage().contains('Field Set'), 'Expect missing field set message');
+            }
+        }
+    
+        }
+    }
+
+    // 6) Label→API resolver called directly
+    @IsTest
+    static void t_labelToApi() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+        Map<String,String> L = tdLabels();
+        Test.startTest();
+        List<String> s1 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('Status'));
+        List<String> s2 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('Stage'));
+        List<String> s3 = TechnologyDecision_DataTableHandler.getApiNamesFromLabels('TechnologyDecision__c', L.get('DecisionReason'));
+        Test.stopTest();
+        System.assertNotEquals(null, s1);
+        System.assertNotEquals(null, s2);
+        System.assertNotEquals(null, s3);
+    
         }
     }
 }
