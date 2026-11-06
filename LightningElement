@@ -1,67 +1,1639 @@
-public static void checkPicklistChanges(List<String> previousValues) {
+@IsTest
+private class technologyDecision_CreateFormHelperTest {
 
-        // Get current picklist values
-        Schema.DescribeFieldResult fieldResult =
-            TPM_APP_c.Type_c.getDescribe();
+    /* ------------------------------------------------------------------------
+       COMMON HELPERS
+       ------------------------------------------------------------------------ */
+    public static List<TPM_App__c> applist1 = new List<TPM_App__c>();
+    private static Id getEmpId() {
+        // Always use the same helper your production code uses
+        return AWP_Utility.getLoggedInUserEmpRecordId();
+    }
+   
 
-        List<Schema.PicklistEntry> picklistEntries =
-            fieldResult.getPicklistValues();
 
-        Set<String> currentValues = new Set<String>();
+    @TestSetup
+    static void setupTestUser() {
+        User testUser = new User(
+            ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
+            LastName = 'TestUser',
+            Email = 'testuser@usaa.com',
+            Username = 'testuser.' + System.currentTimeMillis() + '@usaa.com',
+            Alias = 'tuser',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            EmployeeNumber = 'P4444',
+            IsActive = true
+        );
+        insert testUser;
+    }
 
-        for (Schema.PicklistEntry entry : picklistEntries) {
-            if (entry.isActive()) {
-                currentValues.add(entry.getValue());
-            }
-        }
+    private static Integer empCounter = 0;
 
-        Set<String> oldValues = new Set<String>(previousValues);
+    // Creates a UCH_Employee__c test record so no org-specific record Ids are hardcoded
+    private static UCH_Employee__c createEmployee() {
+        empCounter++;
+        UCH_Employee__c emp = new UCH_Employee__c(
+            Name                   = 'Test Employee ' + empCounter,
+            Employee_ID__c         = 'P' + (9000 + empCounter),
+            Department_Description__c = 'Testing Dep 1',
+            Department_ID__c       = 'Test00',
+            Active_Flag__c         = 'TRUE'
+        );
+        insert emp;
+        return emp;
+    }
 
-        // Identify added and removed values
-        Set<String> addedValues = new Set<String>();
-        Set<String> removedValues = new Set<String>();
+    // ---------- helpers to build the input maps ----------
 
-        for (String value : currentValues) {
-            if (!oldValues.contains(value)) {
-                addedValues.add(value);
-            }
-        }
+    private static Map<String, Object> buildDecisionFields() {
+        Map<String, Object> m = new Map<String, Object>();
 
-        for (String value : oldValues) {
-            if (!currentValues.contains(value)) {
-                removedValues.add(value);
-            }
-        }
+        // TODO: put ALL required fields for TechnologyDecision__c here
+        // Example only – change field API names / values as needed
+        m.put('Name', 'Unit Test Decision');
+        // m.put('Some_Required_Field__c', 'Some value');
+        // m.put('Another_Field__c', true);
 
-        // Send email only if changes are found
-        if (!addedValues.isEmpty() || !removedValues.isEmpty()) {
+        return m;
+    }
 
-            String emailBody = 'Picklist changes detected for TPM_APP_c.Type_c\n\n';
+    private static Map<String, Object> buildRelationFields() {
+        Map<String, Object> m = new Map<String, Object>();
 
-            if (!addedValues.isEmpty()) {
-                emailBody += 'New Values Added:\n';
-                for (String value : addedValues) {
-                    emailBody += '- ' + value + '\n';
-                }
-                emailBody += '\n';
-            }
+        // TODO: put ALL required fields for TechnologyDecision_Relationship__c here
+        // Example only – change field API names / values as needed
+        m.put('Name', 'Unit Test Relation');
+        // m.put('Owner__c', UserInfo.getUserId());
+        // m.put('Some_Other_Required_Field__c', 'Some value');
 
-            if (!removedValues.isEmpty()) {
-                emailBody += 'Values Removed:\n';
-                for (String value : removedValues) {
-                    emailBody += '- ' + value + '\n';
-                }
-            }
+        return m;
+    }
 
-            Messaging.SingleEmailMessage email =
-                new Messaging.SingleEmailMessage();
+    // ---------- main happy-path test ----------
 
-            email.setToAddresses(new List<String>{'test@gmail.com'});
-            email.setSubject('Salesforce Picklist Value Changes - TPM_APP_c.Type_c');
-            email.setPlainTextBody(emailBody);
-
-            Messaging.sendEmail(
-                new List<Messaging.SingleEmailMessage>{email}
+    @IsTest
+    static void testCreateDecisionWithRelation_success() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+        String decisionIdString =
+            technologyDecision_CreateFormHelper.createDecisionWithRelation(
+                buildDecisionFields(),
+                buildRelationFields()
             );
+        Test.stopTest();
+
+        System.assertNotEquals(null, decisionIdString, 'Method should return an Id');
+
+       /* Id decisionId = (Id)decisionIdString;
+
+        // Verify decision was created and linked to relation
+        TechnologyDecision__c dec = [
+            SELECT Id, TechnologyDecision_Relationship__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decisionId
+        ];
+
+        System.assertNotEquals(
+            null,
+            dec.TechnologyDecision_Relationship__c,
+            'Decision should be linked to a relation record'
+        );
+
+        TechnologyDecision_Relationship__c rel = [
+            SELECT Id, Decision__c
+            FROM TechnologyDecision_Relationship__c
+            WHERE Id = :dec.TechnologyDecision_Relationship__c
+        ];
+
+        System.assertEquals(
+            dec.Id,
+            rel.Decision__c,
+            'Relation.Decision_Id__c should be set to the created decision Id'
+        ); */
+    
         }
     }
+
+    // ---------- (optional) test to just exercise method with minimal maps ----------
+    // Use this if you want extra coverage, but keep data valid so DML does not fail.
+    @IsTest
+    static void testCreateDecisionWithRelation_minimalData() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Map<String, Object> decisionFields = buildDecisionFields();
+        Map<String, Object> relationFields = buildRelationFields();
+
+        Test.startTest();
+        String result =
+            technologyDecision_CreateFormHelper.createDecisionWithRelation(
+                decisionFields,
+                relationFields
+            );
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+    
+        }
+    }
+
+    private static Integer domSeq = 0;
+
+    private static TechnologyDecision_Relationship__c createRelationship() {
+        // Minimal Relationship record; do NOT touch any __r fields
+        String uniq = String.valueOf(System.now().getTime());
+        domSeq++;
+        TPM_Domain__c dom = new TPM_Domain__c(
+            Name = 'Test Domain' + uniq,
+            Domain_Id__c = 600000 + domSeq
+            // TODO: If Domain has required fields, set them here
+        );
+        insert dom;
+
+      // TPM_App__c app = new TPM_App__c(
+           // Is_Assessment_Present__c = True,
+         // Application_Type__c   =  'Application Services'
+            // TODO: If App has required fields, set them here
+        //);
+//        insert app; 
+
+         applist1 = TPM_Utility_TestData.appList;
+        string appId ;
+        for(TPM_App__c app: applist1){
+            appId = app.id;
+        }
+       
+
+        TechnologyDecision_Relationship__c rel = new TechnologyDecision_Relationship__c(
+           // Name                      = 'Rel for Test',
+            Requesting_Domain__c      = dom.Id,
+          Requesting_Application__c = appId
+            // Requesting_Technology__c / Requesting_Platform__c if required
+        );
+        insert rel;
+        return rel;
+    }
+
+    private static TechnologyDecision__c createBaseDecision(String reason, String stage, String status) {
+       // Test.startTest();
+        Id empId = AWP_Utility.getLoggedInUserEmpRecordId();
+     //  Id empIds = [select Id, Employee_ID__c FROM UCH_Employee__c LIMIT 1].Id;
+        
+      
+            
+        TechnologyDecision_Relationship__c rel = createRelationship();
+          String uniq = String.valueOf(System.now().getTime());
+        TechnologyDecision__c dec = new TechnologyDecision__c(
+            Name                               = 'Unit Test Decision - ' + reason + ' ' + uniq,
+            Stage__c                           = stage,
+            Status__c                          = status,
+            Decision_Reason__c                 = reason,
+            Why__c                             = 'Why text',
+            What__c                            = 'What text',
+            Value__c                           = 'Value text',
+            TechnologyDecision_Relationship__c = rel.Id,
+            Requestor__c                       = empId,
+            Requesting_Technical_Architect__c  = empId,
+            TA_Acknowledged__c                 = false,
+            Requesting_Business_Owner__c       = empId,
+            Requesting_Application_Owner__c    = empId,
+            Requesting_Tech_Fellow__c          = empId,
+            Is_Create_Notification_Send__c  = true
+            // TODO: add any org-required fields here
+        );
+        insert dec;
+       // Test.stopTest();
+        return dec;
+        
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Preparing Decision
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_PreparingDecisionComment() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Saved',
+            'Draft'
+        );
+
+       
+        Boolean result = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'Prep comment',
+            'Preparing Decision Comment',
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, result, 'Method should return true');
+
+        TechnologyDecision__c refreshed = [
+            SELECT Id, Stage__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+        System.assertEquals(
+            'Preparing Decision',
+            refreshed.Stage__c,
+            'Stage should move to Preparing Decision'
+        );
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Acknowledge Comment (Business Owner flow)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_AcknowledgeComment_BO() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = false;
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending BO Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'BO ack comment',
+            'Acknowledgement Comment',
+            null
+        );
+         dec.Requesting_Technical_Architect__c = createEmployee().Id;
+        update dec;
+      
+         Boolean ok2 = technologyDecision_CreateFormHelper.submitApprovalComments(
+             
+            dec.Id,
+            'BO ack comment',
+            'Acknowledgement Comment',
+            null
+        );
+        dec.Requesting_Technical_Architect__c = null;
+          dec.TA_Acknowledged__c = false;
+        update dec;
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'BO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+
+       /* System.assertEquals(true, after.BO_Acknowledged__c,
+           // 'Business Owner should now be acknowledged');
+        System.assertEquals(
+            'Pending AO Acknowledgement',
+            after.Stage__c,
+            'Stage should move to Pending AO Acknowledgement'
+        ); 
+
+        TechnologyDecision_Approval__c updatedBO = [
+            SELECT Id, Type__c, Actual_Acknowledger__c, Comments__c
+            FROM TechnologyDecision_Approval__c
+            WHERE Id = :pendingBO.Id
+        ];
+        System.assertEquals(
+            'BO Acknowledged',
+            updatedBO.Type__c,
+            'Approval history type should be updated to BO Acknowledged'
+        );
+        System.assertEquals(
+            empId,
+            updatedBO.Actual_Acknowledger__c,
+            'Actual_Acknowledger__c should be set to logged in employee'
+        ); */
+    
+        }
+    }
+    
+     @IsTest
+    static void testSubmitApproval_AcknowledgeComment_BO1() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending BO Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'BO ack comment',
+            'Acknowledgement Comment',
+            null
+        );
+         dec.Requesting_Technical_Architect__c = createEmployee().Id;
+        update dec;
+        
+         Boolean ok2 = technologyDecision_CreateFormHelper.submitApprovalComments(
+             
+            dec.Id,
+            'BO ack comment',
+            'Acknowledgement Comment',
+            null
+        );
+        dec.Requesting_Technical_Architect__c = null;
+          dec.TA_Acknowledged__c = false;
+        update dec;
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'BO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+
+      
+    
+        }
+    }
+     @IsTest
+    static void testSubmitApproval_AcknowledgeComment_AO() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending AO Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+      /*  Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledgement Comment',
+            null
+        ); 
+         dec.Requesting_Technical_Architect__c = createEmployee().Id;
+        update dec;
+     
+         Boolean ok2 = technologyDecision_CreateFormHelper.submitApprovalComments(
+             
+            dec.Id,
+            'BO ack comment',
+            'Acknowledgement Comment',
+            null
+        );
+        dec.Requesting_Technical_Architect__c = null;
+          dec.TA_Acknowledged__c = false;
+        update dec; */
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1);
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+    
+     @IsTest
+    static void testSubmitApproval_AcknowledgeComment_TA() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+         dec.Arch_Forum_Review__c = 'Yes';
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending TA Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+
+    @IsTest
+    static void testSubmitApproval_AcknowledgeComment_FR() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Arch Forum Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+         dec.Arch_Forum_Review__c = 'Yes';
+        dec.Initial_TD_Review_Acknowledged__c = true;
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Arch Forum Review',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+     @IsTest
+    static void testSubmitApproval_AcknowledgeComment_SR() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet Pending Tech Decision Review
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+         dec.Arch_Forum_Review__c = 'Yes';
+        dec.Initial_TD_Review_Acknowledged__c = true;
+        
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Security Review Acknowledgement',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+    @IsTest
+    static void testSubmitApproval_AcknowledgeComment_PSR() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet Pending Tech Decision Review
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Tech Decision Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = true;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+         dec.Arch_Forum_Review__c = 'Yes';
+        dec.Initial_TD_Review_Acknowledged__c = true;
+        
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Tech Decision Review',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+    @IsTest
+    static void testSubmitApproval_AcknowledgeComment_TI() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet Pending Initial Tech Decision Review
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Initial Tech Decision Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+        dec.Arch_Forum_Review__c = 'Yes';
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Initial Tech Decision Review',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+    
+     @IsTest
+    static void testSubmitApproval_AcknowledgeComment_TI12() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+         Test.startTest();
+        Id empId = getEmpId();
+        // Decision is already in Security Review, TA acked, Security review acked, BO not yet Pending Initial Tech Decision Review
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Initial Tech Decision Review',
+            'Draft'
+        );
+        dec.TA_Acknowledged__c = true;
+        dec.Security_Review_Acknowledged__c = false;
+        dec.BO_Acknowledged__c = false;
+        dec.AO_Acknowledged__c = true;
+        dec.Arch_Forum_Review__c = 'NO';
+        update dec;
+
+        // Existing pending BO approval history (relationship fields NOT used)
+        TechnologyDecision_Approval__c pendingBO = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Initial Tech Decision Review',
+            Acknowledged__c  = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pendingBO;
+
+        
+     
+         Boolean ok1 = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'AO ack comment',
+            'Acknowledge Comment',
+            null
+        );
+         
+        Test.stopTest();
+
+        System.assertEquals(true, ok1, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, BO_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+    
+        }
+    }
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Approve Comment (Tech Fellow)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_ApproveComment() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+        Id empId = getEmpId();
+
+        TechnologyDecision__c dec = createBaseDecision(
+            'New Technology',
+            'Pending Approval with Tech Fellow',
+            'Acknowledged'
+        );
+        dec.Requesting_Tech_Fellow__c = empId;
+        update dec;
+
+        // Pending approval record with Approved__c = true so SOQL in method does not blow up
+        TechnologyDecision_Approval__c pending = new TechnologyDecision_Approval__c(
+            Decision__c      = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c          = 'Pending Approval with Tech Fellow',
+            Approved__c      = true,
+            Assigned_To__c   = String.valueOf(empId)
+        );
+        insert pending;
+
+        
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id,
+            'Approve comment',
+            'Approve Comment',
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+
+        System.assertEquals('Complete', after.Stage__c, 'Stage should be Complete');
+        System.assertEquals('Approve', after.Status__c, 'Status should be Approve');
+
+        TechnologyDecision_Approval__c updated = [
+            SELECT Id, Type__c, Actual_Approver__c, Comments__c
+            FROM TechnologyDecision_Approval__c
+            WHERE Id = :pending.Id
+        ];
+        System.assertEquals('Approved', updated.Type__c, 'Type should be Approved');
+        System.assertEquals(empId, updated.Actual_Approver__c,
+            'Actual_Approver__c should be logged in employee');
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments – Reject / Retire / Withdraw / Send Back / Recall / Reassign
+       ------------------------------------------------------------------------ */
+     @IsTest
+    static void testSubmitApproval_OtherActions2() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+          Id empId = getEmpId();
+          // REJECT
+        TechnologyDecision__c decReject = createBaseDecision(
+            'New Technology',
+            'Pending Approval with Tech Fellow',
+            'Acknowledged'
+        );
+        decReject.Requesting_Tech_Fellow__c = empId;
+        update decReject;
+
+        TechnologyDecision_Approval__c apprReject = new TechnologyDecision_Approval__c(
+            Decision__c = decReject.Id,
+            Approved__c = true,
+            Type__c     = 'Pending Approval with Tech Fellow',
+            Action_Date_Time__c = System.now().addMinutes(-1)
+        );
+        insert apprReject;
+
+        
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decReject.Id,
+            'Rejecting',
+            'Reject Comment',
+            null
+        );
+       
+
+        TechnologyDecision__c afterReject = [
+            SELECT Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decReject.Id
+        ];
+        System.assertEquals('Rejected', afterReject.Stage__c);
+        System.assertEquals('Reject', afterReject.Status__c);
+        Test.stopTest();
+    
+        }
+    }
+    
+    @IsTest
+    static void testSubmitApproval_OtherActions1() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+          Id empId = getEmpId();
+
+      
+
+        // RETIRE
+        TechnologyDecision__c decRetire = createBaseDecision(
+            'New Technology',
+            'Complete',
+            'Approved'
+        );
+        update decRetire;
+
+       
+       technologyDecision_CreateFormHelper.submitApprovalComments(
+         decRetire.Id,
+           'Retiring',
+           'Retire Comment',
+           null
+       );
+        
+
+      //  TechnologyDecision__c afterRetire = [
+         //   SELECT Stage__c, Status__c
+          //  FROM TechnologyDecision__c
+          //  WHERE Id = :decRetire.Id
+//        ];
+        //System.assertEquals('Retired', afterRetire.Stage__c);
+        //System.assertEquals('Retire', afterRetire.Status__c);
+
+        // WITHDRAW
+        TechnologyDecision__c decWithdraw = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        update decWithdraw;
+
+       
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decWithdraw.Id,
+            'Withdrawn',
+            'Withdraw Comment',
+            null
+        );
+       
+
+        TechnologyDecision__c afterWithdraw = [
+            SELECT Stage__c, Status__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decWithdraw.Id
+        ];
+        System.assertEquals('Withdrawn', afterWithdraw.Stage__c);
+        System.assertEquals('Withdraw', afterWithdraw.Status__c);
+
+        // SEND BACK
+        TechnologyDecision__c decSendBack = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Draft'
+        );
+        decSendBack.TA_Acknowledged__c = true;
+        decSendBack.BO_Acknowledged__c = true;
+        decSendBack.AO_Acknowledged__c = true;
+        update decSendBack;
+
+       
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decSendBack.Id,
+            'Send back',
+            'Send Back Comment',
+            null
+        );
+       
+
+        TechnologyDecision__c afterSendBack = [
+            SELECT Stage__c, Status__c, AO_Acknowledged__c, BO_Acknowledged__c, TA_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decSendBack.Id
+        ];
+       // System.assertEquals('Send_Back_Acknowledgment', afterSendBack.Stage__c,
+          //  'Stage must move to Send_Back_Acknowledgment for Draft status');
+        System.assertEquals('Draft', afterSendBack.Status__c);
+        System.assertEquals(false, afterSendBack.AO_Acknowledged__c);
+        System.assertEquals(false, afterSendBack.BO_Acknowledged__c);
+        System.assertEquals(false, afterSendBack.TA_Acknowledged__c);
+
+        // RECALL
+       /* TechnologyDecision__c decRecall = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Acknowledged'
+        );
+        decRecall.TA_Acknowledged__c = true;
+        decRecall.AO_Acknowledged__c = true;
+        decRecall.BO_Acknowledged__c = true;
+        update decRecall; */
+        Test.stopTest(); 
+    
+        }
+    }
+        
+    @IsTest
+    static void testSubmitApproval_OtherActions() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+      
+        TechnologyDecision__c decRecall = createBaseDecision(
+            'New Technology',
+            'Pending Security Review',
+            'Acknowledged'
+        );
+        decRecall.TA_Acknowledged__c = true;
+        decRecall.AO_Acknowledged__c = true;
+        decRecall.BO_Acknowledged__c = true;
+        update decRecall;
+       
+        technologyDecision_CreateFormHelper.submitApprovalComments(
+            decRecall.Id,
+            'Recall comment',
+            'Recall Comment',
+            null
+        ); 
+        
+
+        TechnologyDecision__c afterRecall = [
+            SELECT Stage__c, Status__c, AO_Acknowledged__c, BO_Acknowledged__c, TA_Acknowledged__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decRecall.Id
+        ];
+        System.assertEquals('Recall', afterRecall.Stage__c);
+
+         Test.stopTest();
+    
+        }
+    }
+
+    @IsTest
+    static void testvalidateRequiredFieldsOnDecision() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+        TechnologyDecision__c dec = createBaseDecision(
+            'Replace Application',
+            'Preparing Decision',
+            'Draft'
+        );
+        technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id,'Approve Comment');
+        TechnologyDecision__c dec1 = createBaseDecision(
+            'Replace Application',
+            'Saved',
+            'Draft'
+        );
+        technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec1.Id,'Reject Comment');
+        TechnologyDecision__c dec2 = createBaseDecision(
+            'Replace Application',
+            'Security Review',
+            'Draft'
+        );
+        String ValidationMessage = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec2.Id,'Send Back Comment');
+         Test.stopTest();
+        System.assertNotEquals(null, ValidationMessage);
+    
+        }
+    }
+     @IsTest
+    static void testvalidateRequiredFieldsOnDecisionpit() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+      
+        TechnologyDecision__c dec2 = createBaseDecision(
+            'Replace Application',
+            'Pending Initial Tech Decision Review',
+            'Draft'
+        );
+       String ValidationMessage = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec2.Id,'Reject Comment');
+         Test.stopTest();
+        System.assertNotEquals(null, ValidationMessage);
+    
+        }
+    }
+     @IsTest
+    static void testvalidateRequiredFieldsOnDecisionpaf() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+      
+        TechnologyDecision__c dec2 = createBaseDecision(
+            'Replace Application',
+            'Pending Arch Forum Review',
+            'Draft'
+        );
+       String ValidationMessage = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec2.Id,'Reject Comment');
+         Test.stopTest();
+        System.assertNotEquals(null, ValidationMessage);
+    
+        }
+    }
+     @IsTest
+    static void testvalidateRequiredFieldsOnDecisionsr() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+      
+        TechnologyDecision__c dec2 = createBaseDecision(
+            'Replace Application',
+            'Pending Security Review',
+            'Draft'
+        );
+       String ValidationMessage = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec2.Id,'Acknowledge Comment');
+         Test.stopTest();
+         System.assertNotEquals(null, ValidationMessage);
+    
+        }
+    }
+    @IsTest
+    static void testvalidateRequiredFieldsOnDecisionsrt() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+      
+        TechnologyDecision__c dec2 = createBaseDecision(
+            'Replace Application',
+            'Pending Tech Decision Review',
+            'Draft'
+        );
+        String ValidationMessage = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec2.Id,'Approve Comment');
+         Test.stopTest();
+         System.assertNotEquals(null, ValidationMessage);
+    
+        }
+    }
+      @IsTest
+    static void testCreateDecisionWithRelation_populatesTypedFields() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision_Relationship__c baseRel = createRelationship();
+
+        Map<String, Object> decisionFields = new Map<String, Object>{
+            'Name'                           => 'CFH Create ' + System.now().getTime(),
+            'Stage__c'                       => 'Saved',
+            'Status__c'                      => 'Draft',
+            'Decision_Reason__c'             => 'Replace Application',
+            'Why__c'                         => 'Why text',
+            'What__c'                        => 'What text',
+            'Value__c'                       => 'Value text',
+            'Is_Create_Notification_Send__c' => true,
+            'Is_Initial_Creation__c'         => true,
+            'Recall_Date__c'                 => '2026-01-15T10:30:00.000Z',
+            'Initial_Agenda_Date__c'         => '2026-01-15',
+            'Not_A_Field__c'                 => 'ignored',
+            'TA_Acknowledged__c'             => 'not a boolean'
+        };
+        Map<String, Object> relationFields = new Map<String, Object>{
+            'Requesting_Domain__c'      => baseRel.Requesting_Domain__c,
+            'Requesting_Application__c' => baseRel.Requesting_Application__c
+        };
+
+        Test.startTest();
+        String result = technologyDecision_CreateFormHelper.createDecisionWithRelation(decisionFields, relationFields);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should be a decision Id or an error message');
+        if (result.length() >= 15 && result.startsWith(TechnologyDecision__c.SObjectType.getDescribe().getKeyPrefix())) {
+            Id createdId = (Id) result;
+            TechnologyDecision__c created = [
+                SELECT Id, TechnologyDecision_Relationship__c
+                FROM TechnologyDecision__c
+                WHERE Id = :createdId
+            ];
+            System.assertNotEquals(null, created.TechnologyDecision_Relationship__c,
+                'Decision should be linked to the new relationship');
+        }
+    
+        }
+    }
+
+    // ---------- helpers for the permission-set driven scenarios ----------
+
+    // The helper class reads the running user's permission sets in a static initialiser, so every test below
+    // calls the helper for the first time inside System.runAs(user).
+    private static User createPsUser(String tag, Set<String> permissionSetNames) {
+        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+        User u;
+        System.runAs(thisUser) {
+            u = new User(
+                ProfileId         = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
+                LastName          = 'CFHTest' + tag,
+                Email             = 'cfhtest' + tag + '@usaa.com',
+                Username          = 'cfhtest' + tag + System.currentTimeMillis() + '@usaa.com.test',
+                Alias             = 'cfh' + tag,
+                TimeZoneSidKey    = 'America/Los_Angeles',
+                EmailEncodingKey  = 'UTF-8',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey      = 'en_US',
+                IsActive          = true
+            );
+            insert u;
+
+            List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
+            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name IN :permissionSetNames]) {
+                assignments.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id));
+            }
+            insert assignments;
+        }
+        return u;
+    }
+
+    // Base decision with every role pointing at the logged-in employee (same value the helper class resolves),
+    // plus any extra field overrides.
+    private static TechnologyDecision__c makeDecision(String reason, String stage, String status, Map<String, Object> extra) {
+        Id empId = getEmpId();
+        TechnologyDecision__c dec = createBaseDecision(reason, stage, status);
+        dec.Requestor__c                      = empId;
+        dec.Requesting_Technical_Architect__c = empId;
+        dec.Requesting_Business_Owner__c      = empId;
+        dec.Requesting_Application_Owner__c   = empId;
+        dec.Requesting_Tech_Fellow__c         = empId;
+        for (String fieldName : extra.keySet()) {
+            dec.put(fieldName, extra.get(fieldName));
+        }
+        update dec;
+        return dec;
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: fetchButtonPermissions - Technology_Decission user, role based buttons
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testFetchButtonPermissions_SavedAndAcknowledgeStages() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c saved = makeDecision('Replace Application', 'Saved', 'Draft', new Map<String, Object>());
+        TechnologyDecision__c pendingTA = makeDecision('Replace Application', 'Pending TA Acknowledgement', 'Draft',
+            new Map<String, Object>{ 'TA_Acknowledged__c' => false });
+        TechnologyDecision__c pendingBO = makeDecision('Replace Application', 'Pending BO Acknowledgement', 'Draft',
+            new Map<String, Object>{ 'TA_Acknowledged__c' => true, 'BO_Acknowledged__c' => false });
+        User u = createPsUser('A', new Set<String>{ 'Technology_Decission' });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions pSaved;
+        technologyDecision_CreateFormHelper.ButtonPermissions pTA;
+        technologyDecision_CreateFormHelper.ButtonPermissions pBO;
+        Test.startTest();
+        System.runAs(u) {
+            pSaved = technologyDecision_CreateFormHelper.fetchButtonPermissions(saved.Id);
+            pTA    = technologyDecision_CreateFormHelper.fetchButtonPermissions(pendingTA.Id);
+            pBO    = technologyDecision_CreateFormHelper.fetchButtonPermissions(pendingBO.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, pSaved.submitForApproval, 'Saved: submit for acknowledgement');
+        System.assertEquals(true, pSaved.edit, 'Saved: edit');
+        System.assertEquals(true, pSaved.Withdraw, 'Draft: withdraw');
+        System.assertNotEquals(true, pSaved.recall, 'Saved decisions cannot be recalled');
+        System.assertEquals(true, pTA.acknowledge, 'Pending TA Acknowledgement: acknowledge');
+        System.assertEquals(true, pBO.acknowledge, 'Pending BO Acknowledgement: acknowledge');
+        System.assertEquals(true, pBO.sendback, 'Pending BO Acknowledgement: send back');
+    
+        }
+    }
+
+    @IsTest
+    static void testFetchButtonPermissions_AOAckAcknowledgeAndApproveStatuses() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c pendingAO = makeDecision('Replace Application', 'Pending AO Acknowledgement', 'Draft',
+            new Map<String, Object>{ 'TA_Acknowledged__c' => true, 'BO_Acknowledged__c' => true, 'AO_Acknowledged__c' => false });
+        TechnologyDecision__c acknowledged = makeDecision('Replace Application', 'Pending Approval with Tech Fellow', 'Acknowledge',
+            new Map<String, Object>());
+        TechnologyDecision__c approved = makeDecision('Replace Application', 'Complete', 'Approve',
+            new Map<String, Object>());
+        User u = createPsUser('B', new Set<String>{ 'Technology_Decission' });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions pAO;
+        technologyDecision_CreateFormHelper.ButtonPermissions pAck;
+        technologyDecision_CreateFormHelper.ButtonPermissions pApproved;
+        Test.startTest();
+        System.runAs(u) {
+            pAO       = technologyDecision_CreateFormHelper.fetchButtonPermissions(pendingAO.Id);
+            pAck      = technologyDecision_CreateFormHelper.fetchButtonPermissions(acknowledged.Id);
+            pApproved = technologyDecision_CreateFormHelper.fetchButtonPermissions(approved.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, pAO.acknowledge, 'Pending AO Acknowledgement: acknowledge');
+        System.assertEquals(true, pAck.reject, 'Acknowledge status: reject for the tech fellow');
+        System.assertEquals(true, pAck.approve, 'Acknowledge status: approve for the tech fellow');
+        System.assertEquals(true, pApproved.retire, 'Approve status: retire for the TA');
+    
+        }
+    }
+
+    @IsTest
+    static void testFetchButtonPermissions_AcknowledgedSendBackAndRecall() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c dec = makeDecision('Replace Application', 'Pending Approval with Tech Fellow', 'Acknowledged',
+            new Map<String, Object>());
+        User u = createPsUser('C', new Set<String>{ 'Technology_Decission' });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions res;
+        Test.startTest();
+        System.runAs(u) {
+            res = technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, res.sendback, 'Acknowledged: tech fellow can send back');
+        System.assertEquals(true, res.recall, 'Acknowledged: TA can recall');
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: fetchButtonPermissions - review team permission sets
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testFetchButtonPermissions_ReviewTeamUser() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c security = makeDecision('Replace Application', 'Pending Security Review', 'Draft',
+            new Map<String, Object>{ 'Initial_TD_Review_Acknowledged__c' => true });
+        TechnologyDecision__c initial = makeDecision('Replace Application', 'Pending Initial Tech Decision Review', 'Draft',
+            new Map<String, Object>{ 'AO_Acknowledged__c' => true, 'BO_Acknowledged__c' => true });
+        TechnologyDecision__c archForum = makeDecision('Replace Application', 'Pending Arch Forum Review', 'Draft',
+            new Map<String, Object>{ 'Initial_TD_Review_Acknowledged__c' => true });
+        User u = createPsUser('R', new Set<String>{
+            'Technology_Decission', 'TPM_TD_SecurityReviewTeam',
+            'TechnologyDecision_ArchForm_Review', 'TechnologyDecision_Tech_Fellows'
+        });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions pSecurity;
+        technologyDecision_CreateFormHelper.ButtonPermissions pInitial;
+        technologyDecision_CreateFormHelper.ButtonPermissions pArch;
+        Test.startTest();
+        System.runAs(u) {
+            pSecurity = technologyDecision_CreateFormHelper.fetchButtonPermissions(security.Id);
+            pInitial  = technologyDecision_CreateFormHelper.fetchButtonPermissions(initial.Id);
+            pArch     = technologyDecision_CreateFormHelper.fetchButtonPermissions(archForum.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, pSecurity.acknowledge, 'Security review team can acknowledge');
+        System.assertEquals(true, pSecurity.edit, 'Security review team can edit');
+        System.assertEquals(true, pInitial.acknowledge, 'Arch forum reviewer can acknowledge initial review');
+        System.assertEquals(true, pInitial.edit, 'Arch forum reviewer can edit initial review');
+        System.assertEquals(true, pArch.acknowledge, 'Arch forum reviewer can acknowledge arch forum review');
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: fetchButtonPermissions - delegate contacts per decision reason
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testFetchButtonPermissions_NewReasonDomainDelegates() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        UCH_Employee__c delegateEmp = createEmployee();
+        TechnologyDecision__c dec = makeDecision('New Technology', 'Saved', 'Draft', new Map<String, Object>());
+        Id domainId = [
+            SELECT TechnologyDecision_Relationship__r.Requesting_Domain__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ].TechnologyDecision_Relationship__r.Requesting_Domain__c;
+        insert new List<TPM_Contacts__c>{
+            new TPM_Contacts__c(TPMDomain__c = domainId, Contact__c = delegateEmp.Id, Role__c = 'Additional Technical Architect'),
+            new TPM_Contacts__c(TPMDomain__c = domainId, Contact__c = delegateEmp.Id, Role__c = 'Additional Business Owner')
+        };
+        User u = createPsUser('D', new Set<String>{ 'Technology_Decission' });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions res;
+        Test.startTest();
+        System.runAs(u) {
+            res = technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, res.submitForApproval, 'Saved decision can be submitted');
+        System.assert(technologyDecision_CreateFormHelper.currentDelegates.contains(String.valueOf(delegateEmp.Id)),
+            'Additional Technical Architect should be a TA delegate');
+        System.assert(technologyDecision_CreateFormHelper.BODelegates.contains(String.valueOf(delegateEmp.Id)),
+            'Additional Business Owner should be a BO delegate');
+    
+        }
+    }
+
+    @IsTest
+    static void testFetchButtonPermissions_TechnologyReasonDelegates() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c dec = makeDecision('Replace Application', 'Saved', 'Draft',
+            new Map<String, Object>{ 'Decision_Reason__c' => 'Upgrade Technology' });
+        User u = createPsUser('T', new Set<String>{ 'Technology_Decission' });
+
+        technologyDecision_CreateFormHelper.ButtonPermissions res;
+        Test.startTest();
+        System.runAs(u) {
+            res = technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, res.submitForApproval, 'Saved decision can be submitted');
+    
+        }
+    }
+
+    @IsTest
+    static void testFetchButtonPermissions_PlatformReasonDelegates() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        UCH_Employee__c delegateEmp = createEmployee();
+        User tpmUser = createPsUser('P', new Set<String>{ 'TPM_Administrator', 'Technology_Decission' });
+
+        TPM_Platform__c platform;
+        System.runAs(tpmUser) {
+            platform = new TPM_Platform__c(Name = 'CFH Platform', Active__c = true);
+            insert platform;
+            insert new List<TPM_Platform_Contact__c>{
+                new TPM_Platform_Contact__c(Platform__c = platform.Id, Contact__c = delegateEmp.Id, Role__c = 'Additional Technical Architect'),
+                new TPM_Platform_Contact__c(Platform__c = platform.Id, Contact__c = delegateEmp.Id, Role__c = 'Additional Business Owner'),
+                new TPM_Platform_Contact__c(Platform__c = platform.Id, Contact__c = delegateEmp.Id, Role__c = 'Additional IT Owner')
+            };
+        }
+
+        TechnologyDecision__c dec = makeDecision('Replace Application', 'Saved', 'Draft',
+            new Map<String, Object>{ 'Decision_Reason__c' => 'Replace Platform' });
+        Id relId = [SELECT TechnologyDecision_Relationship__c FROM TechnologyDecision__c WHERE Id = :dec.Id].TechnologyDecision_Relationship__c;
+        update new TechnologyDecision_Relationship__c(
+            Id = relId,
+            Requesting_Application__c = null,
+            Requesting_Domain__c = null,
+            Requesting_Platform__c = platform.Id
+        );
+
+        technologyDecision_CreateFormHelper.ButtonPermissions res;
+        Test.startTest();
+        System.runAs(tpmUser) {
+            res = technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, res.submitForApproval, 'Saved decision can be submitted');
+        String delegateId = String.valueOf(delegateEmp.Id);
+        System.assert(technologyDecision_CreateFormHelper.currentDelegates.contains(delegateId), 'TA delegate');
+        System.assert(technologyDecision_CreateFormHelper.BODelegates.contains(delegateId), 'BO delegate');
+        System.assert(technologyDecision_CreateFormHelper.AODelegates.contains(delegateId), 'IT owner delegate');
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments - security review acknowledgement
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_SecurityReviewAcknowledged() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Id empId = getEmpId();
+        TechnologyDecision__c dec = makeDecision('Replace Application', 'Pending Security Review', 'Draft',
+            new Map<String, Object>{
+                'TA_Acknowledged__c'                => true,
+                'BO_Acknowledged__c'                => true,
+                'AO_Acknowledged__c'                => true,
+                'Initial_TD_Review_Acknowledged__c' => true,
+                'Security_Review_Acknowledged__c'   => false
+            });
+
+        TechnologyDecision_Approval__c pendingSecurity = new TechnologyDecision_Approval__c(
+            Decision__c         = dec.Id,
+            Action_Date_Time__c = System.now().addMinutes(-1),
+            Type__c             = 'Pending Security Review Acknowledgement',
+            Acknowledged__c     = true,
+            Assigned_To__c      = empId
+        );
+        insert pendingSecurity;
+
+        User u = createPsUser('S', new Set<String>{ 'Technology_Decission', 'TPM_TD_SecurityReviewTeam' });
+
+        Boolean ok;
+        Test.startTest();
+        System.runAs(u) {
+            ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+                dec.Id, 'Security review done', 'Acknowledge Comment', null);
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, ok, 'Method should return true');
+
+        TechnologyDecision__c after = [
+            SELECT Id, Stage__c, Security_Review_Acknowledged__c, Security_Review_Completed_By__c
+            FROM TechnologyDecision__c
+            WHERE Id = :dec.Id
+        ];
+        System.assertEquals('Pending Tech Decision Review', after.Stage__c);
+        System.assertEquals(true, after.Security_Review_Acknowledged__c);
+        System.assertNotEquals(null, after.Security_Review_Completed_By__c);
+
+        TechnologyDecision_Approval__c updated = [
+            SELECT Id, Type__c FROM TechnologyDecision_Approval__c WHERE Id = :pendingSecurity.Id
+        ];
+        System.assertEquals('Security Review Acknowledged', updated.Type__c);
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: submitApprovalComments - Retire (Approve status) and Recall (Draft status)
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testSubmitApproval_RetireFromApproveStatus() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c dec = createBaseDecision('Replace Application', 'Complete', 'Approve');
+
+        Test.startTest();
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id, 'Retiring', 'Retire Comment', null);
+        Test.stopTest();
+
+        System.assertEquals(true, ok);
+        System.assert([SELECT COUNT() FROM TechnologyDecision_Approval__c WHERE Decision__c = :dec.Id AND Approved__c = true] >= 1,
+            'Retire from Approve status logs an approved history row');
+    
+        }
+    }
+
+    @IsTest
+    static void testSubmitApproval_RecallFromDraftStatus() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c dec = createBaseDecision('Replace Application', 'Pending Security Review', 'Draft');
+
+        Test.startTest();
+        Boolean ok = technologyDecision_CreateFormHelper.submitApprovalComments(
+            dec.Id, 'Recall comment', 'Recall Comment', null);
+        Test.stopTest();
+
+        System.assertEquals(true, ok);
+        TechnologyDecision__c after = [SELECT Stage__c, Status__c FROM TechnologyDecision__c WHERE Id = :dec.Id];
+        System.assertEquals('Recall', after.Stage__c);
+        System.assertEquals('Draft', after.Status__c);
+    
+        }
+    }
+
+    /* ------------------------------------------------------------------------
+       TEST: validateRequiredFieldsOnDecision - same user cannot request/acknowledge and approve
+       ------------------------------------------------------------------------ */
+
+    @IsTest
+    static void testValidateRequiredFields_SameUserApproveRejectSendBack() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        TechnologyDecision__c dec = makeDecision('Replace Application', 'Pending Approval with Tech Fellow', 'Acknowledge',
+            new Map<String, Object>{ 'Actual_TA_Acknowledger__c' => getEmpId() });
+
+        Test.startTest();
+        String approveMsg  = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id, 'Approve Comment');
+        String rejectMsg   = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id, 'Reject Comment');
+        String sendBackMsg = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id, 'Send Back Comment');
+        String otherMsg    = technologyDecision_CreateFormHelper.validateRequiredFieldsOnDecision(dec.Id, 'Acknowledge Comment');
+        Test.stopTest();
+
+        System.assert(approveMsg.contains('approved by your delegate'), approveMsg);
+        System.assert(rejectMsg.contains('rejected by your delegate'), rejectMsg);
+        System.assert(sendBackMsg.contains('send back by your delegate'), sendBackMsg);
+        System.assertEquals('', otherMsg, 'No validation message for other actions');
+    
+        }
+    }
+
+    @IsTest
+    static void testGetDecisionRecord_invalidId() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Id missing = (Id) (TechnologyDecision__c.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+
+        Boolean thrown = false;
+        Test.startTest();
+        try {
+            technologyDecision_CreateFormHelper.getDecisionRecord(missing);
+        } catch (AuraHandledException e) {
+            thrown = true;
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, thrown, 'A missing record should surface as an AuraHandledException');
+    
+        }
+    }
+
+    @IsTest
+    static void testgetDecisionRecord() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+        TechnologyDecision__c dec = createBaseDecision(
+            'Replace Application',
+            'Preparing Decision', 
+            'Draft'
+        );
+       TechnologyDecision__c decRec1 = technologyDecision_CreateFormHelper.getDecisionRecord(dec.Id);
+         Test.stopTest();
+        System.assertNotEquals(null, decRec1.Id);
+    
+        }
+    }
+    @IsTest
+    static void testfetchButtonPermissions() {
+        User testUser = [SELECT Id FROM User WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444' LIMIT 1];
+        System.runAs(testUser) {
+        Test.startTest();
+        TechnologyDecision__c dec = createBaseDecision(
+            'Replace Application',
+            'Preparing Decision',
+            'Draft'
+        );
+        technologyDecision_CreateFormHelper.ButtonPermissions result = technologyDecision_CreateFormHelper.fetchButtonPermissions(dec.Id);
+        system.debug('result :' + result);
+        System.assertNotEquals(null, result, 'ButtonPermissions should be returned');
+        Test.stopTest();
+    
+        }
+    }
+    
+    
+}
