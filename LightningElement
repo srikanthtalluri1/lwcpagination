@@ -262,4 +262,31 @@ private class TechnologyDecision_DataTableHandler_Test {
     
         }
     }
+
+    // Added coverage for both user-scoped branches in getTechnologyDecision().
+    @IsTest
+    static void t_getTechnologyDecision_my_and_myall() {
+        User testUser = [
+            SELECT Id FROM User
+            WHERE LastName = 'TestUser' AND EmployeeNumber = 'P4444'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            seed();
+
+            Test.startTest();
+            Map<String, Object> myResult =
+                TechnologyDecision_DataTableHandler.getTechnologyDecision(
+                    0, 200, null, 'mydecision', null);
+            Map<String, Object> myAllResult =
+                TechnologyDecision_DataTableHandler.getTechnologyDecision(
+                    0, 200, null, 'myalldecision', null);
+            Test.stopTest();
+
+            System.assert(
+                myResult != null && myAllResult != null,
+                'Both user-scoped result maps should be returned'
+            );
+        }
+    }
 }
