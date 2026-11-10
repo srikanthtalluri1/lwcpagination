@@ -1,1 +1,5 @@
-previousCyclePortfolios = [];
+const previousRows = this.normalizeAssessmentRows(
+    result.records || []
+);
+this.previousCycleSummary = this.summarizeRows(previousRows);
+this.previousCyclePortfolios = this.summarizePortfolios(previousRows);
