@@ -1,5 +1,20 @@
-const sign = difference > 0
-    ? '▲'
-    : difference < 0
-        ? '▼'
-        : '';
+
+return {
+    ...item,
+    deltaText: `${sign}${formattedDifference}`,
+    deltaClass: isUnfavorable
+        ? 'slds-text-color_error'
+        : 'slds-text-color_weak'
+};
+
+
+
+<div class="kpi-detail">
+    <template lwc:if={item.deltaText}>
+        <span class={item.deltaClass}>{item.deltaText}</span>
+        <span> {item.detail}</span>
+    </template>
+    <template lwc:else>
+        {item.detail}
+    </template>
+</div>
