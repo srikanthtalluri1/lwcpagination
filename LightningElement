@@ -1,20 +1,11 @@
-
-return {
-    ...item,
-    deltaText: `${sign}${formattedDifference}`,
-    deltaClass: isUnfavorable
-        ? 'slds-text-color_error'
-        : 'slds-text-color_weak'
-};
-
-
-
-<div class="kpi-detail">
-    <template lwc:if={item.deltaText}>
-        <span class={item.deltaClass}>{item.deltaText}</span>
-        <span> {item.detail}</span>
-    </template>
-    <template lwc:else>
-        {item.detail}
-    </template>
-</div>
+const isUnfavorable =
+    (
+        (item.label === 'Red - Unhealthy' ||
+         item.label === 'Yellow - At Risk') &&
+        difference > 0
+    ) ||
+    (
+        (item.label === 'Green - Healthy' ||
+         item.label === 'Enterprise Overall') &&
+        difference < 0
+    );
