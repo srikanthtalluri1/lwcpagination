@@ -1,5 +1,61 @@
-const previousRows = this.normalizeAssessmentRows(
-    result.records || []
-);
-this.previousCycleSummary = this.summarizeRows(previousRows);
-this.previousCyclePortfolios = this.summarizePortfolios(previousRows);
+
+get portfolioHeatmapRows() {
+    const previousByName = new Map(
+        this.previousCyclePortfolios.map((portfolio) => [
+            portfolio.name,
+            portfolio
+        ])
+    );
+
+    return [...this.visiblePortfolios]
+        .sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, {
+                sensitivity: 'base'
+            })
+        )
+        .map((portfolio) => {
+            const previousPortfolio = previousByName.get(portfolio.name);
+
+            return {
+                ...portfolio,
+                redClass: portfolio.red ? 'cnt risk-hot' : 'cnt',
+                redDisplay:
+                    portfolio.red + portfolio.yellow + portfolio.green > 0
+                        ? portfolio.red
+                        : '',
+
+                scoreCells: SCORE_DIMENSIONS.map((dimension) => {
+                    const currentScore = portfolio[dimension.key];
+                    const previousScore = previousPortfolio?.[dimension.key];
+
+                    const hasCurrent = typeof currentScore === 'number';
+                    const hasPrevious = typeof previousScore === 'number';
+
+                    const scoreText = hasCurrent
+                        ? this.formatScore(currentScore)
+                        : '';
+
+                    const difference = hasCurrent && hasPrevious
+                        ? (
+                            Math.round(currentScore * 100) -
+                            Math.round(previousScore * 100)
+                        ) / 100
+                        : null;
+
+                    return {
+                        key: dimension.key,
+                        score: scoreText,
+                        delta: difference === null
+                            ? ''
+                            : this.shortDelta(difference),
+
+                        tooltip: hasCurrent
+                            ? `${portfolio.name} — ${dimension.label}\n${scoreText}${hasPrevious ? ` (was ${this.formatScore(previousScore)})` : ''}`
+                            : '',
+
+                        style: `background:${this.heatColor(currentScore)}`
+                    };
+                })
+            };
+        });
+}
