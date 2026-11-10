@@ -1,11 +1,1 @@
-const isUnfavorable =
-    (
-        (item.label === 'Red - Unhealthy' ||
-         item.label === 'Yellow - At Risk') &&
-        difference > 0
-    ) ||
-    (
-        (item.label === 'Green - Healthy' ||
-         item.label === 'Enterprise Overall') &&
-        difference < 0
-    );
+previousCyclePortfolios = [];
