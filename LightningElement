@@ -1,1 +1,44 @@
-this.loadPreviousCycleSummary();
+
+const previous = this.previousCycleSummary;
+
+// Preserve existing cards if no previous cycle exists.
+if (!previous || !this.previousCycleLabel) {
+    return items;
+}
+
+const metricFields = {
+    'Assessed Applications': 'count',
+    'Red - Unhealthy': 'red',
+    'Yellow - At Risk': 'yellow',
+    'Green - Healthy': 'green',
+    'Enterprise Overall': 'overall'
+};
+
+return items.map((item) => {
+    const field = metricFields[item.label];
+
+    if (
+        !field ||
+        typeof d[field] !== 'number' ||
+        typeof previous[field] !== 'number'
+    ) {
+        return item;
+    }
+
+    const difference = d[field] - previous[field];
+
+    const formattedDifference = field === 'overall'
+        ? Math.abs(difference).toFixed(2)
+        : NUMBER_FORMAT.format(Math.abs(difference));
+
+    const sign = difference > 0
+        ? '+'
+        : difference < 0
+            ? '-'
+            : '';
+
+    return {
+        ...item,
+        detail: `${item.detail} | ${sign}${formattedDifference} vs ${this.previousCycleLabel}`
+    };
+});
