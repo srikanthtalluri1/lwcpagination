@@ -1,4 +1,42 @@
-previousCycleSummary = null;
-previousCycleLabel = '';
-previousCycleRequestSequence = 0;
 
+loadPreviousCycleSummary() {
+    const requestSequence = ++this.previousCycleRequestSequence;
+    const selectedPeriod = this.selectedCycle;
+
+    const cycleIndex = this.availableCycles.findIndex(
+        (cycle) => cycle.period === selectedPeriod
+    );
+
+    const previousCycle = cycleIndex >= 0
+        ? this.availableCycles[cycleIndex + 1]
+        : null;
+
+    this.previousCycleSummary = null;
+    this.previousCycleLabel = previousCycle
+        ? (previousCycle.name || previousCycle.period)
+        : '';
+
+    if (!previousCycle) return;
+
+    getAssessmentData({
+        filtersJson: JSON.stringify({
+            assessmentPeriod: previousCycle.period,
+            assessmentPeriodId: previousCycle.periodId || ''
+        })
+    })
+        .then((result) => {
+            if (
+                requestSequence !== this.previousCycleRequestSequence ||
+                this.selectedCycle !== selectedPeriod
+            ) return;
+
+            this.previousCycleSummary = this.summarizeRows(
+                this.normalizeAssessmentRows(result.records || [])
+            );
+        })
+        .catch(() => {
+            if (requestSequence === this.previousCycleRequestSequence) {
+                this.previousCycleSummary = null;
+            }
+        });
+}
