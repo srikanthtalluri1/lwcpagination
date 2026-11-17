@@ -1,5 +1,14 @@
-approvedWaiverCount = null;
-
-get isWaivers() {
-    return this.currentPage === 'waivers';
-}
+cards.push({
+    title: 'Waivers',
+    kicker: 'Practice',
+    page: 'waivers',
+    value: this.approvedWaiverCount === null
+        ? ''
+        : NUMBER_FORMAT.format(this.approvedWaiverCount),
+    hasValue: this.approvedWaiverCount !== null,
+    detail: 'approved waivers',
+    description: this.approvedWaiverCount === null
+        ? 'Browse approved waivers and standards.'
+        : '',
+    footnote: 'Standards · renewals · portfolios'
+});
