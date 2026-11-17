@@ -1,4 +1,5 @@
-{
-    value: 'waivers',
-    label: 'Waivers'
+approvedWaiverCount = null;
+
+get isWaivers() {
+    return this.currentPage === 'waivers';
 }
