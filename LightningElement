@@ -1,6 +1,125 @@
-shortDelta(delta) {
-    if (Math.abs(delta) < 0.005) {
-        return '';
+
+public with sharing class TpmArchitectureHubWaiverService {
+    private static final String OBJECT_API_NAME = 'AWP_Architecture_Waiver_Form__c';
+    private static final Integer ROW_LIMIT = 5000;
+
+    @TestVisible
+    private static final Map<String, List<String>> FIELD_CANDIDATES = new Map<String, List<String>> {
+        'name' => new List<String>{ 'Name' },
+        'status' => new List<String>{ 'Status__c', 'Waiver_Status__c' },
+        'approvedDate' => new List<String>{ 'Approved_Date__c', 'Approval_Date__c' },
+        'portfolio' => new List<String>{ 'Requesting_Portfolio__c', 'Affected_Portfolio__c' },
+        'domain' => new List<String>{ 'Requesting_Domain__c', 'Domain__c', 'Affected_Domain__c' },
+        'architect' => new List<String>{ 'Requesting_Architect__c', 'Architect__c', 'Requested_By__c' },
+        'standard' => new List<String>{ 'Standard_Waived__c', 'Waived_Standard__c', 'Architecture_Standard__c', 'Standard_Name__c', 'Standard__c', 'Standard_Id__c' },
+        'standardPortfolio' => new List<String>{ 'Standard_Portfolio__c', 'Standard_Owning_Portfolio__c' },
+        'standardDomain' => new List<String>{ 'Standard_Domain__c', 'Standard_Owning_Domain__c' },
+        'renewals' => new List<String>{ 'Renewal_Count__c', 'Number_of_Renewals__c', 'Renewals__c', 'No_of_Renewals__c' },
+        'renewalState' => new List<String>{ 'Renewal_Type__c', 'Renewal_Status__c', 'Renewal_State__c' },
+        'application' => new List<String>{ 'Application_Name__c', 'App_Name__c', 'Application__c' }
+    };
+
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getApprovedWaivers() {
+        Schema.SObjectType waiverType = Schema.getGlobalDescribe().get(OBJECT_API_NAME);
+        if (waiverType == null || !waiverType.getDescribe().isAccessible()) {
+            throw new AuraHandledException('The architecture waiver object is unavailable or not readable.');
+        }
+        Map<String, Schema.SObjectField> describeFields = waiverType.getDescribe().fields.getMap();
+        Map<String, List<String>> matchedFields = new Map<String, List<String>>();
+        Set<String> queriedFields = new Set<String>{ 'Id' };
+        for (String outputKey : FIELD_CANDIDATES.keySet()) {
+            List<String> matches = new List<String>();
+            for (String apiName : FIELD_CANDIDATES.get(outputKey)) {
+                if (describeFields.containsKey(apiName) && describeFields.get(apiName).getDescribe().isAccessible()) {
+                    matches.add(apiName);
+                    queriedFields.add(apiName);
+                }
+            }
+            matchedFields.put(outputKey, matches);
+        }
+        if (matchedFields.get('status').isEmpty() && matchedFields.get('approvedDate').isEmpty()) {
+            throw new AuraHandledException('Waiver Status or Approved Date read access is needed to identify approved waivers.');
+        }
+        List<String> selectedFields = new List<String>(queriedFields);
+        selectedFields.sort();
+        String soql = 'SELECT ' + String.join(selectedFields, ', ') +
+            ' FROM ' + OBJECT_API_NAME + ' ORDER BY LastModifiedDate DESC LIMIT :rowLimit';
+        Map<String, Object> binds = new Map<String, Object>{ 'rowLimit' => ROW_LIMIT };
+        List<SObject> records = Database.queryWithBinds(soql, binds, AccessLevel.USER_MODE);
+        List<Map<String, Object>> approvedRows = new List<Map<String, Object>>();
+        for (SObject record : records) {
+            Map<String, Object> values = new Map<String, Object>{ 'id' => record.get('Id') };
+            for (String outputKey : matchedFields.keySet()) {
+                values.put(outputKey, firstPopulated(record, matchedFields.get(outputKey)));
+            }
+            Map<String, Object> waiver = normalizeRecord(values);
+            if (isApproved((String) waiver.get('status'), waiver.get('approvedDate'))) {
+                approvedRows.add(waiver);
+            }
+        }
+        return new Map<String, Object>{
+            'rows' => approvedRows,
+            'truncated' => records.size() == ROW_LIMIT,
+            'availableFields' => availableOutputFields(matchedFields)
+        };
     }
-    return `${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(2)}`;
+
+    @TestVisible
+    private static List<String> availableOutputFields(Map<String, List<String>> matches) {
+        List<String> output = new List<String>();
+        for (String key : matches.keySet()) {
+            if (!matches.get(key).isEmpty()) output.add(key);
+        }
+        output.sort();
+        return output;
+    }
+
+    @TestVisible
+    private static Object firstPopulated(SObject record, List<String> fields) {
+        for (String apiName : fields) {
+            Object value = record.get(apiName);
+            if (value != null && String.isNotBlank(String.valueOf(value))) return value;
+        }
+        return null;
+    }
+
+    @TestVisible
+    private static Boolean isApproved(String status, Object approvedDate) {
+        if (String.isBlank(status)) return approvedDate != null;
+        String label = status.trim().toLowerCase();
+        return label == 'approved' || label.startsWith('approved -') ||
+            label.startsWith('approved ') || label.startsWith('approved(');
+    }
+
+    @TestVisible
+    private static Map<String, Object> normalizeRecord(Map<String, Object> values) {
+        Object renewalValue = values.get('renewals');
+        Decimal renewalCount;
+        if (renewalValue != null && String.isNotBlank(String.valueOf(renewalValue))) {
+            String numericValue = String.valueOf(renewalValue).trim();
+            if (Pattern.matches('^[0-9]+([.][0-9]+)?$', numericValue)) {
+                renewalCount = Decimal.valueOf(numericValue);
+            }
+        }
+        return new Map<String, Object>{
+            'id' => values.get('id'),
+            'name' => asText(values.get('name')),
+            'status' => asText(values.get('status')),
+            'approvedDate' => values.get('approvedDate'),
+            'portfolio' => asText(values.get('portfolio')),
+            'domain' => asText(values.get('domain')),
+            'architect' => asText(values.get('architect')),
+            'standard' => asText(values.get('standard')),
+            'standardPortfolio' => asText(values.get('standardPortfolio')),
+            'standardDomain' => asText(values.get('standardDomain')),
+            'renewals' => renewalCount,
+            'renewalState' => asText(values.get('renewalState')),
+            'application' => asText(values.get('application'))
+        };
+    }
+
+    private static String asText(Object value) {
+        return value == null ? '' : String.valueOf(value).trim();
+    }
 }
