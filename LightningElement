@@ -1,125 +1,104 @@
+<template>
+    <section class="waivers-page">
+        <header class="pagehead">
+            <div class="eyebrow">Practice</div>
+            <h1>{title}</h1>
+            <p class="lede">Approved architecture waiver register from Salesforce. Portfolio and application health are matched to the currently selected assessment cycle when possible.</p>
+        </header>
 
-public with sharing class TpmArchitectureHubWaiverService {
-    private static final String OBJECT_API_NAME = 'AWP_Architecture_Waiver_Form__c';
-    private static final Integer ROW_LIMIT = 5000;
+        <template lwc:if={loading}>
+            <div class="slds-is-relative load-area"><lightning-spinner alternative-text="Loading architecture waivers" size="medium"></lightning-spinner></div>
+        </template>
+        <template lwc:if={loadError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error error" role="alert">
+                <span>{loadError}</span><lightning-button variant="neutral" label="Retry" onclick={handleRefresh}></lightning-button>
+            </div>
+        </template>
+        <template lwc:if={loaded}>
+            <template lwc:if={truncated}>
+                <div class="notice" role="status">Only the first 5,000 recent waiver records were checked. Metrics may be incomplete; add server pagination if needed.</div>
+            </template>
+            <template lwc:if={hasData}>
+                <section class="kpi-grid" aria-label="Waiver register metrics">
+                    <article class="kpi navy"><div class="eyebrow">Approved Waivers</div><strong>{countDisplay}</strong><small>active exceptions on record</small></article>
+                    <article class="kpi navy"><div class="eyebrow">Standards Waived</div><strong>{standardCount}</strong><small>distinct standards</small></article>
+                    <article class="kpi gold"><div class="eyebrow">Renewed At Least Once</div><strong>{renewedDisplay}</strong><small>{percentRenewed}</small></article>
+                    <article class="kpi red"><div class="eyebrow">Renewed 2+ Times</div><strong>{agingDisplay}</strong><small>entrenched exceptions</small></article>
+                    <article class="kpi red"><div class="eyebrow">On Unhealthy Apps</div><strong>{unhealthyDisplay}</strong><small>uniquely matched to Red assessments</small></article>
+                </section>
 
-    @TestVisible
-    private static final Map<String, List<String>> FIELD_CANDIDATES = new Map<String, List<String>> {
-        'name' => new List<String>{ 'Name' },
-        'status' => new List<String>{ 'Status__c', 'Waiver_Status__c' },
-        'approvedDate' => new List<String>{ 'Approved_Date__c', 'Approval_Date__c' },
-        'portfolio' => new List<String>{ 'Requesting_Portfolio__c', 'Affected_Portfolio__c' },
-        'domain' => new List<String>{ 'Requesting_Domain__c', 'Domain__c', 'Affected_Domain__c' },
-        'architect' => new List<String>{ 'Requesting_Architect__c', 'Architect__c', 'Requested_By__c' },
-        'standard' => new List<String>{ 'Standard_Waived__c', 'Waived_Standard__c', 'Architecture_Standard__c', 'Standard_Name__c', 'Standard__c', 'Standard_Id__c' },
-        'standardPortfolio' => new List<String>{ 'Standard_Portfolio__c', 'Standard_Owning_Portfolio__c' },
-        'standardDomain' => new List<String>{ 'Standard_Domain__c', 'Standard_Owning_Domain__c' },
-        'renewals' => new List<String>{ 'Renewal_Count__c', 'Number_of_Renewals__c', 'Renewals__c', 'No_of_Renewals__c' },
-        'renewalState' => new List<String>{ 'Renewal_Type__c', 'Renewal_Status__c', 'Renewal_State__c' },
-        'application' => new List<String>{ 'Application_Name__c', 'App_Name__c', 'Application__c' }
-    };
+                <section class="card" aria-label="Most-waived standards">
+                    <div class="card-heading"><h2><span class="index">01</span> Most-Waived Standards</h2><span class="note">Click a standard to filter the register</span></div>
+                    <template lwc:if={hasStandardData}>
+                        <template for:each={standardsSummary} for:item="standard">
+                            <button key={standard.key} class="standard-row" data-standard={standard.name} onclick={handleStandardOpen} title={standard.name}>
+                                <span class="standard-name">{standard.name}</span>
+                                <span class="bar-track"><span class="bar-fill" style={standard.style}></span></span>
+                                <strong>{standard.count}</strong><small>{standard.percent}%</small>
+                            </button>
+                        </template>
+                        <p class="notice">{topThreeSummary}</p>
+                    </template>
+                    <template lwc:else><p class="notice">No readable standard field is mapped. Confirm the Salesforce field API name before showing standard distribution.</p></template>
+                </section>
 
-    @AuraEnabled(cacheable=true)
-    public static Map<String, Object> getApprovedWaivers() {
-        Schema.SObjectType waiverType = Schema.getGlobalDescribe().get(OBJECT_API_NAME);
-        if (waiverType == null || !waiverType.getDescribe().isAccessible()) {
-            throw new AuraHandledException('The architecture waiver object is unavailable or not readable.');
-        }
-        Map<String, Schema.SObjectField> describeFields = waiverType.getDescribe().fields.getMap();
-        Map<String, List<String>> matchedFields = new Map<String, List<String>>();
-        Set<String> queriedFields = new Set<String>{ 'Id' };
-        for (String outputKey : FIELD_CANDIDATES.keySet()) {
-            List<String> matches = new List<String>();
-            for (String apiName : FIELD_CANDIDATES.get(outputKey)) {
-                if (describeFields.containsKey(apiName) && describeFields.get(apiName).getDescribe().isAccessible()) {
-                    matches.add(apiName);
-                    queriedFields.add(apiName);
-                }
-            }
-            matchedFields.put(outputKey, matches);
-        }
-        if (matchedFields.get('status').isEmpty() && matchedFields.get('approvedDate').isEmpty()) {
-            throw new AuraHandledException('Waiver Status or Approved Date read access is needed to identify approved waivers.');
-        }
-        List<String> selectedFields = new List<String>(queriedFields);
-        selectedFields.sort();
-        String soql = 'SELECT ' + String.join(selectedFields, ', ') +
-            ' FROM ' + OBJECT_API_NAME + ' ORDER BY LastModifiedDate DESC LIMIT :rowLimit';
-        Map<String, Object> binds = new Map<String, Object>{ 'rowLimit' => ROW_LIMIT };
-        List<SObject> records = Database.queryWithBinds(soql, binds, AccessLevel.USER_MODE);
-        List<Map<String, Object>> approvedRows = new List<Map<String, Object>>();
-        for (SObject record : records) {
-            Map<String, Object> values = new Map<String, Object>{ 'id' => record.get('Id') };
-            for (String outputKey : matchedFields.keySet()) {
-                values.put(outputKey, firstPopulated(record, matchedFields.get(outputKey)));
-            }
-            Map<String, Object> waiver = normalizeRecord(values);
-            if (isApproved((String) waiver.get('status'), waiver.get('approvedDate'))) {
-                approvedRows.add(waiver);
-            }
-        }
-        return new Map<String, Object>{
-            'rows' => approvedRows,
-            'truncated' => records.size() == ROW_LIMIT,
-            'availableFields' => availableOutputFields(matchedFields)
-        };
-    }
+                <template lwc:if={isPortfolioView}>
+                    <p class="notice">Showing approved waivers for {portfolioName}. Counts are based on the requesting portfolio recorded on each waiver.</p>
+                </template>
+                <template lwc:else>
+                    <section class="card" aria-label="Waivers by requesting portfolio">
+                        <div class="card-heading"><h2><span class="index">02</span> Waivers by Requesting Portfolio</h2><span class="note">Density uses the selected-cycle assessed application count</span></div>
+                        <div class="table-scroll"><table>
+                            <thead><tr><th>Portfolio</th><th>Waivers</th><th>Apps</th><th>Per 100 apps</th><th>Standards</th><th>2+ Renewals</th><th>Active Rnwl</th><th>Forecast Rnwl</th></tr></thead>
+                            <tbody><template for:each={portfolioSummary} for:item="p">
+                                <tr key={p.name}>
+                                    <td><template lwc:if={p.known}><button class="text-link" data-portfolio={p.name} onclick={handlePortfolioOpen}>{p.name}</button></template><template lwc:else>{p.name}</template></td>
+                                    <td>{p.count}</td><td>{p.appCount}</td><td>{p.perHundred}</td><td>{p.standards}</td><td>{p.aging}</td><td>{p.active}</td><td>{p.forecast}</td>
+                                </tr>
+                            </template></tbody>
+                        </table></div>
+                    </section>
+                </template>
 
-    @TestVisible
-    private static List<String> availableOutputFields(Map<String, List<String>> matches) {
-        List<String> output = new List<String>();
-        for (String key : matches.keySet()) {
-            if (!matches.get(key).isEmpty()) output.add(key);
-        }
-        output.sort();
-        return output;
-    }
-
-    @TestVisible
-    private static Object firstPopulated(SObject record, List<String> fields) {
-        for (String apiName : fields) {
-            Object value = record.get(apiName);
-            if (value != null && String.isNotBlank(String.valueOf(value))) return value;
-        }
-        return null;
-    }
-
-    @TestVisible
-    private static Boolean isApproved(String status, Object approvedDate) {
-        if (String.isBlank(status)) return approvedDate != null;
-        String label = status.trim().toLowerCase();
-        return label == 'approved' || label.startsWith('approved -') ||
-            label.startsWith('approved ') || label.startsWith('approved(');
-    }
-
-    @TestVisible
-    private static Map<String, Object> normalizeRecord(Map<String, Object> values) {
-        Object renewalValue = values.get('renewals');
-        Decimal renewalCount;
-        if (renewalValue != null && String.isNotBlank(String.valueOf(renewalValue))) {
-            String numericValue = String.valueOf(renewalValue).trim();
-            if (Pattern.matches('^[0-9]+([.][0-9]+)?$', numericValue)) {
-                renewalCount = Decimal.valueOf(numericValue);
-            }
-        }
-        return new Map<String, Object>{
-            'id' => values.get('id'),
-            'name' => asText(values.get('name')),
-            'status' => asText(values.get('status')),
-            'approvedDate' => values.get('approvedDate'),
-            'portfolio' => asText(values.get('portfolio')),
-            'domain' => asText(values.get('domain')),
-            'architect' => asText(values.get('architect')),
-            'standard' => asText(values.get('standard')),
-            'standardPortfolio' => asText(values.get('standardPortfolio')),
-            'standardDomain' => asText(values.get('standardDomain')),
-            'renewals' => renewalCount,
-            'renewalState' => asText(values.get('renewalState')),
-            'application' => asText(values.get('application'))
-        };
-    }
-
-    private static String asText(Object value) {
-        return value == null ? '' : String.valueOf(value).trim();
-    }
-}
+                <section class="card" aria-label="Waiver register">
+                    <div class="card-heading"><h2><span class="index">03</span> Waiver Register</h2><span class="note">{filteredCount} of {countDisplay} approved waivers · {linkedCount} matched applications</span></div>
+                    <div class="filters">
+                        <input class="search" type="search" value={searchText} oninput={handleSearch} aria-label="Search waivers" placeholder="Search waiver, standard, architect, domain…"/>
+                        <template lwc:if={isEnterpriseView}>
+                            <select aria-label="Filter requesting portfolio" value={selectedPortfolio} onchange={handlePortfolioFilter}>
+                                <option value="">All portfolios</option><template for:each={portfolioFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
+                            </select>
+                        </template>
+                        <select aria-label="Filter standard" value={selectedStandard} onchange={handleStandardFilter}>
+                            <option value="">All standards</option><template for:each={standardFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
+                        </select>
+                        <select aria-label="Filter renewal state" value={selectedRenewal} onchange={handleRenewalFilter}>
+                            <option value="">Any renewal state</option><template for:each={renewalFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
+                        </select>
+                        <lightning-button label="Reset" onclick={handleReset}></lightning-button>
+                    </div>
+                    <div class="table-scroll"><table>
+                        <thead><tr><template for:each={columns} for:item="column"><th key={column.key}><button class="sort-button" data-sort={column.key} onclick={handleSort}>{column.text}</button></th></template></tr></thead>
+                        <tbody><template for:each={pageRows} for:item="row">
+                            <tr key={row.id}>
+                                <td class="primary">{row.name}</td>
+                                <td>{row.portfolio}</td>
+                                <td>{row.domain}</td>
+                                <td><template lwc:if={row.hasStandard}><button class="text-link" data-standard={row.standard} onclick={handleStandardOpen}>{row.standard}</button></template><template lwc:else>—</template></td>
+                                <td><span class={row.renewalClass}>{row.renewalDisplay}</span></td>
+                                <td>{row.stateDisplay}</td>
+                                <td><template lwc:if={row.hasApplication}><button class="text-link" data-application={row.application} onclick={handleApplicationOpen}>{row.application}</button></template><template lwc:else><span title={row.matchState}>{row.application}</span></template></td>
+                                <td><span class={row.appHealthClass}>{row.appHealthDisplay}</span></td>
+                                <td>{row.architect}</td>
+                            </tr>
+                        </template></tbody>
+                    </table></div>
+                    <template lwc:if={showNoFilteredRows}><div class="notice">No waivers match the selected filters.</div></template>
+                    <div class="pager"><span>{pageLabel}</span><lightning-button label="Previous" onclick={handlePrevious} disabled={disablePrevious}></lightning-button><lightning-button label="Next" onclick={handleNext} disabled={disableNext}></lightning-button></div>
+                </section>
+                <p class="notice">Data quality: application health uses unique name matches within the selected assessment cycle, not a verified waiver-to-application key. Renewal/standard metrics appear only when readable Salesforce fields are found. The prototype export did not include expiry dates or compensating controls.</p>
+            </template>
+            <template lwc:else><div class="card empty">No approved architecture waivers were returned for this view. Verify waiver status values and user access in Salesforce.</div></template>
+        </template>
+    </section>
+</template>
