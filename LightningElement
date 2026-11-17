@@ -1,9 +1,4 @@
 {
-    label: 'Practice',
-    items: [
-        {
-            label: 'Waivers & Exceptions',
-            page: 'waivers'
-        }
-    ]
-},
+    value: 'waivers',
+    label: 'Waivers'
+}
