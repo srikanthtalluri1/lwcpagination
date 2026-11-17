@@ -1,104 +1,245 @@
-<template>
-    <section class="waivers-page">
-        <header class="pagehead">
-            <div class="eyebrow">Practice</div>
-            <h1>{title}</h1>
-            <p class="lede">Approved architecture waiver register from Salesforce. Portfolio and application health are matched to the currently selected assessment cycle when possible.</p>
-        </header>
+import { LightningElement, api } from 'lwc';
+import getApprovedWaivers from '@salesforce/apex/TpmArchitectureHubWaiverService.getApprovedWaivers';
 
-        <template lwc:if={loading}>
-            <div class="slds-is-relative load-area"><lightning-spinner alternative-text="Loading architecture waivers" size="medium"></lightning-spinner></div>
-        </template>
-        <template lwc:if={loadError}>
-            <div class="slds-notify slds-notify_alert slds-alert_error error" role="alert">
-                <span>{loadError}</span><lightning-button variant="neutral" label="Retry" onclick={handleRefresh}></lightning-button>
-            </div>
-        </template>
-        <template lwc:if={loaded}>
-            <template lwc:if={truncated}>
-                <div class="notice" role="status">Only the first 5,000 recent waiver records were checked. Metrics may be incomplete; add server pagination if needed.</div>
-            </template>
-            <template lwc:if={hasData}>
-                <section class="kpi-grid" aria-label="Waiver register metrics">
-                    <article class="kpi navy"><div class="eyebrow">Approved Waivers</div><strong>{countDisplay}</strong><small>active exceptions on record</small></article>
-                    <article class="kpi navy"><div class="eyebrow">Standards Waived</div><strong>{standardCount}</strong><small>distinct standards</small></article>
-                    <article class="kpi gold"><div class="eyebrow">Renewed At Least Once</div><strong>{renewedDisplay}</strong><small>{percentRenewed}</small></article>
-                    <article class="kpi red"><div class="eyebrow">Renewed 2+ Times</div><strong>{agingDisplay}</strong><small>entrenched exceptions</small></article>
-                    <article class="kpi red"><div class="eyebrow">On Unhealthy Apps</div><strong>{unhealthyDisplay}</strong><small>uniquely matched to Red assessments</small></article>
-                </section>
+const FORMAT = new Intl.NumberFormat('en-US');
+const COLS = [
+    { key: 'name', label: 'Waiver' },
+    { key: 'portfolio', label: 'Portfolio' },
+    { key: 'domain', label: 'Requesting Domain' },
+    { key: 'standard', label: 'Standard Waived' },
+    { key: 'renewals', label: 'Renewals' },
+    { key: 'renewalState', label: 'Renewal State' },
+    { key: 'application', label: 'Assessed Application' },
+    { key: 'appOverall', label: 'Health' },
+    { key: 'architect', label: 'Requesting Architect' }
+];
 
-                <section class="card" aria-label="Most-waived standards">
-                    <div class="card-heading"><h2><span class="index">01</span> Most-Waived Standards</h2><span class="note">Click a standard to filter the register</span></div>
-                    <template lwc:if={hasStandardData}>
-                        <template for:each={standardsSummary} for:item="standard">
-                            <button key={standard.key} class="standard-row" data-standard={standard.name} onclick={handleStandardOpen} title={standard.name}>
-                                <span class="standard-name">{standard.name}</span>
-                                <span class="bar-track"><span class="bar-fill" style={standard.style}></span></span>
-                                <strong>{standard.count}</strong><small>{standard.percent}%</small>
-                            </button>
-                        </template>
-                        <p class="notice">{topThreeSummary}</p>
-                    </template>
-                    <template lwc:else><p class="notice">No readable standard field is mapped. Confirm the Salesforce field API name before showing standard distribution.</p></template>
-                </section>
+export default class TpmArchitectureHubWaivers extends LightningElement {
+    @api applications = [];
+    @api portfolios = [];
+    @api portfolioName = '';
 
-                <template lwc:if={isPortfolioView}>
-                    <p class="notice">Showing approved waivers for {portfolioName}. Counts are based on the requesting portfolio recorded on each waiver.</p>
-                </template>
-                <template lwc:else>
-                    <section class="card" aria-label="Waivers by requesting portfolio">
-                        <div class="card-heading"><h2><span class="index">02</span> Waivers by Requesting Portfolio</h2><span class="note">Density uses the selected-cycle assessed application count</span></div>
-                        <div class="table-scroll"><table>
-                            <thead><tr><th>Portfolio</th><th>Waivers</th><th>Apps</th><th>Per 100 apps</th><th>Standards</th><th>2+ Renewals</th><th>Active Rnwl</th><th>Forecast Rnwl</th></tr></thead>
-                            <tbody><template for:each={portfolioSummary} for:item="p">
-                                <tr key={p.name}>
-                                    <td><template lwc:if={p.known}><button class="text-link" data-portfolio={p.name} onclick={handlePortfolioOpen}>{p.name}</button></template><template lwc:else>{p.name}</template></td>
-                                    <td>{p.count}</td><td>{p.appCount}</td><td>{p.perHundred}</td><td>{p.standards}</td><td>{p.aging}</td><td>{p.active}</td><td>{p.forecast}</td>
-                                </tr>
-                            </template></tbody>
-                        </table></div>
-                    </section>
-                </template>
+    rawRows = [];
+    loading = false;
+    loaded = false;
+    loadError = '';
+    truncated = false;
+    availableFields = [];
+    searchText = '';
+    selectedPortfolio = '';
+    selectedStandard = '';
+    selectedRenewal = '';
+    sortKey = 'renewals';
+    sortAscending = false;
+    page = 1;
+    pageSize = 25;
 
-                <section class="card" aria-label="Waiver register">
-                    <div class="card-heading"><h2><span class="index">03</span> Waiver Register</h2><span class="note">{filteredCount} of {countDisplay} approved waivers · {linkedCount} matched applications</span></div>
-                    <div class="filters">
-                        <input class="search" type="search" value={searchText} oninput={handleSearch} aria-label="Search waivers" placeholder="Search waiver, standard, architect, domain…"/>
-                        <template lwc:if={isEnterpriseView}>
-                            <select aria-label="Filter requesting portfolio" value={selectedPortfolio} onchange={handlePortfolioFilter}>
-                                <option value="">All portfolios</option><template for:each={portfolioFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
-                            </select>
-                        </template>
-                        <select aria-label="Filter standard" value={selectedStandard} onchange={handleStandardFilter}>
-                            <option value="">All standards</option><template for:each={standardFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
-                        </select>
-                        <select aria-label="Filter renewal state" value={selectedRenewal} onchange={handleRenewalFilter}>
-                            <option value="">Any renewal state</option><template for:each={renewalFilterOptions} for:item="name"><option key={name} value={name}>{name}</option></template>
-                        </select>
-                        <lightning-button label="Reset" onclick={handleReset}></lightning-button>
-                    </div>
-                    <div class="table-scroll"><table>
-                        <thead><tr><template for:each={columns} for:item="column"><th key={column.key}><button class="sort-button" data-sort={column.key} onclick={handleSort}>{column.text}</button></th></template></tr></thead>
-                        <tbody><template for:each={pageRows} for:item="row">
-                            <tr key={row.id}>
-                                <td class="primary">{row.name}</td>
-                                <td>{row.portfolio}</td>
-                                <td>{row.domain}</td>
-                                <td><template lwc:if={row.hasStandard}><button class="text-link" data-standard={row.standard} onclick={handleStandardOpen}>{row.standard}</button></template><template lwc:else>—</template></td>
-                                <td><span class={row.renewalClass}>{row.renewalDisplay}</span></td>
-                                <td>{row.stateDisplay}</td>
-                                <td><template lwc:if={row.hasApplication}><button class="text-link" data-application={row.application} onclick={handleApplicationOpen}>{row.application}</button></template><template lwc:else><span title={row.matchState}>{row.application}</span></template></td>
-                                <td><span class={row.appHealthClass}>{row.appHealthDisplay}</span></td>
-                                <td>{row.architect}</td>
-                            </tr>
-                        </template></tbody>
-                    </table></div>
-                    <template lwc:if={showNoFilteredRows}><div class="notice">No waivers match the selected filters.</div></template>
-                    <div class="pager"><span>{pageLabel}</span><lightning-button label="Previous" onclick={handlePrevious} disabled={disablePrevious}></lightning-button><lightning-button label="Next" onclick={handleNext} disabled={disableNext}></lightning-button></div>
-                </section>
-                <p class="notice">Data quality: application health uses unique name matches within the selected assessment cycle, not a verified waiver-to-application key. Renewal/standard metrics appear only when readable Salesforce fields are found. The prototype export did not include expiry dates or compensating controls.</p>
-            </template>
-            <template lwc:else><div class="card empty">No approved architecture waivers were returned for this view. Verify waiver status values and user access in Salesforce.</div></template>
-        </template>
-    </section>
-</template>
+    connectedCallback() {
+        this.loadWaivers();
+    }
+
+    loadWaivers() {
+        if (this.loading) return;
+        this.loading = true;
+        this.loadError = '';
+        getApprovedWaivers()
+            .then((result) => {
+                this.rawRows = Array.isArray(result?.rows) ? result.rows : [];
+                this.availableFields = Array.isArray(result?.availableFields) ? result.availableFields : [];
+                this.truncated = Boolean(result?.truncated);
+                this.loaded = true;
+                this.dispatchEvent(new CustomEvent('waiversloaded', { detail: { count: this.rawRows.length } }));
+            })
+            .catch((error) => {
+                this.rawRows = [];
+                this.loadError = error?.body?.message || error?.message || 'Unable to load the waiver register.';
+                this.loaded = false;
+            })
+            .finally(() => { this.loading = false; });
+    }
+
+    get isPortfolioView() { return Boolean(this.portfolioName); }
+    get isEnterpriseView() { return !this.isPortfolioView; }
+    get showNoFilteredRows() { return this.filteredRows.length === 0; }
+    get title() { return this.isPortfolioView ? 'Waivers Against This Portfolio' : 'Waivers & Exceptions'; }
+    get hasData() { return this.scopedRows.length > 0; }
+    get hasRenewalData() { return this.availableFields.includes('renewals') && this.rawRows.some((r) => r.renewals !== null && r.renewals !== undefined); }
+    get hasStandardData() { return this.availableFields.includes('standard') && this.rawRows.some((r) => Boolean(r.standard)); }
+    get hasRenewalStateData() { return this.availableFields.includes('renewalState') && this.rawRows.some((r) => Boolean(r.renewalState)); }
+
+    // Only match application names that occur exactly once in the selected assessment cycle.
+    // Do not invent a Salesforce application relationship when the waiver carries only text.
+    get applicationLookup() {
+        const byName = new Map();
+        for (const app of this.applications || []) {
+            const name = this.normalized(app?.name);
+            if (!name) continue;
+            if (!byName.has(name)) byName.set(name, []);
+            byName.get(name).push(app);
+        }
+        return byName;
+    }
+
+    get allRows() {
+        const appLookup = this.applicationLookup;
+        return this.rawRows.map((row) => {
+            const matches = appLookup.get(this.normalized(row.application)) || [];
+            const app = matches.length === 1 ? matches[0] : null;
+            const rating = this.asNumber(app?.overall);
+            const renewalCount = this.asNumber(row.renewals);
+            const linked = Boolean(app);
+            const healthBand = rating === null ? '' : rating < 2.5 ? 'Red' : rating < 3.5 ? 'Yellow' : 'Green';
+            return {
+                ...row,
+                name: row.name || 'Unnamed waiver',
+                portfolio: row.portfolio || '',
+                domain: row.domain || '',
+                standard: row.standard || '',
+                architect: row.architect || '',
+                application: row.application || '',
+                renewalState: row.renewalState || '',
+                renewals: renewalCount,
+                renewalDisplay: renewalCount === null ? '—' : renewalCount >= 2 ? `${renewalCount}× renewed` : renewalCount === 1 ? 'renewed once' : 'first term',
+                renewalClass: renewalCount === null ? 'pill muted' : renewalCount >= 2 ? 'pill danger' : renewalCount === 1 ? 'pill warning' : 'pill muted',
+                stateDisplay: row.renewalState || '—',
+                appOverall: rating,
+                appHealthDisplay: rating === null ? '—' : rating.toFixed(2),
+                appHealthClass: rating === null ? 'health neutral' : healthBand === 'Red' ? 'health red' : healthBand === 'Yellow' ? 'health yellow' : 'health green',
+                appBarr: linked ? (app.barr || '') : '',
+                matchedApplication: linked,
+                matchState: linked ? 'Matched by unique name' : 'Unmatched',
+                hasStandard: Boolean(row.standard),
+                hasApplication: linked && Boolean(row.application)
+            };
+        });
+    }
+
+    get scopedRows() {
+        const filter = this.normalized(this.portfolioName);
+        return filter ? this.allRows.filter((row) => this.normalized(row.portfolio) === filter) : this.allRows;
+    }
+
+    get countDisplay() { return FORMAT.format(this.scopedRows.length); }
+    get standardsSummary() {
+        const counts = new Map();
+        for (const row of this.scopedRows) {
+            if (row.standard) counts.set(row.standard, (counts.get(row.standard) || 0) + 1);
+        }
+        const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        const max = ranked.length ? ranked[0][1] : 1;
+        return ranked.map(([name, count]) => ({
+            name, count,
+            percent: this.scopedRows.length ? (count / this.scopedRows.length * 100).toFixed(1) : '0.0',
+            style: `width:${count / max * 100}%;`,
+            key: name
+        }));
+    }
+    get standardCount() { return FORMAT.format(this.standardsSummary.length); }
+    get renewedCount() { return this.scopedRows.filter((r) => r.renewals !== null && r.renewals >= 1).length; }
+    get agingCount() { return this.scopedRows.filter((r) => r.renewals !== null && r.renewals >= 2).length; }
+    get unhealthyCount() { return this.scopedRows.filter((r) => r.appHealthClass === 'health red').length; }
+    get linkedCount() { return this.scopedRows.filter((r) => r.matchedApplication).length; }
+    get renewedDisplay() { return this.hasRenewalData ? FORMAT.format(this.renewedCount) : '—'; }
+    get agingDisplay() { return this.hasRenewalData ? FORMAT.format(this.agingCount) : '—'; }
+    get unhealthyDisplay() { return FORMAT.format(this.unhealthyCount); }
+    get percentRenewed() { return this.scopedRows.length && this.hasRenewalData ? `${Math.round(this.renewedCount / this.scopedRows.length * 100)}% of register` : 'not available'; }
+    get topThreeSummary() {
+        const top = this.standardsSummary.slice(0, 3).reduce((n, item) => n + item.count, 0);
+        return this.scopedRows.length ? `Top 3 standards account for ${top} of ${this.scopedRows.length} waivers (${Math.round(top / this.scopedRows.length * 100)}%).` : '';
+    }
+
+    get portfolioSummary() {
+        const counts = new Map();
+        for (const row of this.allRows) {
+            const name = row.portfolio;
+            if (!name) continue;
+            if (!counts.has(name)) counts.set(name, []);
+            counts.get(name).push(row);
+        }
+        const assessments = new Map((this.portfolios || []).map((item) => [this.normalized(item.name), item]));
+        return [...counts.entries()].map(([name, records]) => {
+            const portfolio = assessments.get(this.normalized(name));
+            const apps = portfolio?.count ?? null;
+            const denominator = this.asNumber(apps);
+            const distinct = new Set(records.map((r) => r.standard).filter(Boolean));
+            return {
+                name, count: records.length,
+                appCount: denominator === null ? '—' : FORMAT.format(denominator),
+                perHundred: denominator ? (records.length / denominator * 100).toFixed(1) : '—',
+                standards: distinct.size,
+                aging: this.hasRenewalData ? records.filter((r) => r.renewals !== null && r.renewals >= 2).length : '—',
+                active: this.hasRenewalStateData ? records.filter((r) => this.normalized(r.renewalState) === 'active renewal').length : '—',
+                forecast: this.hasRenewalStateData ? records.filter((r) => this.normalized(r.renewalState) === 'forecasted renewal').length : '—',
+                known: Boolean(portfolio)
+            };
+        }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }
+
+    get portfolioFilterOptions() { return [...new Set(this.scopedRows.map((r) => r.portfolio).filter(Boolean))].sort(); }
+    get standardFilterOptions() { return [...new Set(this.scopedRows.map((r) => r.standard).filter(Boolean))].sort(); }
+    get renewalFilterOptions() { return [...new Set(this.scopedRows.map((r) => r.renewalState).filter(Boolean))].sort(); }
+    get filteredRows() {
+        const term = this.normalized(this.searchText);
+        const results = this.scopedRows.filter((row) => {
+            if (this.selectedPortfolio && row.portfolio !== this.selectedPortfolio) return false;
+            if (this.selectedStandard && row.standard !== this.selectedStandard) return false;
+            if (this.selectedRenewal && row.renewalState !== this.selectedRenewal) return false;
+            if (!term) return true;
+            return [row.name, row.portfolio, row.domain, row.standard, row.architect, row.application]
+                .some((v) => this.normalized(v).includes(term));
+        });
+        const field = this.sortKey;
+        const multiplier = this.sortAscending ? 1 : -1;
+        return results.sort((a, b) => {
+            const left = a[field], right = b[field];
+            if (field === 'renewals' || field === 'appOverall') {
+                const x = left === null ? -1 : left;
+                const y = right === null ? -1 : right;
+                return (x - y) * multiplier;
+            }
+            return String(left || '').localeCompare(String(right || '')) * multiplier;
+        });
+    }
+    get filteredCount() { return FORMAT.format(this.filteredRows.length); }
+    get pageRows() { return this.filteredRows.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+    get pages() { return Math.max(1, Math.ceil(this.filteredRows.length / this.pageSize)); }
+    get pageLabel() { return `Page ${this.page} of ${this.pages}`; }
+    get disablePrevious() { return this.page <= 1; }
+    get disableNext() { return this.page >= this.pages; }
+    get columns() {
+        return COLS.map((col) => ({...col,
+            text: this.sortKey === col.key ? `${col.label} ${this.sortAscending ? '▲' : '▼'}` : col.label
+        }));
+    }
+
+    handleSearch(event) { this.searchText = event.target.value || ''; this.page = 1; }
+    handlePortfolioFilter(event) { this.selectedPortfolio = event.target.value; this.page = 1; }
+    handleStandardFilter(event) { this.selectedStandard = event.target.value; this.page = 1; }
+    handleRenewalFilter(event) { this.selectedRenewal = event.target.value; this.page = 1; }
+    handleReset() { this.searchText = ''; this.selectedPortfolio = ''; this.selectedStandard = ''; this.selectedRenewal = ''; this.page = 1; }
+    handleSort(event) {
+        const key = event.currentTarget.dataset.sort;
+        if (!COLS.some((col) => col.key === key)) return;
+        if (this.sortKey === key) this.sortAscending = !this.sortAscending;
+        else { this.sortKey = key; this.sortAscending = true; }
+        this.page = 1;
+    }
+    handlePrevious() { this.page = Math.max(1, this.page - 1); }
+    handleNext() { this.page = Math.min(this.pages, this.page + 1); }
+    handleStandardOpen(event) { this.selectedStandard = event.currentTarget.dataset.standard || ''; this.page = 1; }
+    handlePortfolioOpen(event) {
+        const name = event.currentTarget.dataset.portfolio;
+        if (name) this.dispatchEvent(new CustomEvent('portfolionavigate', { detail: { name } }));
+    }
+    handleApplicationOpen(event) {
+        const name = event.currentTarget.dataset.application;
+        if (name) this.dispatchEvent(new CustomEvent('applicationnavigate', { detail: { name } }));
+    }
+    handleRefresh() { this.loadWaivers(); }
+    normalized(value) { return String(value || '').trim().toLocaleLowerCase(); }
+    asNumber(value) {
+        if (value === null || value === undefined || value === '') return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+}
