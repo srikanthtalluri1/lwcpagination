@@ -1,11 +1,47 @@
- const cycleSelect = this.template.querySelector(
-        '.cyclesel-select'
-    );
+showCouncilWarningAfterSave = false;
 
-    if (
-        cycleSelect &&
-        this.selectedCycle &&
-        cycleSelect.value !== this.selectedCycle
-    ) {
-        cycleSelect.value = this.selectedCycle;
+handleSubmit(event) {
+    event.preventDefault();
+
+    const fields = { ...event.detail.fields };
+
+    const isExistingRecord = !!this.recordId;
+    const firstEditCompleted =
+        fields.First_Edit_Completed__c === true;
+
+    this.showCouncilWarningAfterSave = false;
+
+    // Only the first edit after record creation
+    if (isExistingRecord && !firstEditCompleted) {
+
+        if (fields.Executive_Council_Awareness__c === 'No') {
+            this.showCouncilWarningAfterSave = true;
+        }
+
+        // Automatically mark the first edit as completed
+        fields.First_Edit_Completed__c = true;
     }
+
+    this.template
+        .querySelector('lightning-record-edit-form')
+        .submit(fields);
+}
+
+
+
+
+if (this.showCouncilWarningAfterSave) {
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Warning',
+            message: 'Executive Council Awareness is No. Please review before submitting for approval.',
+            variant: 'warning',
+            mode: 'pester'
+        })
+    );
+}
+
+this.showCouncilWarningAfterSave = false;
+
+
+this.showCouncilWarningAfterSave = false;
