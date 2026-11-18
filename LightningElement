@@ -1,32 +1,10 @@
-handleWaiversLoaded(event) {
-    this.approvedWaiverCount = Number(event.detail?.count) || 0;
-}
+const publishedCycle = this.availableCycles.find(
+    (cycle) =>
+        String(cycle.status || '')
+            .trim()
+            .toLowerCase() === 'published'
+);
 
-handleWaiverPortfolioOpen(event) {
-    const requested = String(
-        event.detail?.name || ''
-    ).trim().toLocaleLowerCase();
-
-    const match = this.visiblePortfolios.find(
-        (p) =>
-            String(p.name).trim().toLocaleLowerCase() === requested
-    );
-
-    if (!match) return;
-
-    this.selectedPortfolioName = match.name;
-    this.selectedPortfolioTab = 'waivers';
-    this.currentPage = 'portfolios';
-    this._pendingPortfolioScroll = true;
-}
-
-handleWaiverApplicationOpen(event) {
-    const name = String(event.detail?.name || '').trim();
-
-    if (!name) return;
-
-    this.applicationSearch = name;
-    this.explorerPage = 1;
-    this.currentPage = 'applications';
-    this.loadAssessmentData();
-}
+this.selectedCycle = publishedCycle
+    ? publishedCycle.period
+    : this.availableCycles[0].period;
