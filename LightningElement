@@ -1,3 +1,8 @@
+<lightning-input-field
+    field-name="First_Edit_Completed__c"
+    class="slds-hide">
+</lightning-input-field>
+
 showCouncilWarningAfterSave = false;
 
 handleSubmit(event) {
