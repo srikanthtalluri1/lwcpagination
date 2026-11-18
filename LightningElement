@@ -1,54 +1,83 @@
-// Submit each form
-forms.forEach((form) => {
-    try {
-        const firstEditField = form.querySelector(
-            'lightning-input-field[field-name="TechnologyDecision_First_Edit_Completed__c"]'
+import { updateRecord } from 'lightning/uiRecordApi';
+
+import FIRST_EDIT_FIELD from
+    '@salesforce/schema/TechnologyDecision__c.TechnologyDecision_First_Edit_Completed__c';
+
+
+markFirstEditCompletedAfterSave = false;
+
+
+const firstEditField = form.querySelector(
+    'lightning-input-field[field-name="TechnologyDecision_First_Edit_Completed__c"]'
+);
+
+if (firstEditField) {
+    const alreadyCompleted =
+        firstEditField.value === true ||
+        firstEditField.value === 'true';
+
+    if (!alreadyCompleted) {
+        this.markFirstEditCompletedAfterSave = true;
+
+        const councilField = form.querySelector(
+            'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
         );
 
-        if (firstEditField) {
-            const alreadyCompleted =
-                firstEditField.value === true ||
-                firstEditField.value === 'true';
-
-            if (!alreadyCompleted) {
-                const councilField = form.querySelector(
-                    'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
-                );
-
-                this.showCouncilWarningAfterSave =
-                    councilField?.value === 'No';
-
-                // Automatically update checkbox
-                firstEditField.value = true;
-            }
-        }
-
-        // Submit form
-        form.submit();
-
-    } catch (e) {
-        this.handleError({
-            detail: { message: e?.message }
-        });
+        this.showCouncilWarningAfterSave =
+            councilField?.value === 'No';
     }
-});
+}
+
+// Keep existing save
+form.submit();
 
 
-
-handleSuccess = (evt) => {
+handleSuccess = async (evt) => {
 
     if (this.pendingSaves > 0) {
         this.pendingSaves -= 1;
     }
 
-    if (this.pendingSaves === 0) {
+    // Wait until all forms save successfully
+    if (this.pendingSaves !== 0) {
+        return;
+    }
 
-        this.isLoading = false;
-        this.disablingButton = false;
-        this.isFooterShow = false;
-        this.editClick = false;
+    const shouldShowWarning =
+        this.showCouncilWarningAfterSave;
 
-        // Existing success toast
+    let trackingUpdated = true;
+
+    try {
+        // Only first edit: update checkbox separately
+        if (this.markFirstEditCompletedAfterSave) {
+            await updateRecord({
+                fields: {
+                    Id: this.recordId,
+                    [FIRST_EDIT_FIELD.fieldApiName]: true
+                }
+            });
+        }
+    } catch (error) {
+        trackingUpdated = false;
+
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Tracking Update Failed',
+                message: 'Decision fields were saved, but the first-edit flag could not be updated.',
+                variant: 'error'
+            })
+        );
+
+        console.error('First edit update failed:', error);
+    }
+
+    this.isLoading = false;
+    this.disablingButton = false;
+    this.isFooterShow = false;
+    this.editClick = false;
+
+    if (trackingUpdated) {
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'Saved',
@@ -57,9 +86,7 @@ handleSuccess = (evt) => {
             })
         );
 
-        // Warning only on first successful edit
-        if (this.showCouncilWarningAfterSave) {
-
+        if (shouldShowWarning) {
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Warning',
@@ -69,19 +96,19 @@ handleSuccess = (evt) => {
                 })
             );
         }
+    }
 
-        // Reset warning flag
-        this.showCouncilWarningAfterSave = false;
+    this.showCouncilWarningAfterSave = false;
+    this.markFirstEditCompletedAfterSave = false;
 
-        // Existing refresh functionality
-        this.refs?.highlight?.refreshdata?.();
+    // Existing refresh functionality
+    this.refs?.highlight?.refreshdata?.();
 
-        const child = this.template.querySelector(
-            'c-technology-decision-custom-path'
-        );
+    const child = this.template.querySelector(
+        'c-technology-decision-custom-path'
+    );
 
-        if (child) {
-            child.callfetchRecords();
-        }
+    if (child) {
+        child.callfetchRecords();
     }
 };
