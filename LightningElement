@@ -1,10 +1,11 @@
-const publishedCycle = this.availableCycles.find(
-    (cycle) =>
-        String(cycle.status || '')
-            .trim()
-            .toLowerCase() === 'published'
-);
+ const cycleSelect = this.template.querySelector(
+        '.cyclesel-select'
+    );
 
-this.selectedCycle = publishedCycle
-    ? publishedCycle.period
-    : this.availableCycles[0].period;
+    if (
+        cycleSelect &&
+        this.selectedCycle &&
+        cycleSelect.value !== this.selectedCycle
+    ) {
+        cycleSelect.value = this.selectedCycle;
+    }
