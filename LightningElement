@@ -1,44 +1,4 @@
-const firstEditField = form.querySelector(
-    'lightning-input-field[field-name="First_Edit_Completed__c"]'
-);
 
-if (firstEditField) {
-    const alreadyCompleted =
-        firstEditField.value === true ||
-        firstEditField.value === 'true';
+sriikalluri@gmail.com
 
-    if (!alreadyCompleted) {
-        const councilField = form.querySelector(
-            'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
-        );
-
-        this.showCouncilWarningAfterSave =
-            councilField?.value === 'No';
-
-        firstEditField.value = true;
-    }
-}
-
-// Keep the existing submission
-form.submit();
-
-
-const savedForm = event.target;
-
-if (
-    this.showCouncilWarningAfterSave &&
-    savedForm?.querySelector(
-        'lightning-input-field[field-name="First_Edit_Completed__c"]'
-    )
-) {
-    this.showCouncilWarningAfterSave = false;
-
-    this.dispatchEvent(
-        new ShowToastEvent({
-            title: 'Warning',
-            message: 'Executive Council Awareness is No. Please review before submitting for approval.',
-            variant: 'warning',
-            mode: 'pester'
-        })
-    );
-}
+Paamdata@1993
