@@ -1,4 +1,87 @@
+// Submit each form
+forms.forEach((form) => {
+    try {
+        const firstEditField = form.querySelector(
+            'lightning-input-field[field-name="TechnologyDecision_First_Edit_Completed__c"]'
+        );
 
-sriikalluri@gmail.com
+        if (firstEditField) {
+            const alreadyCompleted =
+                firstEditField.value === true ||
+                firstEditField.value === 'true';
 
-Paamdata@1993
+            if (!alreadyCompleted) {
+                const councilField = form.querySelector(
+                    'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
+                );
+
+                this.showCouncilWarningAfterSave =
+                    councilField?.value === 'No';
+
+                // Automatically update checkbox
+                firstEditField.value = true;
+            }
+        }
+
+        // Submit form
+        form.submit();
+
+    } catch (e) {
+        this.handleError({
+            detail: { message: e?.message }
+        });
+    }
+});
+
+
+
+handleSuccess = (evt) => {
+
+    if (this.pendingSaves > 0) {
+        this.pendingSaves -= 1;
+    }
+
+    if (this.pendingSaves === 0) {
+
+        this.isLoading = false;
+        this.disablingButton = false;
+        this.isFooterShow = false;
+        this.editClick = false;
+
+        // Existing success toast
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Saved',
+                message: 'Record changes saved successfully.',
+                variant: 'success'
+            })
+        );
+
+        // Warning only on first successful edit
+        if (this.showCouncilWarningAfterSave) {
+
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Warning',
+                    message: 'Executive Council Awareness is No. Please review before submitting for approval.',
+                    variant: 'warning',
+                    mode: 'pester'
+                })
+            );
+        }
+
+        // Reset warning flag
+        this.showCouncilWarningAfterSave = false;
+
+        // Existing refresh functionality
+        this.refs?.highlight?.refreshdata?.();
+
+        const child = this.template.querySelector(
+            'c-technology-decision-custom-path'
+        );
+
+        if (child) {
+            child.callfetchRecords();
+        }
+    }
+};
