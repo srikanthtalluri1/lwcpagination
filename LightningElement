@@ -1,41 +1,38 @@
-<lightning-input-field
-    field-name="First_Edit_Completed__c"
-    class="slds-hide">
-</lightning-input-field>
+const firstEditField = form.querySelector(
+    'lightning-input-field[field-name="First_Edit_Completed__c"]'
+);
 
-showCouncilWarningAfterSave = false;
+if (firstEditField) {
+    const alreadyCompleted =
+        firstEditField.value === true ||
+        firstEditField.value === 'true';
 
-handleSubmit(event) {
-    event.preventDefault();
+    if (!alreadyCompleted) {
+        const councilField = form.querySelector(
+            'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
+        );
 
-    const fields = { ...event.detail.fields };
+        this.showCouncilWarningAfterSave =
+            councilField?.value === 'No';
 
-    const isExistingRecord = !!this.recordId;
-    const firstEditCompleted =
-        fields.First_Edit_Completed__c === true;
-
-    this.showCouncilWarningAfterSave = false;
-
-    // Only the first edit after record creation
-    if (isExistingRecord && !firstEditCompleted) {
-
-        if (fields.Executive_Council_Awareness__c === 'No') {
-            this.showCouncilWarningAfterSave = true;
-        }
-
-        // Automatically mark the first edit as completed
-        fields.First_Edit_Completed__c = true;
+        firstEditField.value = true;
     }
-
-    this.template
-        .querySelector('lightning-record-edit-form')
-        .submit(fields);
 }
 
+// Keep the existing submission
+form.submit();
 
 
+const savedForm = event.target;
 
-if (this.showCouncilWarningAfterSave) {
+if (
+    this.showCouncilWarningAfterSave &&
+    savedForm?.querySelector(
+        'lightning-input-field[field-name="First_Edit_Completed__c"]'
+    )
+) {
+    this.showCouncilWarningAfterSave = false;
+
     this.dispatchEvent(
         new ShowToastEvent({
             title: 'Warning',
@@ -45,8 +42,3 @@ if (this.showCouncilWarningAfterSave) {
         })
     );
 }
-
-this.showCouncilWarningAfterSave = false;
-
-
-this.showCouncilWarningAfterSave = false;
