@@ -1,33 +1,71 @@
- @AuraEnabled
-    public static Boolean completeFirstEdit(Id decisionId) {
 
-        if (decisionId == null) {
-            return false;
-        }
+handleSuccess = async (evt) => {
 
-        TechnologyDecision__c decision = [
-            SELECT Id,
-                   TechnologyDecision_First_Edit_Completed__c,
-                   Executive_Council_Awareness__c
-            FROM TechnologyDecision__c
-            WHERE Id = :decisionId
-            LIMIT 1
-            FOR UPDATE
-        ];
+    if (this.pendingSaves <= 0) return;
 
-        // Already completed first edit
-        if (decision.TechnologyDecision_First_Edit_Completed__c == true) {
-            return false;
-        }
+    this.pendingSaves -= 1;
 
-        // Determine whether warning is needed
-        Boolean showWarning =
-            decision.Executive_Council_Awareness__c == 'No';
+    // Wait for all accordion forms
+    if (this.pendingSaves > 0) return;
 
-        // Mark first edit completed
-        decision.TechnologyDecision_First_Edit_Completed__c = true;
-
-        update decision;
-
-        return showWarning;
+    // Do not update first-edit tracking if any form failed
+    if (this.hasSaveError) {
+        this.isLoading = false;
+        this.disablingButton = false;
+        return;
     }
+
+    let toastTitle = 'Saved';
+    let toastMessage = 'Record changes saved successfully.';
+    let toastVariant = 'success';
+
+    try {
+        // Apex updates checkbox and returns Boolean
+        const showWarning = await completeFirstEdit({
+            decisionId: this.recordId
+        });
+
+        console.log('Apex show warning:', showWarning);
+
+        if (showWarning === true) {
+            toastTitle = 'Saved with Warning';
+            toastMessage =
+                'Executive Council Awareness is No. Please review before submitting for approval.';
+            toastVariant = 'warning';
+        }
+
+    } catch (error) {
+        console.error('First edit Apex failed:', error);
+
+        toastTitle = 'Tracking Update Failed';
+        toastMessage =
+            'Record changes were saved, but first-edit tracking failed.';
+        toastVariant = 'error';
+    }
+
+    this.isLoading = false;
+    this.disablingButton = false;
+    this.isFooterShow = false;
+    this.editClick = false;
+
+    // Show one toast based on Apex result
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: toastTitle,
+            message: toastMessage,
+            variant: toastVariant,
+            mode: toastVariant === 'error' ? 'sticky' : 'pester'
+        })
+    );
+
+    // Preserve existing refresh functionality
+    this.refs?.highlight?.refreshdata?.();
+
+    const child = this.template.querySelector(
+        'c-technology-decision-custom-path'
+    );
+
+    if (child) {
+        child.callfetchRecords();
+    }
+};
