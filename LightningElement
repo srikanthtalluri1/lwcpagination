@@ -1,114 +1,33 @@
-import { updateRecord } from 'lightning/uiRecordApi';
+ @AuraEnabled
+    public static Boolean completeFirstEdit(Id decisionId) {
 
-import FIRST_EDIT_FIELD from
-    '@salesforce/schema/TechnologyDecision__c.TechnologyDecision_First_Edit_Completed__c';
-
-
-markFirstEditCompletedAfterSave = false;
-
-
-const firstEditField = form.querySelector(
-    'lightning-input-field[field-name="TechnologyDecision_First_Edit_Completed__c"]'
-);
-
-if (firstEditField) {
-    const alreadyCompleted =
-        firstEditField.value === true ||
-        firstEditField.value === 'true';
-
-    if (!alreadyCompleted) {
-        this.markFirstEditCompletedAfterSave = true;
-
-        const councilField = form.querySelector(
-            'lightning-input-field[field-name="Executive_Council_Awareness__c"]'
-        );
-
-        this.showCouncilWarningAfterSave =
-            councilField?.value === 'No';
-    }
-}
-
-// Keep existing save
-form.submit();
-
-
-handleSuccess = async (evt) => {
-
-    if (this.pendingSaves > 0) {
-        this.pendingSaves -= 1;
-    }
-
-    // Wait until all forms save successfully
-    if (this.pendingSaves !== 0) {
-        return;
-    }
-
-    const shouldShowWarning =
-        this.showCouncilWarningAfterSave;
-
-    let trackingUpdated = true;
-
-    try {
-        // Only first edit: update checkbox separately
-        if (this.markFirstEditCompletedAfterSave) {
-            await updateRecord({
-                fields: {
-                    Id: this.recordId,
-                    [FIRST_EDIT_FIELD.fieldApiName]: true
-                }
-            });
+        if (decisionId == null) {
+            return false;
         }
-    } catch (error) {
-        trackingUpdated = false;
 
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Tracking Update Failed',
-                message: 'Decision fields were saved, but the first-edit flag could not be updated.',
-                variant: 'error'
-            })
-        );
+        TechnologyDecision__c decision = [
+            SELECT Id,
+                   TechnologyDecision_First_Edit_Completed__c,
+                   Executive_Council_Awareness__c
+            FROM TechnologyDecision__c
+            WHERE Id = :decisionId
+            LIMIT 1
+            FOR UPDATE
+        ];
 
-        console.error('First edit update failed:', error);
-    }
-
-    this.isLoading = false;
-    this.disablingButton = false;
-    this.isFooterShow = false;
-    this.editClick = false;
-
-    if (trackingUpdated) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Saved',
-                message: 'Record changes saved successfully.',
-                variant: 'success'
-            })
-        );
-
-        if (shouldShowWarning) {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Warning',
-                    message: 'Executive Council Awareness is No. Please review before submitting for approval.',
-                    variant: 'warning',
-                    mode: 'pester'
-                })
-            );
+        // Already completed first edit
+        if (decision.TechnologyDecision_First_Edit_Completed__c == true) {
+            return false;
         }
+
+        // Determine whether warning is needed
+        Boolean showWarning =
+            decision.Executive_Council_Awareness__c == 'No';
+
+        // Mark first edit completed
+        decision.TechnologyDecision_First_Edit_Completed__c = true;
+
+        update decision;
+
+        return showWarning;
     }
-
-    this.showCouncilWarningAfterSave = false;
-    this.markFirstEditCompletedAfterSave = false;
-
-    // Existing refresh functionality
-    this.refs?.highlight?.refreshdata?.();
-
-    const child = this.template.querySelector(
-        'c-technology-decision-custom-path'
-    );
-
-    if (child) {
-        child.callfetchRecords();
-    }
-};
