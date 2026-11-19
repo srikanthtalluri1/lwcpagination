@@ -1,17 +1,18 @@
 
+
 <template if:true={isLoading}>
-    <div class="slds-align_absolute-center"
-         style="height: 120px;">
+    <div class="paam-loading-overlay">
         <lightning-spinner
             alternative-text="Loading records"
             size="medium">
         </lightning-spinner>
-    </div>
 
-    <p class="slds-text-align_center slds-m-top_small">
-        Please wait, records are loading...
-    </p>
+        <p class="paam-loading-message">
+            Connecting the layers and crunching the numbers...
+        </p>
+    </div>
 </template>
+
 
 
 
