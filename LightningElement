@@ -1,71 +1,42 @@
 
-handleSuccess = async (evt) => {
+<template if:true={isLoading}>
+    <div class="slds-align_absolute-center"
+         style="height: 120px;">
+        <lightning-spinner
+            alternative-text="Loading records"
+            size="medium">
+        </lightning-spinner>
+    </div>
 
-    if (this.pendingSaves <= 0) return;
+    <p class="slds-text-align_center slds-m-top_small">
+        Please wait, records are loading...
+    </p>
+</template>
 
-    this.pendingSaves -= 1;
 
-    // Wait for all accordion forms
-    if (this.pendingSaves > 0) return;
 
-    // Do not update first-edit tracking if any form failed
-    if (this.hasSaveError) {
-        this.isLoading = false;
-        this.disablingButton = false;
-        return;
-    }
+.paam-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
-    let toastTitle = 'Saved';
-    let toastMessage = 'Record changes saved successfully.';
-    let toastVariant = 'success';
+.paam-loading-overlay lightning-spinner {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 70px;
+}
 
-    try {
-        // Apex updates checkbox and returns Boolean
-        const showWarning = await completeFirstEdit({
-            decisionId: this.recordId
-        });
-
-        console.log('Apex show warning:', showWarning);
-
-        if (showWarning === true) {
-            toastTitle = 'Saved with Warning';
-            toastMessage =
-                'Executive Council Awareness is No. Please review before submitting for approval.';
-            toastVariant = 'warning';
-        }
-
-    } catch (error) {
-        console.error('First edit Apex failed:', error);
-
-        toastTitle = 'Tracking Update Failed';
-        toastMessage =
-            'Record changes were saved, but first-edit tracking failed.';
-        toastVariant = 'error';
-    }
-
-    this.isLoading = false;
-    this.disablingButton = false;
-    this.isFooterShow = false;
-    this.editClick = false;
-
-    // Show one toast based on Apex result
-    this.dispatchEvent(
-        new ShowToastEvent({
-            title: toastTitle,
-            message: toastMessage,
-            variant: toastVariant,
-            mode: toastVariant === 'error' ? 'sticky' : 'pester'
-        })
-    );
-
-    // Preserve existing refresh functionality
-    this.refs?.highlight?.refreshdata?.();
-
-    const child = this.template.querySelector(
-        'c-technology-decision-custom-path'
-    );
-
-    if (child) {
-        child.callfetchRecords();
-    }
-};
+.paam-loading-message {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #444;
+    text-align: center;
+}
