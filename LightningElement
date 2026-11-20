@@ -1,43 +1,6 @@
-
-
-<template if:true={isLoading}>
-    <div class="paam-loading-overlay">
-        <lightning-spinner
-            alternative-text="Loading records"
-            size="medium">
-        </lightning-spinner>
-
-        <p class="paam-loading-message">
-            Connecting the layers and crunching the numbers...
-        </p>
-    </div>
-</template>
-
-
-
-
-.paam-loading-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.paam-loading-overlay lightning-spinner {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 70px;
-}
-
-.paam-loading-message {
-    margin-top: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #444;
-    text-align: center;
+.paam-table thead th button i {
+    font-style: italic !important;
+    text-transform: none !important;
+    font-weight: 400;
+    letter-spacing: normal;
 }
