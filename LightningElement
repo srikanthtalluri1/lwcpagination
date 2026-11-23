@@ -1,1 +1,11 @@
-this.updateStatusStageDisplay();
+async handleActionSuccess() {
+    this.closeModal();
+
+    try {
+        await notifyRecordUpdateAvailable([
+            { recordId: this.recordId }
+        ]);
+    } catch (error) {
+        console.error('Record refresh failed:', error);
+    }
+}
