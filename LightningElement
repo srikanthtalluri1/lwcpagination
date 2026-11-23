@@ -1,22 +1,52 @@
-import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
+@wire(getApprovals, { decisionId: '$recordId' })
+wiredApprovals(result) {
 
+    // New: Store wire result for refresh
+    this.wiredApprovalsResult = result;
 
-// Notify Lightning Data Service after successful Save
-try {
-    await notifyRecordUpdateAvailable([
-        { recordId: this.recordId }
-    ]);
-} catch (error) {
-    console.error('Record notification failed:', error);
+    const { data, error } = result;
+
+    let contactsArray = [];
+
+    if (data) {
+        for (let row of data) {
+            const flattenedRow = {};
+            let rowKeys = Object.keys(row);
+
+            rowKeys.forEach((rowKey) => {
+                const singleNodeValue = row[rowKey];
+
+                if (singleNodeValue.constructor === Object) {
+                    this._flatten(
+                        singleNodeValue,
+                        flattenedRow,
+                        rowKey
+                    );
+                } else {
+                    flattenedRow[rowKey] = singleNodeValue;
+                }
+            });
+
+            contactsArray.push(flattenedRow);
+        }
+
+        this.data = contactsArray;
+        this.error = undefined;
+
+    } else if (error) {
+        this.data = undefined;
+        this.error = error;
+    }
 }
 
-// Preserve existing refresh functionality
-this.refs?.highlight?.refreshdata?.();
 
-const child = this.template.querySelector(
-    'c-technology-decision-custom-path'
-);
 
-if (child) {
-    child.callfetchRecords();
+
+@api
+fetchAcknowlegedRecords() {
+    if (this.wiredApprovalsResult) {
+        return refreshApex(this.wiredApprovalsResult);
+    }
+
+    return Promise.resolve();
 }
