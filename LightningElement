@@ -1,9 +1,43 @@
-import {
-    getRecord,
-    getFieldValue,
-    notifyRecordUpdateAvailable
-} from 'lightning/uiRecordApi';
+latestStatus;
+latestStage;
 
+@wire(getRecord, {
+    recordId: '$recordId',
+    fields: [STATUS_FIELD, STAGE_FIELD]
+})
+wiredStatusStage({ data, error }) {
+    if (data) {
+        this.latestStatus = getFieldValue(data, STATUS_FIELD);
+        this.latestStage = getFieldValue(data, STAGE_FIELD);
 
-import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
-import STAGE_FIELD from '@salesforce/schema/TechnologyDecision__c.Stage__c';
+        this.updateStatusStageDisplay();
+    } else if (error) {
+        console.error('Status/Stage wire error:', error);
+    }
+}
+
+updateStatusStageDisplay() {
+    if (!this.fieldEntries || !this.fieldEntries.length) {
+        return;
+    }
+
+    this.fieldEntries = this.fieldEntries.map(field => {
+        if (field.label === 'Status' && this.latestStatus !== undefined) {
+            return {
+                ...field,
+                value: this.latestStatus,
+                displayValue: this.latestStatus ?? ''
+            };
+        }
+
+        if (field.label === 'Stage' && this.latestStage !== undefined) {
+            return {
+                ...field,
+                value: this.latestStage,
+                displayValue: this.latestStage ?? ''
+            };
+        }
+
+        return field;
+    });
+}
