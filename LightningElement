@@ -1,11 +1,22 @@
-async handleActionSuccess() {
-    this.closeModal();
+import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 
-    try {
-        await notifyRecordUpdateAvailable([
-            { recordId: this.recordId }
-        ]);
-    } catch (error) {
-        console.error('Record refresh failed:', error);
-    }
+
+// Notify Lightning Data Service after successful Save
+try {
+    await notifyRecordUpdateAvailable([
+        { recordId: this.recordId }
+    ]);
+} catch (error) {
+    console.error('Record notification failed:', error);
+}
+
+// Preserve existing refresh functionality
+this.refs?.highlight?.refreshdata?.();
+
+const child = this.template.querySelector(
+    'c-technology-decision-custom-path'
+);
+
+if (child) {
+    child.callfetchRecords();
 }
