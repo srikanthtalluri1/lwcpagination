@@ -1,6 +1,9 @@
-.paam-table thead th button i {
-    font-style: italic !important;
-    text-transform: none !important;
-    font-weight: 400;
-    letter-spacing: normal;
-}
+import {
+    getRecord,
+    getFieldValue,
+    notifyRecordUpdateAvailable
+} from 'lightning/uiRecordApi';
+
+
+import STATUS_FIELD from '@salesforce/schema/TechnologyDecision__c.Status__c';
+import STAGE_FIELD from '@salesforce/schema/TechnologyDecision__c.Stage__c';
