@@ -5,7 +5,6 @@ wiredApprovals(result) {
     this.wiredApprovalsResult = result;
 
     const { data, error } = result;
-
     let contactsArray = [];
 
     if (data) {
@@ -38,8 +37,6 @@ wiredApprovals(result) {
         this.error = error;
     }
 }
-
-
 
 
 @api
