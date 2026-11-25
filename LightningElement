@@ -1,49 +1,6 @@
 @wire(getApprovals, { decisionId: '$recordId' })
 wiredApprovals(result) {
-
-    // New: Store wire result for refresh
     this.wiredApprovalsResult = result;
 
     const { data, error } = result;
     let contactsArray = [];
-
-    if (data) {
-        for (let row of data) {
-            const flattenedRow = {};
-            let rowKeys = Object.keys(row);
-
-            rowKeys.forEach((rowKey) => {
-                const singleNodeValue = row[rowKey];
-
-                if (singleNodeValue.constructor === Object) {
-                    this._flatten(
-                        singleNodeValue,
-                        flattenedRow,
-                        rowKey
-                    );
-                } else {
-                    flattenedRow[rowKey] = singleNodeValue;
-                }
-            });
-
-            contactsArray.push(flattenedRow);
-        }
-
-        this.data = contactsArray;
-        this.error = undefined;
-
-    } else if (error) {
-        this.data = undefined;
-        this.error = error;
-    }
-}
-
-
-@api
-fetchAcknowlegedRecords() {
-    if (this.wiredApprovalsResult) {
-        return refreshApex(this.wiredApprovalsResult);
-    }
-
-    return Promise.resolve();
-}
