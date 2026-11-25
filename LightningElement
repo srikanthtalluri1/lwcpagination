@@ -1,6 +1,8 @@
-@wire(getApprovals, { decisionId: '$recordId' })
-wiredApprovals(result) {
-    this.wiredApprovalsResult = result;
+@api
+fetchAcknowlegedRecords() {
+    if (this.wiredApprovalsResult) {
+        return refreshApex(this.wiredApprovalsResult);
+    }
 
-    const { data, error } = result;
-    let contactsArray = [];
+    return Promise.resolve();
+}
