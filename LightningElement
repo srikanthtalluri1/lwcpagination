@@ -1,8 +1,35 @@
-@api
-fetchAcknowlegedRecords() {
-    if (this.wiredApprovalsResult) {
-        return refreshApex(this.wiredApprovalsResult);
+handleTabChange(event) {
+
+    if (event.target.value === 'history' &&
+        this.historyRecords.length === 0) {
+        this.fetchHistoryRecords();
     }
 
-    return Promise.resolve();
+    if (event.target.value === 'acknowldgement') {
+        this.tabName = event.target.value;
+
+        // Wait for the active tab's child component to render
+        requestAnimationFrame(() => {
+            const child = this.template.querySelector(
+                'c-technology-decision-acknowldgement'
+            );
+
+            if (child) {
+                child.fetchAcknowlegedRecords().catch(error => {
+                    console.error(
+                        'Acknowledgement refresh failed:',
+                        error
+                    );
+                });
+            }
+        });
+    }
+
+    if (event.target.value === 'approval') {
+        this.tabName = event.target.value;
+
+        this.template.querySelector(
+            'c-technology-decision-approval'
+        )?.fetchAcknowlegedRecords();
+    }
 }
