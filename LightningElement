@@ -4,3 +4,13 @@ wiredApprovals(result) {
 
     const { data, error } = result;
     let contactsArray = [];
+
+
+@api
+fetchAcknowlegedRecords() {
+    if (this.wiredApprovalsResult) {
+        return refreshApex(this.wiredApprovalsResult);
+    }
+
+    return Promise.resolve();
+}
