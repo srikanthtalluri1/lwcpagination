@@ -1,16 +1,18 @@
-@wire(getApprovals, { decisionId: '$recordId' })
-wiredApprovals(result) {
-    this.wiredApprovalsResult = result;
+if (event.target.value === 'approval') {
+    this.tabName = event.target.value;
 
-    const { data, error } = result;
-    let contactsArray = [];
+    requestAnimationFrame(() => {
+        const child = this.template.querySelector(
+            'c-technology-decision-approval'
+        );
 
-
-@api
-fetchAcknowlegedRecords() {
-    if (this.wiredApprovalsResult) {
-        return refreshApex(this.wiredApprovalsResult);
-    }
-
-    return Promise.resolve();
+        if (child) {
+            child.fetchAcknowlegedRecords().catch(error => {
+                console.error(
+                    'Approval refresh failed:',
+                    error
+                );
+            });
+        }
+    });
 }
