@@ -1,18 +1,4 @@
-if (event.target.value === 'approval') {
-    this.tabName = event.target.value;
-
-    requestAnimationFrame(() => {
-        const child = this.template.querySelector(
-            'c-technology-decision-approval'
-        );
-
-        if (child) {
-            child.fetchAcknowlegedRecords().catch(error => {
-                console.error(
-                    'Approval refresh failed:',
-                    error
-                );
-            });
-        }
+this.template.querySelectorAll('lightning-input-field')
+    .forEach(field => {
+        console.log(field.fieldName, field.value);
     });
-}
